@@ -419,6 +419,19 @@ main:focus,main:focus-visible{outline:none}
   .btn:hover,.door:hover,.ncard:hover .ncover{transform:none}
   .vw[data-vm="page"] .vin,.vtop,.vbot,.vset{transition:none}
 }
+
+/* 소설 뷰어: 원본 스타일 */
+.vin .gap{height:1.9em}
+.vin p.hd{font-weight:700;margin-top:1.4em}
+.vin p.h1{font-size:1.25em}.vin p.h2{font-size:1.12em}.vin p.h3{font-size:1.04em}
+.vin p:empty{display:none}
+.ncover.gen{border-color:var(--ink)}
+.ncover.gen .gt{padding:0 14px;text-align:center;color:#fff;font-family:var(--display);font-size:26px;line-height:1.25;text-wrap:balance;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+
+.vin .fig{margin:1.4em 0}
+.vin .fig img{max-width:100%;height:auto;display:inline-block;border-radius:2px;background:rgba(127,127,127,.15)}
+.vin .imgfail{font-size:.8em;color:var(--vsub)}
+.vw[data-vm="page"] .vin .fig{break-inside:avoid}
 </style>
 </head>
 <body>
@@ -471,6 +484,9 @@ main:focus,main:focus-visible{outline:none}
    콘텐츠 (여기만 고치면 사이트 내용이 바뀝니다)
    ===================================================================== */
 const COVER = "assets/cover.webp";
+/* 구글 시트 백엔드 주소. 비워 두면 '이 브라우저에만 저장'되는 시험 모드로 동작해요. */
+const API_URL = "https://script.google.com/macros/s/AKfycbwiqBmXVY2nDlmyokpaDUxBxEezhbPRvYtKBA-kjVrHK0VU4pktS77wgRv9aN_ZWeTj/exec";
+const REMOTE = !!API_URL;
 const G_VIDEO = "assets/game-capsule.mp4", G_POSTER = "assets/game-poster.webp", G_ICON = "assets/game-icon.webp";
 const SITE = {
   title: '싸이뛰어!',
@@ -491,7 +507,7 @@ const GAMES = [
     link: 'games/bridge8/index.html', note: '샘플로 등록된 작품', video: G_VIDEO, poster: G_POSTER, icon: G_ICON }
 ];
 const NOVELS = [
-  { id: 'psi', title: '싸이!!뛰어!!', status: '연재중', up: true,
+  { id: 'psi', title: '싸이!!뛰어!!', status: '연재중', up: true, remote: true,
     tags: ['액션', '오피스', '코미디', '이능력'],
     summary: 'PSI 정보구출반은 이상현상을 처리합니다. 문제는 팀원 전원이 쓸데없는 능력을 가지고 있다는 것. 유쾌하고 스릴 있고, 가끔은 슬픈 액션 오피스물.',
     chapters: [
@@ -516,6 +532,18 @@ const fdate = t => { const d = new Date(t); return `${d.getFullYear()}.${String(
 const ago = t => { const s = (Date.now() - t) / 1000; if (s < 60) return '방금'; if (s < 3600) return Math.floor(s / 60) + '분 전'; if (s < 86400) return Math.floor(s / 3600) + '시간 전'; if (s < 604800) return Math.floor(s / 86400) + '일 전'; return fdate(t); };
 const dev = (() => { let d = LS.get('psi.dev', null); if (!d) { d = 'd' + Math.random().toString(36).slice(2, 10); LS.set('psi.dev', d); } return d; })();
 const mem = {};
+async function api(action, params = {}) {
+  const u = new URL(API_URL); u.searchParams.set('action', action);
+  Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') u.searchParams.set(k, v); });
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
+  try { const r = await fetch(u.toString(), { signal: ctl.signal }); return await r.json(); } finally { clearTimeout(to); }
+}
+async function apiPost(body) {
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
+  try { const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...body, dev }), signal: ctl.signal }); return await r.json(); }
+  catch (e) { return { ok: false, error: 'network' }; } finally { clearTimeout(to); }
+}
+const LOADING = '<div class="wrap"><div class="empty" style="margin:40px 0">불러오는 중… (처음에는 조금 오래 걸릴 수 있어요)</div></div>';
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const main = $('#main');
 const paras = body => body.split(/\n{2,}/).map(p => {
@@ -593,8 +621,31 @@ function viewHome() {
 /* =====================================================================
    소설 — 목록 / 상세 / 뷰어
    ===================================================================== */
+const hueOf = id => [...String(id)].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 360;
+const coverBg = n => n.gen ? `linear-gradient(150deg,hsl(${hueOf(n.id)},55%,28%),hsl(${(hueOf(n.id) + 60) % 360},60%,10%))` : `url(${COVER})`;
+async function loadNovels() {
+  if (!REMOTE) return;
+  if (loadNovels._at && Date.now() - loadNovels._at < 300000) return;
+  try {
+    const r = await api('works');
+    if (r.ok) {
+      const ids = new Set(r.works.map(w => w.id));
+      for (let i = NOVELS.length - 1; i >= 0; i--) if (NOVELS[i].gen && !ids.has(NOVELS[i].id)) NOVELS.splice(i, 1);
+      r.works.forEach(w => {
+        let n = NOVELS.find(x => x.id === w.id);
+        if (!n && w.id !== 'psi') { n = { id: w.id, title: w.title, status: w.status || '완결', up: false, remote: true, gen: true, tags: ['완결'], summary: '', chapters: [] }; NOVELS.push(n); }
+        if (!n) return;
+        if (n.gen) { n.title = w.title; n.status = w.status || n.status; }
+        if (w.chapters.length) n.chapters = w.chapters.map(c => ({ title: c.title, date: c.date, free: true, body: null, blocks: null }));
+      });
+    }
+  } catch (e) { /* 실패하면 기본 내용을 그대로 보여줘요 */ }
+  loadNovels._at = Date.now();
+}
 const readSet = id => new Set(LS.get('psi.read.' + id, []));
-const cover = (n, cap) => `<div class="ncover"><img src="${COVER}" alt="" loading="lazy"><div class="bd">${n.up ? '<i class="up">UP</i>' : ''}<i>${esc(n.status)}</i></div>${cap ? `<div class="cap">${esc(n.title)}</div>` : ''}</div>`;
+const cover = (n, cap) => n.gen
+  ? `<div class="ncover gen" style="background:${coverBg(n)}"><div class="bd"><i>${esc(n.status)}</i></div><div class="gt">${esc(n.title)}</div></div>`
+  : `<div class="ncover"><img src="${COVER}" alt="" loading="lazy"><div class="bd">${n.up ? '<i class="up">UP</i>' : ''}<i>${esc(n.status)}</i></div>${cap ? `<div class="cap">${esc(n.title)}</div>` : ''}</div>`;
 let nfilter = '전체';
 function viewNovels() {
   const list = NOVELS.filter(n => nfilter === '전체' || n.status === nfilter);
@@ -610,23 +661,87 @@ function viewNovel(id) {
   const idx = n.chapters.map((c, i) => i + 1); if (!epAsc) idx.reverse();
   const lastDate = n.chapters.length ? n.chapters[n.chapters.length - 1].date : '';
   main.innerHTML = `
-  <div class="nhero"><div class="bg" style="background-image:url(${COVER})"></div><div class="wrap"><div class="in">
+  <div class="nhero"><div class="bg" style="background:${coverBg(n)} center/cover"></div><div class="wrap"><div class="in">
     ${cover(n, false)}
     <div><h1>${esc(n.title)}</h1>
       <div class="tags">${n.tags.map(t => `<span>#${esc(t)}</span>`).join('')}</div>
-      <p class="sum">${esc(n.summary)}</p>
+      ${n.summary ? `<p class="sum">${esc(n.summary)}</p>` : ''}
       <p class="meta">${esc(n.status)} · 총 ${n.chapters.length}화 · ${esc(lastDate)} 업데이트</p>
       <div class="nact"><a class="btn pri" href="#/novels/${id}/${last && last <= n.chapters.length ? last : 1}">${last ? last + '화 이어보기' : '첫화보기'}</a>
         ${last ? `<a class="btn ghost" href="#/novels/${id}/1">1화부터</a>` : ''}</div></div>
   </div></div></div>
   <div class="wrap"><div class="eplist-h"><b>회차 ${n.chapters.length}</b><button type="button" id="epSort">${epAsc ? '오래된 순 ▲' : '최신 순 ▼'}</button></div>
-    <ul class="eps">${idx.map(i => { const c = n.chapters[i - 1]; return `<li class="${rd.has(i) ? 'read' : ''}"><a href="#/novels/${id}/${i}"><span class="th" style="background-image:url(${COVER})"></span><span><span class="t">${esc(c.title)}</span><br><span class="d">${c.free ? '<span class="fr">무료</span>' : ''}${esc(c.date || '')}</span></span><span class="go">${rd.has(i) ? '읽음' : ''}</span></a></li>`; }).join('')}</ul></div>`;
+    <ul class="eps">${idx.map(i => { const c = n.chapters[i - 1]; return `<li class="${rd.has(i) ? 'read' : ''}"><a href="#/novels/${id}/${i}"><span class="th" style="background:${coverBg(n)} center/cover"></span><span><span class="t">${esc(c.title)}</span><br><span class="d">${c.free ? '<span class="fr">무료</span>' : ''}${esc(c.date || '')}</span></span><span class="go">${rd.has(i) ? '읽음' : ''}</span></a></li>`; }).join('')}</ul></div>`;
   $('#epSort').addEventListener('click', () => { epAsc = !epAsc; viewNovel(id); });
 }
 
-const VDEF = { size: 19, lh: 1.95, font: 'serif', theme: 'white', mode: 'scroll' };
-function viewRead(id, num) {
+const VDEF = { size: 19, lh: 1.95, font: 'serif', theme: 'white', mode: 'scroll', orig: true };
+const OKC = /^#[0-9a-fA-F]{6}$/, OKF = /^[\p{L}\p{N} _.\-]{1,40}$/u;
+function blocksHTML(blocks, orig) {
+  return blocks.map(b => {
+    if (b.hr) return '<hr>';
+    if (b.g) return '<div class="gap"></div>';
+    if (b.img) {
+      const al = { c: 'center', r: 'right' }[b.a] || 'left', wpct = b.w ? Math.max(8, Math.min(100, Math.round(b.w / 468 * 100))) : 100;
+      return `<figure class="fig" style="text-align:${al}"><img alt="" data-img="${esc(b.img)}" style="width:${wpct}%;${b.w && b.h ? `aspect-ratio:${b.w}/${b.h}` : 'min-height:120px'}"></figure>`;
+    }
+    const inner = (b.r || []).map(r => {
+      const st = [];
+      if (r.b) st.push('font-weight:700'); if (r.i) st.push('font-style:italic');
+      if (r.u || r.s) st.push('text-decoration:' + [r.u ? 'underline' : '', r.s ? 'line-through' : ''].filter(Boolean).join(' '));
+      if (orig) {
+        if (r.c && OKC.test(r.c)) st.push('color:' + r.c);
+        if (r.bg && OKC.test(r.bg)) st.push('background:' + r.bg);
+        if (r.f && OKF.test(r.f)) st.push(`font-family:'${r.f}',var(--vf)`);
+        if (r.z && isFinite(r.z)) st.push('font-size:' + Math.max(.5, Math.min(4, r.z)) + 'em');
+      }
+      const t = esc(r.t).replace(/\n/g, '<br>');
+      return st.length ? `<span style="${st.join(';')}">${t}</span>` : t;
+    }).join('');
+    const al = { c: 'center', r: 'right', j: 'justify' }[b.a];
+    return `<p class="${b.h ? 'hd h' + b.h : ''}"${al ? ` style="text-align:${al}"` : ''}>${b.li ? '· ' : ''}${inner}</p>`;
+  }).join('');
+}
+const fontsLoaded = new Set();
+function loadFonts(blocks) {
+  (blocks || []).forEach(b => (b.r || []).forEach(r => {
+    if (r.f && OKF.test(r.f) && !fontsLoaded.has(r.f)) {
+      fontsLoaded.add(r.f);
+      const l = document.createElement('link'); l.rel = 'stylesheet';
+      l.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(r.f).replace(/%20/g, '+') + '&display=swap'; document.head.appendChild(l);
+    }
+  }));
+}
+const imgCache = new Map();
+async function imgSrc(id) {
+  if (imgCache.has(id)) return imgCache.get(id);
+  const pr = (async () => {
+    try {
+      const r = await api('img', { obj: id });
+      if (r.ok && /^image\/(png|jpe?g|gif|webp)$/.test(r.mime) && /^[A-Za-z0-9+\/=]+$/.test(r.data)) return `data:${r.mime};base64,${r.data}`;
+    } catch (e) { /* 그림을 못 불러와도 글은 계속 보여요 */ }
+    return '';
+  })();
+  imgCache.set(id, pr); const v = await pr; if (!v) imgCache.delete(id); return v;
+}
+function hydrateImages(root, done) {
+  $$('img[data-img]', root).forEach(async im => {
+    if (im.getAttribute('src')) return;
+    const src = await imgSrc(im.dataset.img);
+    if (src) { im.onload = () => { im.style.minHeight = ''; if (done) done(); }; im.src = src; }
+    else { im.replaceWith(Object.assign(document.createElement('span'), { className: 'imgfail', textContent: '(그림을 불러오지 못했어요)' })); if (done) done(); }
+  });
+}
+function lum(hex) { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; }
+async function viewRead(id, num) {
   const n = NOVELS.find(x => x.id === id), c = n && n.chapters[num - 1]; if (!c) return notFound();
+  if ((c.body === null || c.body === undefined) && !c.blocks) {
+    main.innerHTML = LOADING;
+    try {
+      const r = await api('chapter', { novel: id, i: num });
+      if (r.ok && r.blocks) { c.blocks = r.blocks; c.bg = r.bg || ''; } else if (r.ok && r.body) c.body = r.body; else c.body = '(본문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.)';
+    } catch (e) { c.body = '(본문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.)'; }
+  }
   document.body.classList.add('viewer');
   LS.set('psi.last.' + id, num);
   const rs = readSet(id); rs.add(num); LS.set('psi.read.' + id, [...rs]);
@@ -637,7 +752,7 @@ function viewRead(id, num) {
     <div class="vtop"><div class="vrow"><a class="vb" href="#/novels/${id}" aria-label="목록으로">← 목록</a><div class="ttl">${esc(n.title)}<small>${esc(c.title)}</small></div><button class="vb" type="button" id="vsetb" aria-label="보기 설정">Aa</button></div><div class="vprog"><i id="vp"></i></div></div>
     <div class="vbody" id="vbody"><div class="vin" id="vin">
       <h1>${esc(c.title)}</h1><p class="cm">${esc(n.title)} · ${num}/${n.chapters.length}화</p>
-      ${paras(c.body)}
+      <div id="vtext">${c.blocks ? blocksHTML(c.blocks, P.orig !== false) : paras(c.body || '')}</div>
       <div class="vend">${hasNext ? `<a class="btn" href="#/novels/${id}/${num + 1}">다음 화 보기</a>` : '<p class="cm" style="margin:0 0 6px">마지막 화입니다. 다음 이야기를 기다려 주세요.</p>'}<br><a class="btn ghost" href="#/novels/${id}">목록으로</a></div>
     </div></div>
     <div class="vpg" id="vpg"></div>
@@ -647,19 +762,33 @@ function viewRead(id, num) {
       <div class="r"><span>줄 간격</span><div class="g">${[['1.7', '좁게'], ['1.95', '보통'], ['2.25', '넓게']].map(([v, l]) => `<button type="button" data-lh="${v}">${l}</button>`).join('')}</div></div>
       <div class="r"><span>글꼴</span><div class="g"><button type="button" data-f="serif">명조</button><button type="button" data-f="sans">고딕</button></div></div>
       <div class="r"><span>배경</span><div class="g">${[['white', '#fff', '흰색'], ['paper', '#f2ead8', '종이'], ['gray', '#2b2d31', '회색'], ['black', '#000', '검정']].map(([v, bg, l]) => `<button type="button" class="sw" data-t="${v}" aria-label="${l}" style="background:${bg}"></button>`).join('')}</div></div>
+      ${c.blocks ? '<div class="r"><span>원본 스타일</span><div class="g"><button type="button" data-o="1">켜기</button><button type="button" data-o="0">끄기</button></div></div>' : ''}
       <div class="r"><span>보기 방식</span><div class="g"><button type="button" data-m="scroll">스크롤</button><button type="button" data-m="page">페이지</button></div></div>
       <button class="x" type="button" id="vclose">닫기</button></div></div>
   </div>`;
   const vw = $('#vw'), body = $('#vbody'), vin = $('#vin'), vp = $('#vp'), vpg = $('#vpg'), vlab = $('#vlab'), vset = $('#vset');
   let page = 0, pages = 1;
   const save = () => LS.set('psi.viewer', P);
+  const CV = ['--vbg', '--vink', '--vsub', '--vline', '--vbar'];
+  function applyLook() {
+    const useOrig = P.orig !== false && c.blocks && c.bg && OKC.test(c.bg);
+    if (useOrig) {
+      const n = parseInt(c.bg.slice(1), 16), dark = lum(c.bg) < .4;
+      vw.dataset.vt = 'custom';
+      vw.style.setProperty('--vbg', c.bg); vw.style.setProperty('--vink', dark ? '#ececec' : '#1c1c1c'); vw.style.setProperty('--vsub', dark ? '#9a9a9a' : '#777');
+      vw.style.setProperty('--vline', dark ? 'rgba(255,255,255,.18)' : 'rgba(0,0,0,.14)'); vw.style.setProperty('--vbar', `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},.96)`);
+    } else { vw.dataset.vt = P.theme; CV.forEach(k => vw.style.removeProperty(k)); }
+    if (c.blocks && P.orig !== false) loadFonts(c.blocks);
+  }
   const apply = () => {
-    vw.dataset.vt = P.theme; vw.dataset.vf = P.font; vw.dataset.vm = P.mode;
+    applyLook(); vw.dataset.vf = P.font; vw.dataset.vm = P.mode;
     vw.style.setProperty('--vs', P.size + 'px'); vw.style.setProperty('--vl', P.lh);
     $$('[data-lh]', vset).forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.lh === +P.lh)));
     $$('[data-f]', vset).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === P.font)));
     $$('[data-t]', vset).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === P.theme)));
     $$('[data-m]', vset).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === P.mode)));
+    $$('[data-o]', vset).forEach(b => b.setAttribute('aria-pressed', String((b.dataset.o === '1') === (P.orig !== false))));
+    const vt = $('#vtext'); if (vt && c.blocks) { vt.innerHTML = blocksHTML(c.blocks, P.orig !== false); hydrateImages(vt, layout); }
     layout();
   };
   function layout() {
@@ -704,7 +833,7 @@ function viewRead(id, num) {
   vset.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.a === 'size+') P.size = Math.min(30, P.size + 1); if (b.dataset.a === 'size-') P.size = Math.max(14, P.size - 1);
-    if (b.dataset.lh) P.lh = +b.dataset.lh; if (b.dataset.f) P.font = b.dataset.f; if (b.dataset.t) P.theme = b.dataset.t; if (b.dataset.m) P.mode = b.dataset.m;
+    if (b.dataset.o !== undefined) P.orig = b.dataset.o === '1'; if (b.dataset.lh) P.lh = +b.dataset.lh; if (b.dataset.f) P.font = b.dataset.f; if (b.dataset.t) P.theme = b.dataset.t; if (b.dataset.m) P.mode = b.dataset.m;
     save(); apply();
   });
   apply();
@@ -723,10 +852,22 @@ function gcover(g, big) {
     ${big ? `<text x="28" y="150" font-family="var(--display)" font-size="34" fill="#fff">${esc(g.title)}</text><text x="28" y="182" font-family="var(--body)" font-size="14" fill="#c7d5e0">${esc(g.tags.slice(0, 3).join(' · '))}</text>` : ''}</svg>`;
 }
 const GRV = {
-  async list(gid) { return LS.get('psi.rv2.' + gid, mem['rv' + gid] || []); },
-  async add(gid, r) { const l = LS.get('psi.rv2.' + gid, mem['rv' + gid] || []); l.unshift({ ...r, id: uid(), mine: true, help: 0 }); mem['rv' + gid] = l; LS.set('psi.rv2.' + gid, l); return true; },
-  async del(gid, id) { const l = (LS.get('psi.rv2.' + gid, mem['rv' + gid] || [])).filter(x => x.id !== id); mem['rv' + gid] = l; LS.set('psi.rv2.' + gid, l); },
-  async help(gid, id) { const l = LS.get('psi.rv2.' + gid, mem['rv' + gid] || []), r = l.find(x => x.id === id); if (!r) return; const k = 'psi.help.' + id, on = LS.get(k, false); r.help = Math.max(0, (r.help || 0) + (on ? -1 : 1)); LS.set(k, !on); LS.set('psi.rv2.' + gid, l); }
+  async list(gid) {
+    if (REMOTE) { try { const r = await api('reviews', { game: gid, dev }); return r.ok ? r.reviews : []; } catch (e) { toast('후기를 불러오지 못했어요.'); return []; } }
+    return LS.get('psi.rv2.' + gid, mem['rv' + gid] || []);
+  },
+  async add(gid, r) {
+    if (REMOTE) { const x = await apiPost({ action: 'review', game: gid, rec: r.rec, name: r.name, text: r.text }); return !!x.ok; }
+    const l = LS.get('psi.rv2.' + gid, mem['rv' + gid] || []); l.unshift({ ...r, id: uid(), mine: true, help: 0 }); mem['rv' + gid] = l; LS.set('psi.rv2.' + gid, l); return true;
+  },
+  async del(gid, id) {
+    if (REMOTE) { await apiPost({ action: 'review_del', id }); return; }
+    const l = (LS.get('psi.rv2.' + gid, mem['rv' + gid] || [])).filter(x => x.id !== id); mem['rv' + gid] = l; LS.set('psi.rv2.' + gid, l);
+  },
+  async help(gid, id) {
+    if (REMOTE) { await apiPost({ action: 'helpful', id }); return; }
+    const l = LS.get('psi.rv2.' + gid, mem['rv' + gid] || []), r = l.find(x => x.id === id); if (!r) return; const k = 'psi.help.' + id, on = LS.get(k, false); r.help = Math.max(0, (r.help || 0) + (on ? -1 : 1)); LS.set(k, !on); LS.set('psi.rv2.' + gid, l);
+  }
 };
 function steamLabel(pos, total) {
   if (!total) return ['none', '평가 없음'];
@@ -774,9 +915,9 @@ async function viewGames(sel) {
       <form class="srform" novalidate><div class="rec" role="group" aria-label="추천 여부"><button type="button" class="y" data-r="1" aria-pressed="false">👍 추천</button><button type="button" class="n" data-r="0" aria-pressed="false">👎 비추천</button></div>
         <input type="text" maxlength="12" placeholder="닉네임 (선택, 기본: 익명 요원)" aria-label="닉네임">
         <textarea maxlength="500" placeholder="이 게임에 대한 후기를 남겨 주세요." aria-label="후기 내용"></textarea>
-        <div class="foot"><span><span data-cnt>0</span>/500 · 지금은 후기가 이 브라우저에만 저장돼요.</span><button class="post" type="submit">후기 게시</button></div></form>
+        <div class="foot"><span><span data-cnt>0</span>/500 · ${REMOTE ? '후기는 모두에게 공개돼요.' : '지금은 후기가 이 브라우저에만 저장돼요.'}</span><button class="post" type="submit">후기 게시</button></div></form>
       ${l.length ? `<ul class="srv">${l.map(r => `<li><div class="th ${r.rec ? 'y' : 'n'}" aria-hidden="true">${r.rec ? '👍' : '👎'}</div><div><div class="h ${r.rec ? 'y' : 'n'}">${r.rec ? '추천' : '비추천'}</div><div class="m">${esc(r.name || '익명 요원')} · ${fdate(r.t)}</div><div class="tx">${esc(r.text)}</div>
-        <div class="ft"><span>이 후기가 도움이 되었나요?</span><button type="button" data-help="${r.id}" aria-pressed="${LS.get('psi.help.' + r.id, false)}">도움 됨 ${r.help || 0}</button>${r.mine ? `<button class="del" type="button" data-del="${r.id}">삭제</button>` : ''}</div></div></li>`).join('')}</ul>` : ''}</div>`;
+        <div class="ft"><span>이 후기가 도움이 되었나요?</span><button type="button" data-help="${r.id}" aria-pressed="${REMOTE ? !!r.helped : LS.get('psi.help.' + r.id, false)}">도움 됨 ${r.help || 0}</button>${r.mine ? `<button class="del" type="button" data-del="${r.id}">삭제</button>` : ''}</div></div></li>`).join('')}</ul>` : ''}</div>`;
   const form = $('.srform'); let rec = null;
   $$('.rec button', form).forEach(b => b.addEventListener('click', () => { rec = b.dataset.r === '1'; $$('.rec button', form).forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
   const ta = $('textarea', form); ta.addEventListener('input', () => { $('[data-cnt]', form).textContent = ta.value.length; });
@@ -784,7 +925,8 @@ async function viewGames(sel) {
     e.preventDefault(); const text = ta.value.trim();
     if (rec === null) { toast('추천 또는 비추천을 골라 주세요.'); return; }
     if (text.length < 2) { toast('후기를 두 글자 이상 적어 주세요.'); ta.focus(); return; }
-    await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() });
+    const okk = await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() });
+    if (!okk) { toast('후기를 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
     toast('후기가 게시되었습니다. 고마워요!'); viewGames(g.id);
   });
   $$('[data-help]').forEach(b => b.addEventListener('click', async () => { await GRV.help(g.id, b.dataset.help); viewGames(g.id); }));
@@ -802,7 +944,7 @@ const DEF_CATS = [
   { id: 'ot', name: '야근 푸념' }, { id: 'power', name: '쓸데없는 능력 자랑' }, { id: 'qna', name: '질문 · 건의' }
 ];
 const Cats = {
-  all() { let l = LS.get(CAT_KEY, null); if (!Array.isArray(l) || !l.length) l = mem.cats || DEF_CATS.map(c => ({ ...c })); mem.cats = l; return l; },
+  all() { if (REMOTE) return mem.rcats || DEF_CATS; let l = LS.get(CAT_KEY, null); if (!Array.isArray(l) || !l.length) l = mem.cats || DEF_CATS.map(c => ({ ...c })); mem.cats = l; return l; },
   save(l) { mem.cats = l; LS.set(CAT_KEY, l); },
   name(id) { const c = this.all().find(x => x.id === id); return c ? c.name : '게시판'; },
   add(name) { const l = this.all(); l.push({ id: 'c' + uid().slice(1), name }); this.save(l); },
@@ -821,15 +963,42 @@ function seedPosts() {
   ];
 }
 const seenPosts = new Set();
+const normPost = p => ({ id: p.id, cat: p.cat, title: p.title, body: p.body, t: p.t, likes: p.likes, views: p.views, pin: !!p.pin,
+  comments: Array.isArray(p.comments) ? p.comments : new Array(p.comments || 0).fill({}), likedBy: p.liked ? [dev] : [], author: p.mine ? dev : 'x' });
 const Board = {
-  all() { let l = LS.get(BOARD_KEY, null); if (!l) { l = mem.board || seedPosts(); LS.set(BOARD_KEY, l); } mem.board = l; return l; },
+  all() { if (REMOTE) return mem.rposts || []; let l = LS.get(BOARD_KEY, null); if (!l) { l = mem.board || seedPosts(); LS.set(BOARD_KEY, l); } mem.board = l; return l; },
   save(l) { mem.board = l; LS.set(BOARD_KEY, l); },
   get(id) { return this.all().find(p => p.id === id); },
-  add(p) { const l = this.all(); const np = { ...p, id: uid(), t: Date.now(), author: dev, likes: 0, views: 0, likedBy: [], comments: [] }; l.unshift(np); this.save(l); return np.id; },
-  view(id) { if (seenPosts.has(id)) return; seenPosts.add(id); const l = this.all(), p = l.find(x => x.id === id); if (p) { p.views = (p.views || 0) + 1; this.save(l); } },
-  like(id) { const l = this.all(), p = l.find(x => x.id === id); if (!p) return; const i = p.likedBy.indexOf(dev); if (i >= 0) { p.likedBy.splice(i, 1); p.likes--; } else { p.likedBy.push(dev); p.likes++; } this.save(l); },
-  comment(id, body) { const l = this.all(), p = l.find(x => x.id === id); if (!p) return; p.comments.push({ id: uid(), body, t: Date.now(), author: dev }); this.save(l); },
-  del(id) { this.save(this.all().filter(p => p.id !== id)); }
+  async sync() {
+    if (!REMOTE) return;
+    try { const r = await api('posts', { dev }); if (r.ok) { mem.rcats = r.cats; mem.rposts = r.posts.map(normPost); } else toast('게시판을 불러오지 못했어요.'); }
+    catch (e) { toast('게시판을 불러오지 못했어요.'); }
+  },
+  async loadPost(id) {
+    try {
+      const r = await api('post', { id, dev }); if (!r.ok) return null;
+      const p = normPost({ ...r.post, comments: 0 });
+      p.comments = r.post.comments.map(c => ({ id: c.id, body: c.body, t: c.t, mine: c.mine, author: c.who === 'op' ? p.author : 'a' + c.who }));
+      return p;
+    } catch (e) { toast('글을 불러오지 못했어요.'); return null; }
+  },
+  async add(p) {
+    if (REMOTE) { const r = await apiPost({ action: 'post', cat: p.cat, title: p.title, body: p.body }); return r.ok ? r.id : null; }
+    const l = this.all(); const np = { ...p, id: uid(), t: Date.now(), author: dev, likes: 0, views: 0, likedBy: [], comments: [] }; l.unshift(np); this.save(l); return np.id;
+  },
+  view(id) { if (REMOTE || seenPosts.has(id)) return; seenPosts.add(id); const l = this.all(), p = l.find(x => x.id === id); if (p) { p.views = (p.views || 0) + 1; this.save(l); } },
+  async like(id) {
+    if (REMOTE) { await apiPost({ action: 'like', post: id }); return; }
+    const l = this.all(), p = l.find(x => x.id === id); if (!p) return; const i = p.likedBy.indexOf(dev); if (i >= 0) { p.likedBy.splice(i, 1); p.likes--; } else { p.likedBy.push(dev); p.likes++; } this.save(l);
+  },
+  async comment(id, body) {
+    if (REMOTE) { const r = await apiPost({ action: 'comment', post: id, body }); if (!r.ok) toast(r.error === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 등록하지 못했어요.'); return; }
+    const l = this.all(), p = l.find(x => x.id === id); if (!p) return; p.comments.push({ id: uid(), body, t: Date.now(), author: dev }); this.save(l);
+  },
+  async del(id) {
+    if (REMOTE) { await apiPost({ action: 'post_del', id }); return; }
+    this.save(this.all().filter(p => p.id !== id));
+  }
 };
 const cdate = t => { const d = new Date(t), n = new Date(); if (d.toDateString() === n.toDateString()) return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}.`; };
 let bcur = 'all', bpage = 1, bq = '', bqf = 'all';
@@ -851,7 +1020,8 @@ function cafeShell(inner, cur) {
 }
 function bindShell() { const m = $('#cmanage'); if (m) m.addEventListener('click', openCatManager); }
 
-function viewBoard() {
+async function viewBoard(fresh) {
+  if (REMOTE && fresh) { if (!mem.rposts) main.innerHTML = LOADING; await Board.sync(); }
   let l = Board.all().slice(), title = '전체글보기';
   if (bcur === 'hot') { title = '인기글'; l = l.filter(p => p.likes >= 3); }
   else if (bcur !== 'all') { title = Cats.name(bcur); l = l.filter(p => p.cat === bcur); }
@@ -863,7 +1033,7 @@ function viewBoard() {
   const nums = []; for (let i = Math.max(1, bpage - 2); i <= Math.min(pages, bpage + 2); i++) nums.push(i);
   main.innerHTML = cafeShell(`
     <div class="ctb"><h1>${esc(title)}</h1><span>글 ${l.length}개</span></div>
-    ${bcur === 'all' || bcur === 'notice' ? '<p class="cnotice">지금은 이 브라우저에서만 보이는 <b>시험 운영</b> 중이에요.</p>' : ''}
+    ${!REMOTE && (bcur === 'all' || bcur === 'notice') ? '<p class="cnotice">지금은 이 브라우저에서만 보이는 <b>시험 운영</b> 중이에요.</p>' : ''}
     ${l.length ? `<table class="ct"><thead><tr><th>번호</th><th class="t">제목</th><th>작성자</th><th>작성일</th><th>조회</th><th>좋아요</th></tr></thead><tbody>${pins.map(p => row(p)).join('')}${slice.map((p, i) => row(p, total - (bpage - 1) * PAGE - i)).join('')}</tbody></table>` : '<div class="empty" style="margin:18px 0">아직 글이 없어요. 첫 글을 써 보세요.</div>'}
     <div class="cbtnrow"><a class="cbtn" href="#/board/new">글쓰기</a></div>
     <div class="cpg" role="navigation" aria-label="페이지"><button type="button" data-pg="${bpage - 1}" ${bpage <= 1 ? 'disabled' : ''}>‹</button>${nums.map(n => `<button type="button" data-pg="${n}" ${n === bpage ? 'aria-current="true"' : ''}>${n}</button>`).join('')}<button type="button" data-pg="${bpage + 1}" ${bpage >= pages ? 'disabled' : ''}>›</button></div>
@@ -873,9 +1043,11 @@ function viewBoard() {
   $('#cs').addEventListener('submit', e => { e.preventDefault(); bq = $('#csq').value.trim(); bqf = $('#csf').value; bpage = 1; viewBoard(); });
 }
 
-function viewPost(id) {
-  const p = Board.get(id); if (!p) return notFound();
-  Board.view(id);
+async function viewPost(id) {
+  let p;
+  if (REMOTE) { main.innerHTML = LOADING; if (!mem.rcats) await Board.sync(); p = await Board.loadPost(id); }
+  else { p = Board.get(id); Board.view(id); }
+  if (!p) return notFound();
   const order = []; p.comments.forEach(c => { if (c.author !== p.author && !order.includes(c.author)) order.push(c.author); });
   const nick = a => a === p.author ? '<b class="op">글쓴이</b>' : `<b>익명${order.indexOf(a) + 1}</b>`;
   const liked = p.likedBy.includes(dev), mine = p.author === dev;
@@ -888,33 +1060,43 @@ function viewPost(id) {
       <ul>${p.comments.map(c => `<li><div class="m">${nick(c.author)}<span>${cdate(c.t)}</span></div><p>${esc(c.body)}</p></li>`).join('') || '<li style="color:var(--ink-2);font-size:14px">첫 댓글을 남겨 보세요.</li>'}</ul>
       <form class="ccf" id="cf"><textarea maxlength="300" placeholder="익명으로 댓글을 남겨 보세요." aria-label="댓글"></textarea><div class="r"><span>익명으로 등록됩니다</span><button class="cbtn" type="submit">등록</button></div></form></div>`, p.cat);
   bindShell();
-  $('#plike').addEventListener('click', () => { Board.like(id); viewPost(id); });
-  const d = $('#pdel'); if (d) d.addEventListener('click', () => { if (confirm('이 글을 삭제할까요?')) { Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; } });
-  $('#cf').addEventListener('submit', e => { e.preventDefault(); const t = $('textarea', e.target).value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; } Board.comment(id, t.slice(0, 300)); viewPost(id); });
+  $('#plike').addEventListener('click', async () => { await Board.like(id); viewPost(id); });
+  const d = $('#pdel'); if (d) d.addEventListener('click', async () => { if (confirm('이 글을 삭제할까요?')) { await Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; } });
+  $('#cf').addEventListener('submit', async e => { e.preventDefault(); const t = $('textarea', e.target).value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; } await Board.comment(id, t.slice(0, 300)); viewPost(id); });
 }
 let lastPost = 0;
-function viewWrite() {
+async function viewWrite() {
+  if (REMOTE && !mem.rcats) await Board.sync();
   const cats = Cats.all(), def = cats.some(c => c.id === bcur) ? bcur : (cats.find(c => c.id === 'free') || cats[0]).id;
   main.innerHTML = cafeShell(`
     <div class="ctb"><h1>글쓰기</h1><span>익명으로 등록됩니다</span></div>
     <form class="cwf" id="wf" novalidate style="margin-top:14px"><div><label for="wc">게시판</label><select id="wc">${cats.map(c => `<option value="${c.id}" ${c.id === def ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
       <div><label for="wt">제목</label><input id="wt" type="text" maxlength="60" placeholder="제목을 입력하세요"></div>
       <div><label for="wb">내용</label><textarea id="wb" maxlength="2000" placeholder="익명으로 자유롭게 적어 주세요. 다른 사람이 상처받을 글은 삼가 주세요."></textarea></div>
-      <div class="r"><label class="chk"><input type="checkbox" id="wp"> 공지로 등록</label><span><a class="cbtn ln" href="#/board">취소</a> <button class="cbtn" type="submit">등록</button></span></div></form>`, 'write');
+      <div class="r">${REMOTE ? '<span></span>' : '<label class="chk"><input type="checkbox" id="wp"> 공지로 등록</label>'}<span><a class="cbtn ln" href="#/board">취소</a> <button class="cbtn" type="submit">등록</button></span></div></form>`, 'write');
   bindShell();
-  $('#wf').addEventListener('submit', e => {
+  $('#wf').addEventListener('submit', async e => {
     e.preventDefault(); const t = $('#wt').value.trim(), b = $('#wb').value.trim();
     if (t.length < 2) { toast('제목을 두 글자 이상 적어 주세요.'); $('#wt').focus(); return; }
     if (b.length < 2) { toast('내용을 입력해 주세요.'); $('#wb').focus(); return; }
     if (Date.now() - lastPost < 8000) { toast('잠시 후 다시 등록해 주세요.'); return; }
     lastPost = Date.now();
-    const id = Board.add({ cat: $('#wc').value, title: t.slice(0, 60), body: b.slice(0, 2000), pin: $('#wp').checked });
+    const btn = $('#wf button[type=submit]'); btn.disabled = true;
+    const id = await Board.add({ cat: $('#wc').value, title: t.slice(0, 60), body: b.slice(0, 2000), pin: !!($('#wp') && $('#wp').checked) });
+    btn.disabled = false;
+    if (!id) { toast('글을 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
     toast('글이 등록되었습니다.'); location.hash = '#/board/' + id;
   });
 }
 
 /* 게시판(분류) 관리 — 추가 · 이름 바꾸기 · 순서 · 삭제 */
 function openCatManager() {
+  if (REMOTE) {
+    const w = document.createElement('div'); w.className = 'cmodal'; w.setAttribute('role', 'dialog');
+    w.innerHTML = '<div class="box"><h2>게시판 관리</h2><p class="sub">게시판 목록은 모두가 함께 쓰기 때문에, 구글 시트에서 관리해요.</p><p style="font-size:14px;line-height:1.7;margin:0 0 6px">구글 시트의 <b>cats</b> 탭에서 게시판 이름을 바꾸고, 줄을 추가·삭제하고, <b>order</b> 숫자로 순서를 정할 수 있어요. 저장하면 사이트에 바로 반영돼요. 글의 <b>pin</b> 칸에 1을 적으면 공지가 돼요.</p><div class="foot"><button class="cbtn ln" type="button" id="cdone">닫기</button></div></div>';
+    const close = () => w.remove(); w.addEventListener('click', e => { if (e.target === w) close(); });
+    document.body.appendChild(w); $('#cdone').addEventListener('click', close); return;
+  }
   const wrap = document.createElement('div'); wrap.className = 'cmodal'; wrap.setAttribute('role', 'dialog'); wrap.setAttribute('aria-label', '게시판 관리');
   const draw = () => {
     const l = Cats.all();
@@ -947,19 +1129,20 @@ function openCatManager() {
 function notFound() { main.innerHTML = `<div class="wrap"><div class="phead"><h1>찾을 수 없어요</h1><p>주소가 바뀌었거나 아직 없는 페이지예요. <a href="#/">홈으로 돌아가기</a></p></div></div>`; }
 
 /* ---------- 라우터 ---------- */
-function route() {
+async function route() {
   window.onscroll = null; window.onkeydown = null; window.onresize = null;
   document.body.classList.remove('viewer');
-  const p = location.hash.replace(/^#\/?/, '').split('/');
+  const h0 = location.hash, p = h0.replace(/^#\/?/, '').split('/');
+  if (REMOTE && (p[0] === 'novels' || !p[0])) { if (!loadNovels._at) main.innerHTML = LOADING; await loadNovels(); if (location.hash !== h0) return; }
   let nav = 'home', keep = false;
   if (p[0] === 'novels') { nav = 'novels'; if (!p[1]) viewNovels(); else if (!p[2]) viewNovel(p[1]); else viewRead(p[1], parseInt(p[2], 10) || 1); }
   else if (p[0] === 'games') { nav = 'games'; viewGames(p[1]); }
   else if (p[0] === 'board') {
     nav = 'board';
     const setCur = c => { if (bcur !== c) { bcur = c; bpage = 1; bq = ''; } };
-    if (!p[1]) { setCur('all'); viewBoard(); }
-    else if (p[1] === 'hot') { setCur('hot'); viewBoard(); }
-    else if (p[1] === 'c' && p[2]) { setCur(p[2]); viewBoard(); }
+    if (!p[1]) { setCur('all'); viewBoard(true); }
+    else if (p[1] === 'hot') { setCur('hot'); viewBoard(true); }
+    else if (p[1] === 'c' && p[2]) { setCur(p[2]); viewBoard(true); }
     else if (p[1] === 'new') viewWrite();
     else viewPost(p[1]);
   }
