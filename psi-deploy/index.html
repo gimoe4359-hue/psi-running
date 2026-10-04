@@ -1492,7 +1492,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
 /* ---------- 플레이리스트 (유튜브 재생목록) ---------- */
 (function () {
   const IC = {"play": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z\"/></svg>", "pause": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"6\" y=\"5\" width=\"4.2\" height=\"14\" rx=\"1.2\"/><rect x=\"13.8\" y=\"5\" width=\"4.2\" height=\"14\" rx=\"1.2\"/></svg>", "prev": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"5\" y=\"5\" width=\"2.6\" height=\"14\" rx=\"1.2\"/><path d=\"M19 6.2v11.6a.8.8 0 0 1-1.25.66l-8.2-5.8a.8.8 0 0 1 0-1.32l8.2-5.8A.8.8 0 0 1 19 6.2z\"/></svg>", "next": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"16.4\" y=\"5\" width=\"2.6\" height=\"14\" rx=\"1.2\"/><path d=\"M5 6.2v11.6a.8.8 0 0 0 1.25.66l8.2-5.8a.8.8 0 0 0 0-1.32l-8.2-5.8A.8.8 0 0 0 5 6.2z\"/></svg>", "repeat": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M17 2l4 4-4 4\"/><path d=\"M3 11V9a3 3 0 0 1 3-3h15\"/><path d=\"M7 22l-4-4 4-4\"/><path d=\"M21 13v2a3 3 0 0 1-3 3H3\"/></svg>", "full": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3\"/></svg>", "close": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "down": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\"/></svg>"};
-  const VID = 'HA-3eExFXe8', PL_URL = 'https://youtu.be/' + VID;
+  const IDS = ['FmS3OnaL8Ig', 'moTX9Blsyls', 'V126nvkIKMk', 'ADo0_QRSk1A'], PL_URL = 'https://youtu.be/' + IDS[0];
   const S = { api: 'idle', yt: null, ids: [], titles: LS.get('psi.mT', {}) || {}, idx: 0, playing: false, started: false, mode: 'off', slot: null, loop: true };
   const mp = $('#mp'), pill = $('#mpPill'), root = document.documentElement;
   const saveT = () => LS.set('psi.mT', S.titles);
@@ -1534,14 +1534,14 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   }
   function init() {
     try {
-      const pv = { controls: 0, playsinline: 1, rel: 0, modestbranding: 1, disablekb: 1, iv_load_policy: 3, fs: 0 };
+      const pv = { playlist: IDS.slice(1).join(','), controls: 0, playsinline: 1, rel: 0, modestbranding: 1, disablekb: 1, iv_load_policy: 3, fs: 0 };
       if (/^https?:/.test(location.origin)) pv.origin = location.origin;
-      S.yt = new YT.Player('mpYT', { width: '100%', height: '100%', videoId: VID, playerVars: pv, events: { onReady, onStateChange: onState, onError } });
+      S.yt = new YT.Player('mpYT', { width: '100%', height: '100%', videoId: IDS[0], playerVars: pv, events: { onReady, onStateChange: onState, onError } });
     } catch (e) { fail('초기화 오류'); }
   }
   function onReady() {
     S.api = 'ready'; 
-    S.ids = [VID]; S.idx = 0; renderList(); sync(); fetchTitles(); const sl = $('#mpSlot'); if (sl) sl.textContent = '';
+    try { S.yt.setLoop(true); } catch (e) {} S.ids = IDS.slice(); S.idx = 0; renderList(); sync(); fetchTitles(); const sl = $('#mpSlot'); if (sl) sl.textContent = '';
   }
   function onError(e) {
     const c = e && e.data; grabIds();
@@ -1554,7 +1554,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     grabIds(); const st = e.data; S.playing = st === 1 || (st === 3 && S.playing);
     try { const i = S.yt.getPlaylistIndex(); if (i >= 0) S.idx = i; } catch (x) {}
     if (st === 1) { S.errs = 0; S.started = true; try { const d = S.yt.getVideoData(); if (d && d.title && curId()) { S.titles[curId()] = d.title; saveT(); titlesOnly(); } } catch (x) {} }
-    if (st === 0 && S.loop) setTimeout(() => { try { if (S.yt.getPlayerState() === 0) { S.yt.seekTo(0, true); S.yt.playVideo(); } } catch (x) {} }, 1500);
+    if (st === 0 && S.loop) setTimeout(() => { try { if (S.yt.getPlayerState() === 0) S.yt.playVideoAt(0); } catch (x) {} }, 1500);
     sync();
   }
   async function fetchTitles() {
