@@ -1493,9 +1493,9 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
 (function () {
   const IC = {"play": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z\"/></svg>", "pause": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"6\" y=\"5\" width=\"4.2\" height=\"14\" rx=\"1.2\"/><rect x=\"13.8\" y=\"5\" width=\"4.2\" height=\"14\" rx=\"1.2\"/></svg>", "prev": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"5\" y=\"5\" width=\"2.6\" height=\"14\" rx=\"1.2\"/><path d=\"M19 6.2v11.6a.8.8 0 0 1-1.25.66l-8.2-5.8a.8.8 0 0 1 0-1.32l8.2-5.8A.8.8 0 0 1 19 6.2z\"/></svg>", "next": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"16.4\" y=\"5\" width=\"2.6\" height=\"14\" rx=\"1.2\"/><path d=\"M5 6.2v11.6a.8.8 0 0 0 1.25.66l8.2-5.8a.8.8 0 0 0 0-1.32l-8.2-5.8A.8.8 0 0 0 5 6.2z\"/></svg>", "repeat": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M17 2l4 4-4 4\"/><path d=\"M3 11V9a3 3 0 0 1 3-3h15\"/><path d=\"M7 22l-4-4 4-4\"/><path d=\"M21 13v2a3 3 0 0 1-3 3H3\"/></svg>", "full": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3\"/></svg>", "close": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "down": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\"/></svg>"};
   const IDS = ['FmS3OnaL8Ig', 'moTX9Blsyls', 'V126nvkIKMk', 'ADo0_QRSk1A'], PL_URL = 'https://youtu.be/' + IDS[0];
-  const S = { api: 'idle', yt: null, ids: [], titles: LS.get('psi.mT', {}) || {}, idx: 0, playing: false, started: false, mode: 'off', slot: null, loop: true };
+  const S = { api: 'idle', yt: null, ids: [], titles: LS.get('psi.mT2', {}) || {}, idx: 0, playing: false, started: false, mode: 'off', slot: null, loop: true };
   const mp = $('#mp'), pill = $('#mpPill'), root = document.documentElement;
-  const saveT = () => LS.set('psi.mT', S.titles);
+  const saveT = () => LS.set('psi.mT2', S.titles);
   const thumb = id => 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg';
   const curId = () => S.ids[S.idx];
   const titleOf = i => S.titles[S.ids[i]] || '곡 ' + (i + 1);
@@ -1521,7 +1521,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     if (S.ids.length || !S.yt) return !!S.ids.length;
     let a = null; try { a = S.yt.getPlaylist(); } catch (e) {}
     if (!(a && a.length)) return false;
-    S.ids = a; try { S.idx = Math.max(0, S.yt.getPlaylistIndex()); } catch (e) {}
+    S.ids = a;
     renderList(); sync(); fetchTitles(); const sl = $('#mpSlot'); if (sl) sl.textContent = '';
     return true;
   }
@@ -1542,6 +1542,11 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   function onReady() {
     S.api = 'ready'; 
     try { S.yt.setLoop(true); } catch (e) {} S.ids = IDS.slice(); S.idx = 0; renderList(); sync(); fetchTitles(); const sl = $('#mpSlot'); if (sl) sl.textContent = '';
+    let n = 0; const t = setInterval(() => {
+      let a = null; try { a = S.yt.getPlaylist(); } catch (e) {}
+      if (a && a.length) { clearInterval(t); if (a.join() !== S.ids.join()) { S.ids = a; renderList(); sync(); fetchTitles(); } }
+      else if (++n > 20) clearInterval(t);
+    }, 300);
   }
   function onError(e) {
     const c = e && e.data; grabIds();
@@ -1552,8 +1557,10 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   }
   function onState(e) {
     grabIds(); const st = e.data; S.playing = st === 1 || (st === 3 && S.playing);
-    try { const i = S.yt.getPlaylistIndex(); if (i >= 0) S.idx = i; } catch (x) {}
-    if (st === 1) { S.errs = 0; S.started = true; try { const d = S.yt.getVideoData(); if (d && d.title && curId()) { S.titles[curId()] = d.title; saveT(); titlesOnly(); } } catch (x) {} }
+    let vd = null; try { vd = S.yt.getVideoData(); } catch (x) {}
+    const vi = vd && vd.video_id ? S.ids.indexOf(vd.video_id) : -1;
+    if (vi >= 0) S.idx = vi; else { try { const i = S.yt.getPlaylistIndex(); if (i >= 0 && i < S.ids.length) S.idx = i; } catch (x) {} }
+    if (st === 1) { S.errs = 0; S.started = true; if (vd && vd.title && vi >= 0) { S.titles[S.ids[vi]] = vd.title; saveT(); titlesOnly(); } }
     if (st === 0 && S.loop) setTimeout(() => { try { if (S.yt.getPlayerState() === 0) S.yt.playVideoAt(0); } catch (x) {} }, 1500);
     sync();
   }
