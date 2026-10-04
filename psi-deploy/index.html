@@ -2,6 +2,14 @@
 <html lang="ko">
 <head><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8F%83%3C/text%3E%3C/svg%3E">
 <meta charset="utf-8">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070b1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="싸이뛰어">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>싸이뛰어! — PSI 정보구출반 연성 아카이브</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -439,7 +447,8 @@ main:focus,main:focus-visible{outline:none}
 .sysbar{display:flex;gap:16px;align-items:center;padding:3px 24px;font:500 11px/1.6 'IBM Plex Mono',ui-monospace,Menlo,monospace;letter-spacing:.08em;color:var(--ink-2);border-bottom:1px solid var(--line);background:rgba(127,141,181,.1)}
 .sysbar i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#2be28a;margin-right:7px;box-shadow:0 0 8px #2be28a;animation:gblink 1.8s ease-in-out infinite;vertical-align:1px}
 .sysbar .r{margin-left:auto}
-@media (max-width:640px){.sysbar{padding:3px 14px;gap:10px}.sysbar .mid{display:none}}
+.sysbar .mid{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sysbar{cursor:default}
+@media (max-width:640px){.sysbar{padding:3px 12px;gap:8px;font-size:10px;letter-spacing:.04em}.sysbar .lv,.sysbar .lv2{display:none}}
 @keyframes gblink{50%{opacity:.25}}
 /* ── 접속 화면 ── */
 #gate{position:fixed;inset:0;z-index:999;background:#050914;color:#e8eeff;display:flex;overflow-y:auto;padding:max(20px,env(safe-area-inset-top)) 20px max(64px,env(safe-area-inset-bottom));transition:opacity .9s ease,transform .9s ease;font-family:var(--body)}
@@ -486,6 +495,30 @@ main:focus,main:focus-visible{outline:none}
 @keyframes gin{from{opacity:0;transform:translateY(4px)}}
 @keyframes gstamp{from{opacity:0;transform:rotate(-4deg) scale(2.2)}}
 @media (prefers-reduced-motion:reduce){#gate,#gate *,.sysbar i{animation:none!important;transition:none!important}}
+
+/* ── 숨은 요소 ── */
+.eggc{font:500 12px/1 'IBM Plex Mono',ui-monospace,Menlo,monospace;letter-spacing:.06em;color:var(--ink-2);white-space:nowrap}
+.stamp-hit{outline:none}
+.stamp-hit:focus-visible .stamp-in{filter:drop-shadow(0 0 6px var(--red))}
+.stamp-in{transform-box:fill-box;transform-origin:50% 50%}
+.stamp-in.thump{animation:thump .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes thump{0%{transform:scale(1.5) rotate(10deg);opacity:.2}55%{transform:scale(.88) rotate(-4deg);opacity:1}100%{transform:none}}
+.dash{position:fixed;left:-110px;width:var(--w,64px);height:var(--w,64px);bottom:var(--b,70px);color:#ffd23f;z-index:900;pointer-events:none;filter:drop-shadow(0 0 10px rgba(255,210,63,.55));animation:dashx var(--t,2.4s) linear var(--d,0s) forwards,dashb .28s steps(2) var(--d,0s) infinite}
+.dash svg{width:100%;height:100%;display:block}
+@keyframes dashx{from{transform:translateX(0)}to{transform:translateX(calc(100vw + 240px))}}
+@keyframes dashb{50%{margin-bottom:6px}}
+@media (prefers-reduced-motion:reduce){.dash{display:none}.stamp-in.thump{animation:none}}
+#toast{z-index:950}
+
+/* ── 앱 설치 안내 ── */
+#pwa{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translate(-50%,140%);width:min(440px,calc(100vw - 24px));z-index:900;background:var(--card);color:var(--ink);border:2px solid var(--edge);border-radius:14px;padding:18px 18px 14px;box-shadow:0 18px 50px rgba(0,0,0,.55);transition:transform .45s cubic-bezier(.2,.9,.3,1)}
+#pwa.on{transform:translate(-50%,0)}
+#pwa h3{margin:0 0 4px;font-family:var(--display);font-weight:400;font-size:24px}
+#pwa p{margin:0 0 10px;color:var(--ink-2);font-size:15px;line-height:1.55}
+#pwa ol{margin:0 0 12px;padding-left:20px;font-size:15px;line-height:1.7}
+#pwa .row{display:flex;gap:8px;flex-wrap:wrap}
+#pwa .row button{border:2px solid var(--edge);background:transparent;border-radius:10px;padding:8px 16px;font-weight:700;font-size:15px}
+#pwa .row button.pri{background:var(--blue);color:var(--on-blue);border-color:var(--blue)}
 </style>
 </head>
 <body>
@@ -523,7 +556,7 @@ main:focus,main:focus-visible{outline:none}
 <a class="skip" href="#main">본문으로 건너뛰기</a>
 
 <header id="top">
-  <div class="sysbar" aria-hidden="true"><span><i></i>PSI-NET 접속 중</span><span class="mid">열람 등급 · 방문자(임시)</span><span class="r" id="sbTime"></span></div>
+  <div class="sysbar" aria-hidden="true"><span class="sbl"><i></i>PSI-NET<span class="lv2"> 접속 중</span></span><span class="mid"><span class="lv">열람 등급 · 방문자(임시) · </span><span id="sbMsg"></span></span><span class="r" id="sbTime"></span></div>
   <div class="wrap">
     <a class="badge" href="#/" aria-label="싸이뛰어! 홈">
       <span class="tag"><svg aria-hidden="true" style="color:#0e1b3d"><use href="#run-a" class="rf1"/><use href="#run-b" class="rf2"/></svg></span>
@@ -552,7 +585,7 @@ main:focus,main:focus-visible{outline:none}
 <footer>
   <div class="wrap">
     <span>「싸이뛰어!」는 자캐놀이(자놀)입니다. 이 사이트는 팬 연성을 모아 둔 아카이브예요.</span>
-    <span>PSI 정보구출반은 오늘도 출동 중입니다. · <b id="conn" role="status">저장소 확인 중…</b> · <button class="tbtn" id="regate" type="button" style="margin:0">사내망 재접속</button></span>
+    <span>PSI 정보구출반은 오늘도 출동 중입니다. · <b id="conn" role="status">저장소 확인 중…</b> · <button class="tbtn" id="regate" type="button" style="margin:0">사내망 재접속</button> · <span id="eggc" class="eggc" title="사이트 곳곳에 숨은 요소가 있어요"></span> · <button class="tbtn" id="pwaBtn" type="button" style="margin:0" hidden>앱으로 설치</button></span>
   </div>
 </footer>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -577,7 +610,17 @@ const TICKER = [
   '오늘의 이상현상: 새콤할지 달콤할지는 열어 봐야 압니다',
   '한여름에도 정보구출반은 쉬지 않습니다',
   '팀원 전원의 쓸데없는 능력, 오늘도 정상 가동 중',
-  '새 소설과 게임은 각 메뉴에서 확인하세요'
+  '새 소설과 게임은 각 메뉴에서 확인하세요',
+  '탕비실 커피 재고 부족 — 총무팀 확인 중',
+  '속보: 결재 올린 문서가 결재선에서 길을 잃었습니다',
+  '이상현상 접수 건수, 오늘도 정상(이상) 범위',
+  '정보구출반은 야근 수당을 이상현상으로 분류하지 않습니다',
+  '점심 메뉴 투표 결과: 늘 하던 대로 새콤',
+  '퇴근은 결재 사항입니다 — 결재선을 확인해 주세요',
+  '분실물 안내: 어제의 의욕을 찾습니다',
+  '방문자는 사원증을 목에 걸어 주세요 (거는 시늉도 가능)',
+  '오늘의 능력 사용 지침: 쓸데없이, 하지만 성실하게',
+  '정보구출반 회의실은 늘 예약 중입니다 (유령 예약 의심)'
 ];
 const GAMES = [
   { id: 'bridge8', title: '8번다리에는 무엇도 없었다', status: '플레이 가능', tags: ['호러', '추리', '어드벤처', '스토리 중심'],
@@ -615,21 +658,12 @@ async function api(action, params = {}) {
   const u = new URL(API_URL); u.searchParams.set('action', action);
   Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') u.searchParams.set(k, v); });
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
-  try { const r = await fetch(u.toString(), { signal: ctl.signal }), j = await r.json(); setConn(true); return j; }
-  catch (e) { setConn(false); throw e; } finally { clearTimeout(to); }
+  try { const r = await fetch(u.toString(), { signal: ctl.signal }); return await r.json(); } finally { clearTimeout(to); }
 }
 async function apiPost(body) {
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
-  try { const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ rid: uid(), ...body, dev }), signal: ctl.signal }); return await r.json(); }
+  try { const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...body, dev }), signal: ctl.signal }); return await r.json(); }
   catch (e) { return { ok: false, error: 'network' }; } finally { clearTimeout(to); }
-}
-/* 저장소(구글 시트) 연결 상태 표시: 따로 ping을 보내지 않고 실제 요청 결과로 표시해요 */
-function setConn(ok) { const el = $('#conn'); if (el) el.textContent = ok ? '🟢 온라인 저장소 연결됨 (모두와 공유)' : '🔴 저장소에 연결하지 못했어요'; }
-/* 요청이 끝날 때까지 버튼을 잠가 두 번 눌려도 한 번만 보내요 (댓글이 2개 달리던 문제) */
-async function busy(btn, fn) {
-  if (!btn || btn.disabled) return;
-  btn.disabled = true; btn.setAttribute('aria-busy', 'true');
-  try { return await fn(); } finally { btn.disabled = false; btn.removeAttribute('aria-busy'); }
 }
 const LOADING = '<div class="wrap"><div class="empty" style="margin:40px 0">불러오는 중… (처음에는 조금 오래 걸릴 수 있어요)</div></div>';
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -667,11 +701,11 @@ function viewHome() {
         </g>
         <g stroke="var(--line)" stroke-width="2"><path d="M62 138H350M62 172H350M62 206H350M62 240H350"/></g>
         <g style="color:var(--ink)" class="ticket-run"><svg x="58" y="256" width="92" height="92" viewBox="0 0 64 64"><use href="#run-a" class="rf1"/><use href="#run-b" class="rf2"/></svg></g>
-        <g transform="rotate(-14 270 306)">
+        <g transform="rotate(-14 270 306)" class="stamp-hit" role="button" tabindex="0" aria-label="출동 도장 눌러 보기" style="cursor:pointer"><g class="stamp-in">
           <circle cx="270" cy="306" r="50" fill="none" stroke="var(--red)" stroke-width="5"/>
           <circle cx="270" cy="306" r="41" fill="none" stroke="var(--red)" stroke-width="2"/>
           <text x="270" y="317" font-family="var(--display)" font-size="36" text-anchor="middle" fill="var(--red)">출동!</text>
-        </g>
+        </g></g>
       </g>
       <g transform="rotate(6 385 330)">
         <rect x="322" y="284" width="128" height="96" fill="#ffd23f" stroke="#0e1b3d" stroke-width="2"/>
@@ -711,9 +745,12 @@ function viewHome() {
    ===================================================================== */
 const hueOf = id => [...String(id)].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 360;
 const coverBg = n => n.gen ? `linear-gradient(150deg,hsl(${hueOf(n.id)},55%,28%),hsl(${(hueOf(n.id) + 60) % 360},60%,10%))` : `url(${COVER})`;
-const WORKS_KEY = 'psi.c.works';
-function applyWorks(works) {
-      const r = { works };
+async function loadNovels() {
+  if (!REMOTE) return;
+  if (loadNovels._at && Date.now() - loadNovels._at < 300000) return;
+  try {
+    const r = await api('works');
+    if (r.ok) {
       const ids = new Set(r.works.map(w => w.id));
       for (let i = NOVELS.length - 1; i >= 0; i--) if (NOVELS[i].gen && !ids.has(NOVELS[i].id)) NOVELS.splice(i, 1);
       r.works.forEach(w => {
@@ -723,23 +760,9 @@ function applyWorks(works) {
         if (n.gen) { n.title = w.title; n.status = w.status || n.status; }
         if (w.chapters.length) n.chapters = w.chapters.map(c => ({ title: c.title, date: c.date, free: true, body: null, blocks: null }));
       });
-}
-/* 지난번에 받아 둔 목록이 있으면 바로 보여 주고, 최신 목록은 뒤에서 받아와요 */
-const cachedWorks = REMOTE ? LS.get(WORKS_KEY, null) : null;
-if (cachedWorks) applyWorks(cachedWorks);
-/* 바뀐 내용이 있으면 true */
-function loadNovels() {
-  if (!REMOTE) return Promise.resolve(false);
-  if (loadNovels._at && Date.now() - loadNovels._at < 300000) return Promise.resolve(false);
-  return loadNovels._p || (loadNovels._p = (async () => {
-    let changed = false;
-    try {
-      const r = await api('works');
-      if (r.ok) { changed = JSON.stringify(r.works) !== JSON.stringify(LS.get(WORKS_KEY, null)); if (changed) { applyWorks(r.works); LS.set(WORKS_KEY, r.works); } }
-    } catch (e) { /* 실패하면 기본 내용을 그대로 보여줘요 */ }
-    loadNovels._at = Date.now(); loadNovels._p = null;
-    return changed;
-  })());
+    }
+  } catch (e) { /* 실패하면 기본 내용을 그대로 보여줘요 */ }
+  loadNovels._at = Date.now();
 }
 const readSet = id => new Set(LS.get('psi.read.' + id, []));
 const cover = (n, cap) => n.gen
@@ -1020,18 +1043,16 @@ async function viewGames(sel) {
   const form = $('.srform'); let rec = null;
   $$('.rec button', form).forEach(b => b.addEventListener('click', () => { rec = b.dataset.r === '1'; $$('.rec button', form).forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
   const ta = $('textarea', form); ta.addEventListener('input', () => { $('[data-cnt]', form).textContent = ta.value.length; });
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', async e => {
     e.preventDefault(); const text = ta.value.trim();
     if (rec === null) { toast('추천 또는 비추천을 골라 주세요.'); return; }
     if (text.length < 2) { toast('후기를 두 글자 이상 적어 주세요.'); ta.focus(); return; }
-    busy($('.post', form), async () => {
-      const okk = await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() });
-      if (!okk) { toast('후기를 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
-      toast('후기가 게시되었습니다. 고마워요!'); await viewGames(g.id);
-    });
+    const okk = await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() });
+    if (!okk) { toast('후기를 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
+    toast('후기가 게시되었습니다. 고마워요!'); viewGames(g.id);
   });
-  $$('[data-help]').forEach(b => b.addEventListener('click', () => busy(b, async () => { await GRV.help(g.id, b.dataset.help); await viewGames(g.id); })));
-  $$('[data-del]').forEach(b => b.addEventListener('click', () => busy(b, async () => { await GRV.del(g.id, b.dataset.del); toast('후기를 삭제했어요.'); await viewGames(g.id); })));
+  $$('[data-help]').forEach(b => b.addEventListener('click', async () => { await GRV.help(g.id, b.dataset.help); viewGames(g.id); }));
+  $$('[data-del]').forEach(b => b.addEventListener('click', async () => { await GRV.del(g.id, b.dataset.del); toast('후기를 삭제했어요.'); viewGames(g.id); }));
   $('#toRv').addEventListener('click', e => { e.preventDefault(); $('#rv').scrollIntoView(); $('.srform textarea').focus({ preventScroll: true }); });
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) $$('.scap video').forEach(v => { v.pause(); v.removeAttribute('autoplay'); });
 }
@@ -1063,46 +1084,28 @@ function seedPosts() {
     { id: 'p_seed1', cat: 'free', title: '가입 인사드립니다', body: '오늘부터 정보구출반에 구경 왔습니다. 잘 부탁드려요. (예시 글)', t: now - 86400e3 * 3, author: 'seed', likes: 12, views: 88, likedBy: [], sample: true, comments: [] }
   ];
 }
-const seenPosts = new Set(), BCACHE_KEY = 'psi.c.board';
-mem.rpost = {};
-if (REMOTE) { const c = LS.get(BCACHE_KEY, null); if (c && Array.isArray(c.posts)) { mem.rcats = c.cats; mem.rposts = c.posts; } }
+const seenPosts = new Set();
 const normPost = p => ({ id: p.id, cat: p.cat, title: p.title, body: p.body, t: p.t, likes: p.likes, views: p.views, pin: !!p.pin,
   comments: Array.isArray(p.comments) ? p.comments : new Array(p.comments || 0).fill({}), likedBy: p.liked ? [dev] : [], author: p.mine ? dev : 'x' });
 const Board = {
   all() { if (REMOTE) return mem.rposts || []; let l = LS.get(BOARD_KEY, null); if (!l) { l = mem.board || seedPosts(); LS.set(BOARD_KEY, l); } mem.board = l; return l; },
   save(l) { mem.board = l; LS.set(BOARD_KEY, l); },
   get(id) { return this.all().find(p => p.id === id); },
-  /* 바뀐 내용이 있으면 true. 동시에 여러 번 불려도 요청은 한 번만 보내요 */
-  sync() {
-    if (!REMOTE) return Promise.resolve(false);
-    return this._sync || (this._sync = (async () => {
-      try {
-        const r = await api('posts', { dev });
-        if (!r.ok) { toast('게시판을 불러오지 못했어요.'); return false; }
-        const next = { cats: r.cats, posts: r.posts.map(normPost) }, changed = JSON.stringify(next) !== JSON.stringify({ cats: mem.rcats, posts: mem.rposts });
-        mem.rcats = next.cats; mem.rposts = next.posts; LS.set(BCACHE_KEY, next); return changed;
-      } catch (e) { toast('게시판을 불러오지 못했어요.'); return false; }
-      finally { this._sync = null; }
-    })());
+  async sync() {
+    if (!REMOTE) return;
+    try { const r = await api('posts', { dev }); if (r.ok) { mem.rcats = r.cats; mem.rposts = r.posts.map(normPost); } else toast('게시판을 불러오지 못했어요.'); }
+    catch (e) { toast('게시판을 불러오지 못했어요.'); }
   },
-  saveCache() { if (REMOTE && mem.rposts) LS.set(BCACHE_KEY, { cats: mem.rcats, posts: mem.rposts }); },
   async loadPost(id) {
     try {
       const r = await api('post', { id, dev }); if (!r.ok) return null;
       const p = normPost({ ...r.post, comments: 0 });
       p.comments = r.post.comments.map(c => ({ id: c.id, body: c.body, t: c.t, mine: c.mine, author: c.who === 'op' ? p.author : 'a' + c.who }));
-      mem.rpost[id] = p;
       return p;
     } catch (e) { toast('글을 불러오지 못했어요.'); return null; }
   },
   async add(p) {
-    if (REMOTE) {
-      const r = await apiPost({ action: 'post', cat: p.cat, title: p.title, body: p.body }); if (!r.ok) return null;
-      /* 방금 쓴 글은 서버를 다시 기다리지 않고 바로 보여 줘요 */
-      const np = normPost({ id: r.id, cat: p.cat, title: p.title, body: p.body, t: Date.now(), likes: 0, views: 0, comments: [], mine: true });
-      mem.rpost[r.id] = np; if (mem.rposts) { mem.rposts.unshift(np); this.saveCache(); }
-      return r.id;
-    }
+    if (REMOTE) { const r = await apiPost({ action: 'post', cat: p.cat, title: p.title, body: p.body }); return r.ok ? r.id : null; }
     const l = this.all(); const np = { ...p, id: uid(), t: Date.now(), author: dev, likes: 0, views: 0, likedBy: [], comments: [] }; l.unshift(np); this.save(l); return np.id;
   },
   view(id) { if (REMOTE || seenPosts.has(id)) return; seenPosts.add(id); const l = this.all(), p = l.find(x => x.id === id); if (p) { p.views = (p.views || 0) + 1; this.save(l); } },
@@ -1111,11 +1114,11 @@ const Board = {
     const l = this.all(), p = l.find(x => x.id === id); if (!p) return; const i = p.likedBy.indexOf(dev); if (i >= 0) { p.likedBy.splice(i, 1); p.likes--; } else { p.likedBy.push(dev); p.likes++; } this.save(l);
   },
   async comment(id, body) {
-    if (REMOTE) { const r = await apiPost({ action: 'comment', post: id, body }); if (!r.ok) toast(r.error === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 등록하지 못했어요.'); return !!r.ok; }
-    const l = this.all(), p = l.find(x => x.id === id); if (!p) return false; p.comments.push({ id: uid(), body, t: Date.now(), author: dev }); this.save(l); return true;
+    if (REMOTE) { const r = await apiPost({ action: 'comment', post: id, body }); if (!r.ok) toast(r.error === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 등록하지 못했어요.'); return; }
+    const l = this.all(), p = l.find(x => x.id === id); if (!p) return; p.comments.push({ id: uid(), body, t: Date.now(), author: dev }); this.save(l);
   },
   async del(id) {
-    if (REMOTE) { await apiPost({ action: 'post_del', id }); delete mem.rpost[id]; if (mem.rposts) { mem.rposts = mem.rposts.filter(p => p.id !== id); this.saveCache(); } return; }
+    if (REMOTE) { await apiPost({ action: 'post_del', id }); return; }
     this.save(this.all().filter(p => p.id !== id));
   }
 };
@@ -1140,10 +1143,7 @@ function cafeShell(inner, cur) {
 function bindShell() { const m = $('#cmanage'); if (m) m.addEventListener('click', openCatManager); }
 
 async function viewBoard(fresh) {
-  if (REMOTE && fresh) {
-    if (!mem.rposts) { main.innerHTML = LOADING; await Board.sync(); }
-    else { const h = location.hash; Board.sync().then(ch => { if (ch && location.hash === h) viewBoard(); }); }
-  }
+  if (REMOTE && fresh) { if (!mem.rposts) main.innerHTML = LOADING; await Board.sync(); }
   let l = Board.all().slice(), title = '전체글보기';
   if (bcur === 'hot') { title = '인기글'; l = l.filter(p => p.likes >= 3); }
   else if (bcur !== 'all') { title = Cats.name(bcur); l = l.filter(p => p.cat === bcur); }
@@ -1166,18 +1166,10 @@ async function viewBoard(fresh) {
 }
 
 async function viewPost(id) {
-  if (!REMOTE) { const p = Board.get(id); Board.view(id); return p ? renderPost(p) : notFound(); }
-  if (!mem.rcats) Board.sync();
-  const h = location.hash, full = mem.rpost[id], brief = (mem.rposts || []).find(x => x.id === id);
-  if (full) renderPost(full); else if (brief) renderPost(brief, true); else main.innerHTML = LOADING;
-  const p = await Board.loadPost(id);
-  if (location.hash !== h) return;
-  if (p) renderPost(p);
-  else if (!full && !brief) notFound();
-  else if (!full) { const li = $('.ccm li'); if (li) li.textContent = '댓글을 불러오지 못했어요. 새로고침해 주세요.'; }
-}
-function renderPost(p, pending) {
-  const id = p.id, old = $('#cf textarea'), draft = old && old.dataset.post === id ? old.value : '';
+  let p;
+  if (REMOTE) { main.innerHTML = LOADING; if (!mem.rcats) await Board.sync(); p = await Board.loadPost(id); }
+  else { p = Board.get(id); Board.view(id); }
+  if (!p) return notFound();
   const order = []; p.comments.forEach(c => { if (c.author !== p.author && !order.includes(c.author)) order.push(c.author); });
   const nick = a => a === p.author ? '<b class="op">글쓴이</b>' : `<b>익명${order.indexOf(a) + 1}</b>`;
   const liked = p.likedBy.includes(dev), mine = p.author === dev;
@@ -1187,34 +1179,16 @@ function renderPost(p, pending) {
     <div class="cart-b">${esc(p.body)}</div>
     <div class="cart-a"><button class="lk" type="button" id="plike" aria-pressed="${liked}">👍 좋아요 ${p.likes}</button><span class="sp"><a class="cbtn ln" href="#/board/c/${p.cat}">목록</a><a class="cbtn" href="#/board/new">글쓰기</a>${mine ? '<button class="cbtn ln" type="button" id="pdel">삭제</button>' : ''}</span></div>
     <div class="ccm"><h2>댓글 ${p.comments.length}</h2>
-      <ul>${pending ? '<li style="color:var(--ink-2);font-size:14px">댓글 불러오는 중…</li>' : p.comments.map(c => `<li><div class="m">${nick(c.author)}<span>${cdate(c.t)}</span></div><p>${esc(c.body)}</p></li>`).join('') || '<li style="color:var(--ink-2);font-size:14px">첫 댓글을 남겨 보세요.</li>'}</ul>
-      <form class="ccf" id="cf"><textarea maxlength="300" placeholder="익명으로 댓글을 남겨 보세요." aria-label="댓글" data-post="${esc(id)}"></textarea><div class="r"><span>익명으로 등록됩니다</span><button class="cbtn" type="submit" ${pending ? 'disabled' : ''}>등록</button></div></form></div>`, p.cat);
+      <ul>${p.comments.map(c => `<li><div class="m">${nick(c.author)}<span>${cdate(c.t)}</span></div><p>${esc(c.body)}</p></li>`).join('') || '<li style="color:var(--ink-2);font-size:14px">첫 댓글을 남겨 보세요.</li>'}</ul>
+      <form class="ccf" id="cf"><textarea maxlength="300" placeholder="익명으로 댓글을 남겨 보세요." aria-label="댓글"></textarea><div class="r"><span>익명으로 등록됩니다</span><button class="cbtn" type="submit">등록</button></div></form></div>`, p.cat);
   bindShell();
-  const ta = $('#cf textarea'); ta.value = draft;
-  $('#plike').addEventListener('click', e => busy(e.currentTarget, async () => {
-    if (!REMOTE) { await Board.like(id); return renderPost(Board.get(id)); }
-    const on = p.likedBy.includes(dev); p.likedBy = on ? [] : [dev]; p.likes += on ? -1 : 1; renderPost(p, pending);
-    await Board.like(id);
-  }));
-  const d = $('#pdel'); if (d) d.addEventListener('click', () => { if (confirm('이 글을 삭제할까요?')) busy(d, async () => { await Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; }); });
-  $('#cf').addEventListener('submit', e => {
-    e.preventDefault(); const t = ta.value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; }
-    busy($('#cf button[type=submit]'), async () => {
-      const h = location.hash;
-      if (!await Board.comment(id, t.slice(0, 300))) return;
-      ta.value = '';
-      if (!REMOTE) return renderPost(Board.get(id));
-      /* 등록된 댓글을 바로 보여 주고, 익명 번호 등은 뒤에서 새로 받아 맞춰요 */
-      p.comments.push({ id: uid(), body: t.slice(0, 300), t: Date.now(), mine: true, author: mine ? p.author : dev });
-      const b = (mem.rposts || []).find(x => x.id === id); if (b && b !== p) { b.comments = b.comments.concat({}); Board.saveCache(); }
-      if (location.hash === h) renderPost(p);
-      const f = await Board.loadPost(id); if (f && location.hash === h) renderPost(f);
-    });
-  });
+  $('#plike').addEventListener('click', async () => { await Board.like(id); viewPost(id); });
+  const d = $('#pdel'); if (d) d.addEventListener('click', async () => { if (confirm('이 글을 삭제할까요?')) { await Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; } });
+  $('#cf').addEventListener('submit', async e => { e.preventDefault(); const t = $('textarea', e.target).value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; } await Board.comment(id, t.slice(0, 300)); viewPost(id); });
 }
 let lastPost = 0;
 async function viewWrite() {
-  if (REMOTE && !mem.rcats) { main.innerHTML = LOADING; await Board.sync(); }
+  if (REMOTE && !mem.rcats) await Board.sync();
   const cats = Cats.all(), def = cats.some(c => c.id === bcur) ? bcur : (cats.find(c => c.id === 'free') || cats[0]).id;
   main.innerHTML = cafeShell(`
     <div class="ctb"><h1>글쓰기</h1><span>익명으로 등록됩니다</span></div>
@@ -1308,20 +1282,14 @@ async function viewExport() {
     window.__export = out;
   });
 }
-function notFound() { main.innerHTML = `<div class="wrap"><div class="phead"><h1>찾을 수 없어요</h1><p>주소가 바뀌었거나 아직 없는 페이지예요. <a href="#/">홈으로 돌아가기</a></p></div></div>`; }
+function notFound() { main.innerHTML = `<div class="wrap"><div class="phead"><h1>열람 권한이 없습니다<span class="stamp">기밀</span></h1><p>요청하신 문서는 존재하지 않거나, 이미 파기되었거나, 애초에 없었습니다. 정보구출반은 이에 대해 책임지지 않습니다. 문의는 인사팀으로 (인사팀도 모릅니다). <a href="#/">홈으로 돌아가기</a></p></div></div>`; if (window.__egg) window.__egg('lost', '열람 권한 없음 — 기밀 문서에 접근하셨습니다'); }
 
 /* ---------- 라우터 ---------- */
 async function route() {
   window.onscroll = null; window.onkeydown = null; window.onresize = null;
   document.body.classList.remove('viewer');
   const h0 = location.hash, p = h0.replace(/^#\/?/, '').split('/');
-  if (REMOTE && (p[0] === 'novels' || !p[0])) {
-    if (!loadNovels._at && !cachedWorks) { main.innerHTML = LOADING; await loadNovels(); if (location.hash !== h0) return; }
-    else loadNovels().then(ch => {
-      if (!ch || location.hash !== h0 || p[2]) return;
-      const y = scrollY; if (!p[0]) viewHome(); else if (!p[1]) viewNovels(); else viewNovel(p[1]); scrollTo(0, y);
-    });
-  }
+  if (REMOTE && (p[0] === 'novels' || !p[0])) { if (!loadNovels._at) main.innerHTML = LOADING; await loadNovels(); if (location.hash !== h0) return; }
   let nav = 'home', keep = false;
   if (p[0] === 'novels') { nav = 'novels'; if (!p[1]) viewNovels(); else if (!p[2]) viewNovel(p[1]); else viewRead(p[1], parseInt(p[2], 10) || 1); }
   else if (p[0] === 'export') { nav = ''; viewExport(); }
@@ -1344,11 +1312,13 @@ addEventListener('hashchange', route);
 
 /* ---------- 속보 띠 / 화면 모드 ---------- */
 $('#track').innerHTML = TICKER.concat(TICKER).map(t => `<span>${esc(t)}</span>`).join('');
+requestAnimationFrame(() => { const t = $('#track'); if (t) t.style.animationDuration = Math.max(46, t.scrollWidth / 85) + 's'; });
 $('#pz').addEventListener('click', () => { const t = $('#ticker'); t.classList.toggle('paused'); $('#pz').textContent = t.classList.contains('paused') ? '▶' : '❚❚'; });
 const MODES = ['auto', 'light', 'dark'], MODE_LABEL = { auto: '자동', light: '라이트', dark: '다크' };
 function applyMode(m) { const r = document.documentElement; if (m === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', m); $('#themeBtn').textContent = '화면 모드: ' + MODE_LABEL[m]; }
 let mode = LS.get('psi.mode', 'dark'); applyMode(mode);
 $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mode) + 1) % 3]; LS.set('psi.mode', mode); applyMode(mode); });
+
 
 /* ---------- 사내망 접속 화면 / 상태 표시줄 ---------- */
 (function () {
@@ -1364,7 +1334,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   const no = 'PSI-0088-' + String(Math.floor(Math.random() * 900) + 100); $('#gNo').textContent = no;
   let started = false, done = false, ctx;
   const beep = (f, d, t, v, at) => { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(), a = ctx.createGain(), t0 = ctx.currentTime + (at || 0); o.type = t || 'sine'; o.frequency.value = f; a.gain.setValueAtTime(.0001, t0); a.gain.exponentialRampToValueAtTime(v || .05, t0 + .01); a.gain.exponentialRampToValueAtTime(.0001, t0 + d); o.connect(a); a.connect(ctx.destination); o.start(t0); o.stop(t0 + d + .02); } catch (e) {} };
-  function finish() { if (done) return; done = true; try { sessionStorage.setItem('psi.gate', '1'); } catch (e) {} g.classList.add('out'); setTimeout(() => { g.remove(); lock(false); main.focus({ preventScroll: true }); }, RM ? 0 : 900); }
+  function finish() { if (done) return; done = true; try { sessionStorage.setItem('psi.gate', '1'); } catch (e) {} g.classList.add('out'); setTimeout(() => { g.remove(); lock(false); main.focus({ preventScroll: true }); dispatchEvent(new Event('psi:enter')); }, RM ? 0 : 900); }
   const LINES = [['사원증 인식 중…'], ['사번 확인: ' + no], ['열람 등급: 방문자(임시) — 일부 자료는 열람이 제한됩니다'], ['보안 서약서 자동 동의 … 완료', 'w'], ['이상현상 관리 서버 연결 … OK'], ['정보구출반 탕비실 커피 재고 … 부족 (점검 요망)', 'w'], ['접속을 승인합니다.']];
   async function run() {
     if (started || done) return; started = true; hint.hidden = true; card.classList.add('scanning'); beep(880, .12, 'square', .03);
@@ -1378,10 +1348,100 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   g.setAttribute('tabindex', '-1'); g.focus({ preventScroll: true });
 })();
 
+
+/* ---------- 숨은 요소 / 시간대 문구 / 앱 설치 ---------- */
+(function () {
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const EGGS = { stamp: '출동 도장', logo: '달리는 사람', sysbar: '상태 표시줄', footer: '사내 방송', parade: '전원 출동', away: '자리 비움', lost: '기밀 문서' };
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  let ac; const snd = (f0, f1, d, type, v) => { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime; o.type = type || 'sine'; o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + d); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v || .12, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + d + .03); } catch (e) {} };
+  const found = () => { const v = LS.get('psi.eggs', []); return Array.isArray(v) ? v : []; };
+  const counter = () => { const el = $('#eggc'); if (el) el.textContent = '숨은 요소 ' + found().length + '/' + Object.keys(EGGS).length; };
+  function dash(n, big) {
+    if (RM) return;
+    for (let i = 0; i < n; i++) { const d = document.createElement('div'); d.className = 'dash'; d.style.setProperty('--b', (big ? 80 : 30 + Math.random() * 60) + 'px'); d.style.setProperty('--w', (big ? 96 : 48 + Math.random() * 40) + 'px'); d.style.setProperty('--t', (big ? 1.7 : 2 + Math.random() * 1.4) + 's'); d.style.setProperty('--d', (i * .16) + 's'); d.innerHTML = RUN(''); document.body.append(d); setTimeout(() => d.remove(), 4800); }
+  }
+  window.__egg = function (id, line) {
+    const f = found(), first = !f.includes(id); let msg = line;
+    if (first) { f.push(id); LS.set('psi.eggs', f); msg = line + ' · 숨은 요소 발견 ' + f.length + '/' + Object.keys(EGGS).length; }
+    toast(msg); counter();
+    if (first && f.length === Object.keys(EGGS).length) setTimeout(() => { toast('숨은 요소 전부 발견! 사내 표창 대상자로 등록되었습니다.'); snd(523, 0, .3, 'sine', .09); setTimeout(() => snd(784, 0, .5, 'sine', .09), 180); dash(10); }, 2900);
+  };
+  counter();
+  /* 1) 출동 도장 */
+  const STAMP = ['결재 완료. 단, 퇴근은 결재 불가입니다.', '출동 승인! (장비는 각자 알아서 챙기세요)', '도장 잉크가 떨어졌습니다. 총무팀에 신청해 주세요.', '쾅. 오늘 하루치 보람이 찍혔습니다.', '출동 도장은 하루 한 번만 찍어야 하지만 아무도 안 지킵니다.'];
+  let stN = 0;
+  function stamp(el) { const i = el.querySelector('.stamp-in'); if (i) { i.classList.remove('thump'); void i.getBBox(); i.classList.add('thump'); } snd(150, 55, .22, 'sine', .22); setTimeout(() => snd(900, 0, .05, 'square', .02), 40); stN++; window.__egg('stamp', stN % 8 === 0 ? '도장을 너무 많이 찍으면 인사 기록에 남습니다.' : pick(STAMP)); }
+  document.addEventListener('click', e => { const h = e.target.closest && e.target.closest('.stamp-hit'); if (h) stamp(h); });
+  document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('stamp-hit')) { e.preventDefault(); stamp(e.target); } });
+  /* 2) 로고 5연타 */
+  let lc = 0, lt;
+  document.addEventListener('click', e => { if (!(e.target.closest && e.target.closest('.badge'))) return; lc++; clearTimeout(lt); lt = setTimeout(() => lc = 0, 1600); if (lc >= 5) { lc = 0; dash(1, true); snd(520, 880, .25, 'triangle', .07); window.__egg('logo', '뛰어!! (이 사람은 퇴근하려고 뛰는 게 아닙니다)'); } });
+  /* 3) 상태 표시줄 / 푸터 */
+  const SYS = ['열람 등급 상승 요청이 접수되었습니다. (처리까지 영업일 기준 영원)', '현재 접속자: 정보구출반 전원 + 당신', '보안 점검 결과: 이상 없음. (이상한 건 원래 이상합니다)', '탕비실 커피 재고 확인 중… 확인에 실패했습니다.', '인사팀 공지: 방문자 사원증은 반납하지 않으셔도 됩니다.'];
+  const sb = $('.sysbar'); if (sb) sb.addEventListener('click', () => window.__egg('sysbar', pick(SYS)));
+  const BC = ['[사내 방송] 정보구출반 호출입니다. 이상현상 접수 건이 있습니다.', '[사내 방송] 점심 메뉴는 오늘도 새콤합니다.', '[사내 방송] 쓸데없는 능력은 근무 시간 중 사용을 자제해 주세요. (자제된 적 없음)', '[사내 방송] 분실물 안내: 퇴근 시간이 분실되었습니다.', '[사내 방송] 이 방송은 연습 방송입니다. 연습은 실전과 다르지 않습니다.'];
+  let fc = 0, ft;
+  const ft0 = $('footer'); if (ft0) ft0.addEventListener('click', e => { if (e.target.closest('button,a')) return; fc++; clearTimeout(ft); ft = setTimeout(() => fc = 0, 1400); if (fc >= 5) { fc = 0; parade(); } else if (fc === 1) { snd(660, 0, .12, 'sine', .06); setTimeout(() => snd(880, 0, .2, 'sine', .06), 130); window.__egg('footer', pick(BC)); } });
+  /* 4) 전원 출동 (푸터 5연타 / ↑↑↓↓←→←→) */
+  function parade() { dash(9); snd(392, 0, .15, 'square', .04); setTimeout(() => snd(523, 0, .15, 'square', .04), 150); setTimeout(() => snd(659, 0, .3, 'square', .04), 300); window.__egg('parade', '숨겨진 능력 발동: 쓸데없음 (전원 공통)'); }
+  const KC = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight']; let ki = 0;
+  addEventListener('keydown', e => { const k = e.key; if (k === KC[ki]) { ki++; if (ki === KC.length) { ki = 0; parade(); } } else ki = k === KC[0] ? 1 : 0; });
+  /* 5) 자리 비움 */
+  const T0 = document.title; let hiddenAt = 0, tt;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = Date.now(); document.title = '(자리 비움) 싸이뛰어!'; }
+    else { document.title = '복귀 확인 · 싸이뛰어!'; clearTimeout(tt); tt = setTimeout(() => document.title = T0, 2600); if (hiddenAt && Date.now() - hiddenAt > 1500) window.__egg('away', '자리 비움 기록을 삭제했습니다. 복귀를 환영합니다.'); hiddenAt = 0; }
+  });
+  /* 6) 시간대별 상태 문구 */
+  function timeMsg() {
+    const d = new Date(), h = d.getHours(), w = d.getDay(), n = 3 + (d.getDate() * 7) % 9;
+    if (w === 1 && h >= 6 && h < 12) return '월요일 · 정신 건강 점검 요망';
+    if (w === 5 && h >= 15 && h < 22) return '금요일 · 퇴근길이 가볍습니다';
+    if (h < 6) return '심야 근무 · 야근 수당은 지급되지 않습니다';
+    if (h < 9) return '출근 시간 · 졸음 경보 발령';
+    if (h < 12) return '오전 근무 · 이상현상 접수 대기 중';
+    if (h < 13) return '점심시간 · 구내식당 운영 중 (메뉴: 새콤)';
+    if (h < 18) return '오후 근무 · 결재 대기 문서 ' + n + '건';
+    if (h < 22) return '퇴근 시간 · 퇴근은 결재 사항입니다';
+    return '야근 중 · 탕비실 커피 재고 부족';
+  }
+  const mm = $('#sbMsg'); const setMsg = () => { if (mm) mm.textContent = timeMsg(); }; setMsg(); setInterval(setMsg, 60000);
+  try { console.log('%c싸이뛰어! %c— 정보구출반 사내망', 'font:700 18px sans-serif;color:#ffd23f', 'font:14px sans-serif;color:#7b97ff'); console.log('개발자도구를 여시다니 열람 등급이 올랐습니다. (농담입니다)'); } catch (e) {}
+
+  /* 7) 홈 화면 앱 */
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let dp = null; const btn = $('#pwaBtn');
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  if (btn && !standalone()) btn.hidden = false;
+  addEventListener('beforeinstallprompt', e => { e.preventDefault(); dp = e; });
+  addEventListener('appinstalled', () => { dp = null; if (btn) btn.hidden = true; LS.set('psi.pwaAsk', 1); toast('설치 완료! 홈 화면에서 열어 보세요.'); });
+  let sheet;
+  function showSheet(auto) {
+    if (standalone()) return;
+    if (dp && !isIOS && !auto) { dp.prompt(); dp.userChoice.then(() => { dp = null; }).catch(() => {}); return; }
+    if (!sheet) { sheet = document.createElement('div'); sheet.id = 'pwa'; sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', '앱으로 설치하기'); document.body.append(sheet); }
+    const steps = isIOS ? '<ol><li>사파리 주소창 옆(또는 위쪽)의 <b>공유 버튼</b> ⬆︎ 누르기</li><li><b>“홈 화면에 추가”</b> 선택</li><li>오른쪽 위 <b>“추가”</b> 누르면 끝!</li></ol>' : (dp ? '<p>아래 버튼을 누르면 홈 화면에 앱으로 추가돼요.</p>' : '<ol><li>브라우저 메뉴(⋮ 또는 공유) 열기</li><li><b>“홈 화면에 추가”</b> 또는 <b>“앱 설치”</b> 선택</li></ol>');
+    sheet.innerHTML = '<h3>사원증을 홈 화면에 걸어 두세요</h3><p>주소창 없이 앱처럼 열리고, 한 번 열어 본 화면은 오프라인에서도 보여요.</p>' + steps + '<div class="row">' + (dp && !isIOS ? '<button class="pri" id="pwaGo" type="button">지금 설치</button>' : '') + '<button id="pwaClose" type="button">닫기</button><button id="pwaNo" type="button">다시 보지 않기</button></div>';
+    requestAnimationFrame(() => sheet.classList.add('on'));
+    const close = () => { sheet.classList.remove('on'); LS.set('psi.pwaAsk', 1); };
+    $('#pwaClose').onclick = () => sheet.classList.remove('on'); $('#pwaNo').onclick = close;
+    const go = $('#pwaGo'); if (go) go.onclick = () => { dp.prompt(); dp.userChoice.then(() => { dp = null; close(); }).catch(() => {}); };
+  }
+  if (btn) btn.addEventListener('click', () => showSheet(false));
+  const ask = () => { if (!standalone() && !LS.get('psi.pwaAsk', 0)) setTimeout(() => { if (!document.getElementById('gate')) showSheet(true); }, 5000); };
+  addEventListener('psi:enter', ask); if (!document.getElementById('gate')) addEventListener('load', ask);
+})();
+
 route();
-/* 저장소 연결 상태: 다른 요청이 하나도 없을 때만 따로 확인해요 */
-if (!REMOTE) { const el = $('#conn'); if (el) el.textContent = '⚪ 저장소 연결 안 됨 (이 브라우저에만 저장)'; }
-else setTimeout(() => { const el = $('#conn'); if (el && el.textContent.includes('확인 중')) api('ping').catch(() => {}); }, 4000);
+/* 저장소(구글 시트) 연결 상태 표시: 후기·게시판이 모두에게 공유되는지 한눈에 확인 */
+(async () => {
+  const el = $('#conn'); if (!el) return;
+  if (!REMOTE) { el.textContent = '⚪ 저장소 연결 안 됨 (이 브라우저에만 저장)'; return; }
+  try { const r = await api('ping'); el.textContent = r && r.ok ? '🟢 온라인 저장소 연결됨 (모두와 공유)' : '🔴 저장소에 연결하지 못했어요'; }
+  catch (e) { el.textContent = '🔴 저장소에 연결하지 못했어요'; }
+})();
 </script>
 </body>
 </html>
