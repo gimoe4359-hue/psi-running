@@ -536,21 +536,12 @@ async function api(action, params = {}) {
   const u = new URL(API_URL); u.searchParams.set('action', action);
   Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== '') u.searchParams.set(k, v); });
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
-  try { const r = await fetch(u.toString(), { signal: ctl.signal }), j = await r.json(); setConn(true); return j; }
-  catch (e) { setConn(false); throw e; } finally { clearTimeout(to); }
+  try { const r = await fetch(u.toString(), { signal: ctl.signal }); return await r.json(); } finally { clearTimeout(to); }
 }
 async function apiPost(body) {
   const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 60000);
-  try { const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ rid: uid(), ...body, dev }), signal: ctl.signal }); return await r.json(); }
+  try { const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ...body, dev }), signal: ctl.signal }); return await r.json(); }
   catch (e) { return { ok: false, error: 'network' }; } finally { clearTimeout(to); }
-}
-/* 저장소(구글 시트) 연결 상태 표시: 따로 ping을 보내지 않고 실제 요청 결과로 표시해요 */
-function setConn(ok) { const el = $('#conn'); if (el) el.textContent = ok ? '🟢 온라인 저장소 연결됨 (모두와 공유)' : '🔴 저장소에 연결하지 못했어요'; }
-/* 요청이 끝날 때까지 버튼을 잠가 두 번 눌려도 한 번만 보내요 (댓글이 2개 달리던 문제) */
-async function busy(btn, fn) {
-  if (!btn || btn.disabled) return;
-  btn.disabled = true; btn.setAttribute('aria-busy', 'true');
-  try { return await fn(); } finally { btn.disabled = false; btn.removeAttribute('aria-busy'); }
 }
 const LOADING = '<div class="wrap"><div class="empty" style="margin:40px 0">불러오는 중… (처음에는 조금 오래 걸릴 수 있어요)</div></div>';
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -632,9 +623,12 @@ function viewHome() {
    ===================================================================== */
 const hueOf = id => [...String(id)].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) % 360;
 const coverBg = n => n.gen ? `linear-gradient(150deg,hsl(${hueOf(n.id)},55%,28%),hsl(${(hueOf(n.id) + 60) % 360},60%,10%))` : `url(${COVER})`;
-const WORKS_KEY = 'psi.c.works';
-function applyWorks(works) {
-      const r = { works };
+async function loadNovels() {
+  if (!REMOTE) return;
+  if (loadNovels._at && Date.now() - loadNovels._at < 300000) return;
+  try {
+    const r = await api('works');
+    if (r.ok) {
       const ids = new Set(r.works.map(w => w.id));
       for (let i = NOVELS.length - 1; i >= 0; i--) if (NOVELS[i].gen && !ids.has(NOVELS[i].id)) NOVELS.splice(i, 1);
       r.works.forEach(w => {
@@ -644,23 +638,9 @@ function applyWorks(works) {
         if (n.gen) { n.title = w.title; n.status = w.status || n.status; }
         if (w.chapters.length) n.chapters = w.chapters.map(c => ({ title: c.title, date: c.date, free: true, body: null, blocks: null }));
       });
-}
-/* 지난번에 받아 둔 목록이 있으면 바로 보여 주고, 최신 목록은 뒤에서 받아와요 */
-const cachedWorks = REMOTE ? LS.get(WORKS_KEY, null) : null;
-if (cachedWorks) applyWorks(cachedWorks);
-/* 바뀐 내용이 있으면 true */
-function loadNovels() {
-  if (!REMOTE) return Promise.resolve(false);
-  if (loadNovels._at && Date.now() - loadNovels._at < 300000) return Promise.resolve(false);
-  return loadNovels._p || (loadNovels._p = (async () => {
-    let changed = false;
-    try {
-      const r = await api('works');
-      if (r.ok) { changed = JSON.stringify(r.works) !== JSON.stringify(LS.get(WORKS_KEY, null)); if (changed) { applyWorks(r.works); LS.set(WORKS_KEY, r.works); } }
-    } catch (e) { /* 실패하면 기본 내용을 그대로 보여줘요 */ }
-    loadNovels._at = Date.now(); loadNovels._p = null;
-    return changed;
-  })());
+    }
+  } catch (e) { /* 실패하면 기본 내용을 그대로 보여줘요 */ }
+  loadNovels._at = Date.now();
 }
 const readSet = id => new Set(LS.get('psi.read.' + id, []));
 const cover = (n, cap) => n.gen
@@ -941,18 +921,16 @@ async function viewGames(sel) {
   const form = $('.srform'); let rec = null;
   $$('.rec button', form).forEach(b => b.addEventListener('click', () => { rec = b.dataset.r === '1'; $$('.rec button', form).forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
   const ta = $('textarea', form); ta.addEventListener('input', () => { $('[data-cnt]', form).textContent = ta.value.length; });
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', async e => {
     e.preventDefault(); const text = ta.value.trim();
     if (rec === null) { toast('추천 또는 비추천을 골라 주세요.'); return; }
     if (text.length < 2) { toast('후기를 두 글자 이상 적어 주세요.'); ta.focus(); return; }
-    busy($('.post', form), async () => {
-      const okk = await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() });
-      if (!okk) { toast('후기를 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
-      toast('후기가 게시되었습니다. 고마워요!'); await viewGames(g.id);
-    });
+    const okk = await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() });
+    if (!okk) { toast('후기를 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
+    toast('후기가 게시되었습니다. 고마워요!'); viewGames(g.id);
   });
-  $$('[data-help]').forEach(b => b.addEventListener('click', () => busy(b, async () => { await GRV.help(g.id, b.dataset.help); await viewGames(g.id); })));
-  $$('[data-del]').forEach(b => b.addEventListener('click', () => busy(b, async () => { await GRV.del(g.id, b.dataset.del); toast('후기를 삭제했어요.'); await viewGames(g.id); })));
+  $$('[data-help]').forEach(b => b.addEventListener('click', async () => { await GRV.help(g.id, b.dataset.help); viewGames(g.id); }));
+  $$('[data-del]').forEach(b => b.addEventListener('click', async () => { await GRV.del(g.id, b.dataset.del); toast('후기를 삭제했어요.'); viewGames(g.id); }));
   $('#toRv').addEventListener('click', e => { e.preventDefault(); $('#rv').scrollIntoView(); $('.srform textarea').focus({ preventScroll: true }); });
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) $$('.scap video').forEach(v => { v.pause(); v.removeAttribute('autoplay'); });
 }
@@ -984,46 +962,28 @@ function seedPosts() {
     { id: 'p_seed1', cat: 'free', title: '가입 인사드립니다', body: '오늘부터 정보구출반에 구경 왔습니다. 잘 부탁드려요. (예시 글)', t: now - 86400e3 * 3, author: 'seed', likes: 12, views: 88, likedBy: [], sample: true, comments: [] }
   ];
 }
-const seenPosts = new Set(), BCACHE_KEY = 'psi.c.board';
-mem.rpost = {};
-if (REMOTE) { const c = LS.get(BCACHE_KEY, null); if (c && Array.isArray(c.posts)) { mem.rcats = c.cats; mem.rposts = c.posts; } }
+const seenPosts = new Set();
 const normPost = p => ({ id: p.id, cat: p.cat, title: p.title, body: p.body, t: p.t, likes: p.likes, views: p.views, pin: !!p.pin,
   comments: Array.isArray(p.comments) ? p.comments : new Array(p.comments || 0).fill({}), likedBy: p.liked ? [dev] : [], author: p.mine ? dev : 'x' });
 const Board = {
   all() { if (REMOTE) return mem.rposts || []; let l = LS.get(BOARD_KEY, null); if (!l) { l = mem.board || seedPosts(); LS.set(BOARD_KEY, l); } mem.board = l; return l; },
   save(l) { mem.board = l; LS.set(BOARD_KEY, l); },
   get(id) { return this.all().find(p => p.id === id); },
-  /* 바뀐 내용이 있으면 true. 동시에 여러 번 불려도 요청은 한 번만 보내요 */
-  sync() {
-    if (!REMOTE) return Promise.resolve(false);
-    return this._sync || (this._sync = (async () => {
-      try {
-        const r = await api('posts', { dev });
-        if (!r.ok) { toast('게시판을 불러오지 못했어요.'); return false; }
-        const next = { cats: r.cats, posts: r.posts.map(normPost) }, changed = JSON.stringify(next) !== JSON.stringify({ cats: mem.rcats, posts: mem.rposts });
-        mem.rcats = next.cats; mem.rposts = next.posts; LS.set(BCACHE_KEY, next); return changed;
-      } catch (e) { toast('게시판을 불러오지 못했어요.'); return false; }
-      finally { this._sync = null; }
-    })());
+  async sync() {
+    if (!REMOTE) return;
+    try { const r = await api('posts', { dev }); if (r.ok) { mem.rcats = r.cats; mem.rposts = r.posts.map(normPost); } else toast('게시판을 불러오지 못했어요.'); }
+    catch (e) { toast('게시판을 불러오지 못했어요.'); }
   },
-  saveCache() { if (REMOTE && mem.rposts) LS.set(BCACHE_KEY, { cats: mem.rcats, posts: mem.rposts }); },
   async loadPost(id) {
     try {
       const r = await api('post', { id, dev }); if (!r.ok) return null;
       const p = normPost({ ...r.post, comments: 0 });
       p.comments = r.post.comments.map(c => ({ id: c.id, body: c.body, t: c.t, mine: c.mine, author: c.who === 'op' ? p.author : 'a' + c.who }));
-      mem.rpost[id] = p;
       return p;
     } catch (e) { toast('글을 불러오지 못했어요.'); return null; }
   },
   async add(p) {
-    if (REMOTE) {
-      const r = await apiPost({ action: 'post', cat: p.cat, title: p.title, body: p.body }); if (!r.ok) return null;
-      /* 방금 쓴 글은 서버를 다시 기다리지 않고 바로 보여 줘요 */
-      const np = normPost({ id: r.id, cat: p.cat, title: p.title, body: p.body, t: Date.now(), likes: 0, views: 0, comments: [], mine: true });
-      mem.rpost[r.id] = np; if (mem.rposts) { mem.rposts.unshift(np); this.saveCache(); }
-      return r.id;
-    }
+    if (REMOTE) { const r = await apiPost({ action: 'post', cat: p.cat, title: p.title, body: p.body }); return r.ok ? r.id : null; }
     const l = this.all(); const np = { ...p, id: uid(), t: Date.now(), author: dev, likes: 0, views: 0, likedBy: [], comments: [] }; l.unshift(np); this.save(l); return np.id;
   },
   view(id) { if (REMOTE || seenPosts.has(id)) return; seenPosts.add(id); const l = this.all(), p = l.find(x => x.id === id); if (p) { p.views = (p.views || 0) + 1; this.save(l); } },
@@ -1032,11 +992,11 @@ const Board = {
     const l = this.all(), p = l.find(x => x.id === id); if (!p) return; const i = p.likedBy.indexOf(dev); if (i >= 0) { p.likedBy.splice(i, 1); p.likes--; } else { p.likedBy.push(dev); p.likes++; } this.save(l);
   },
   async comment(id, body) {
-    if (REMOTE) { const r = await apiPost({ action: 'comment', post: id, body }); if (!r.ok) toast(r.error === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 등록하지 못했어요.'); return !!r.ok; }
-    const l = this.all(), p = l.find(x => x.id === id); if (!p) return false; p.comments.push({ id: uid(), body, t: Date.now(), author: dev }); this.save(l); return true;
+    if (REMOTE) { const r = await apiPost({ action: 'comment', post: id, body }); if (!r.ok) toast(r.error === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 등록하지 못했어요.'); return; }
+    const l = this.all(), p = l.find(x => x.id === id); if (!p) return; p.comments.push({ id: uid(), body, t: Date.now(), author: dev }); this.save(l);
   },
   async del(id) {
-    if (REMOTE) { await apiPost({ action: 'post_del', id }); delete mem.rpost[id]; if (mem.rposts) { mem.rposts = mem.rposts.filter(p => p.id !== id); this.saveCache(); } return; }
+    if (REMOTE) { await apiPost({ action: 'post_del', id }); return; }
     this.save(this.all().filter(p => p.id !== id));
   }
 };
@@ -1061,10 +1021,7 @@ function cafeShell(inner, cur) {
 function bindShell() { const m = $('#cmanage'); if (m) m.addEventListener('click', openCatManager); }
 
 async function viewBoard(fresh) {
-  if (REMOTE && fresh) {
-    if (!mem.rposts) { main.innerHTML = LOADING; await Board.sync(); }
-    else { const h = location.hash; Board.sync().then(ch => { if (ch && location.hash === h) viewBoard(); }); }
-  }
+  if (REMOTE && fresh) { if (!mem.rposts) main.innerHTML = LOADING; await Board.sync(); }
   let l = Board.all().slice(), title = '전체글보기';
   if (bcur === 'hot') { title = '인기글'; l = l.filter(p => p.likes >= 3); }
   else if (bcur !== 'all') { title = Cats.name(bcur); l = l.filter(p => p.cat === bcur); }
@@ -1087,18 +1044,10 @@ async function viewBoard(fresh) {
 }
 
 async function viewPost(id) {
-  if (!REMOTE) { const p = Board.get(id); Board.view(id); return p ? renderPost(p) : notFound(); }
-  if (!mem.rcats) Board.sync();
-  const h = location.hash, full = mem.rpost[id], brief = (mem.rposts || []).find(x => x.id === id);
-  if (full) renderPost(full); else if (brief) renderPost(brief, true); else main.innerHTML = LOADING;
-  const p = await Board.loadPost(id);
-  if (location.hash !== h) return;
-  if (p) renderPost(p);
-  else if (!full && !brief) notFound();
-  else if (!full) { const li = $('.ccm li'); if (li) li.textContent = '댓글을 불러오지 못했어요. 새로고침해 주세요.'; }
-}
-function renderPost(p, pending) {
-  const id = p.id, old = $('#cf textarea'), draft = old && old.dataset.post === id ? old.value : '';
+  let p;
+  if (REMOTE) { main.innerHTML = LOADING; if (!mem.rcats) await Board.sync(); p = await Board.loadPost(id); }
+  else { p = Board.get(id); Board.view(id); }
+  if (!p) return notFound();
   const order = []; p.comments.forEach(c => { if (c.author !== p.author && !order.includes(c.author)) order.push(c.author); });
   const nick = a => a === p.author ? '<b class="op">글쓴이</b>' : `<b>익명${order.indexOf(a) + 1}</b>`;
   const liked = p.likedBy.includes(dev), mine = p.author === dev;
@@ -1108,34 +1057,16 @@ function renderPost(p, pending) {
     <div class="cart-b">${esc(p.body)}</div>
     <div class="cart-a"><button class="lk" type="button" id="plike" aria-pressed="${liked}">👍 좋아요 ${p.likes}</button><span class="sp"><a class="cbtn ln" href="#/board/c/${p.cat}">목록</a><a class="cbtn" href="#/board/new">글쓰기</a>${mine ? '<button class="cbtn ln" type="button" id="pdel">삭제</button>' : ''}</span></div>
     <div class="ccm"><h2>댓글 ${p.comments.length}</h2>
-      <ul>${pending ? '<li style="color:var(--ink-2);font-size:14px">댓글 불러오는 중…</li>' : p.comments.map(c => `<li><div class="m">${nick(c.author)}<span>${cdate(c.t)}</span></div><p>${esc(c.body)}</p></li>`).join('') || '<li style="color:var(--ink-2);font-size:14px">첫 댓글을 남겨 보세요.</li>'}</ul>
-      <form class="ccf" id="cf"><textarea maxlength="300" placeholder="익명으로 댓글을 남겨 보세요." aria-label="댓글" data-post="${esc(id)}"></textarea><div class="r"><span>익명으로 등록됩니다</span><button class="cbtn" type="submit" ${pending ? 'disabled' : ''}>등록</button></div></form></div>`, p.cat);
+      <ul>${p.comments.map(c => `<li><div class="m">${nick(c.author)}<span>${cdate(c.t)}</span></div><p>${esc(c.body)}</p></li>`).join('') || '<li style="color:var(--ink-2);font-size:14px">첫 댓글을 남겨 보세요.</li>'}</ul>
+      <form class="ccf" id="cf"><textarea maxlength="300" placeholder="익명으로 댓글을 남겨 보세요." aria-label="댓글"></textarea><div class="r"><span>익명으로 등록됩니다</span><button class="cbtn" type="submit">등록</button></div></form></div>`, p.cat);
   bindShell();
-  const ta = $('#cf textarea'); ta.value = draft;
-  $('#plike').addEventListener('click', e => busy(e.currentTarget, async () => {
-    if (!REMOTE) { await Board.like(id); return renderPost(Board.get(id)); }
-    const on = p.likedBy.includes(dev); p.likedBy = on ? [] : [dev]; p.likes += on ? -1 : 1; renderPost(p, pending);
-    await Board.like(id);
-  }));
-  const d = $('#pdel'); if (d) d.addEventListener('click', () => { if (confirm('이 글을 삭제할까요?')) busy(d, async () => { await Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; }); });
-  $('#cf').addEventListener('submit', e => {
-    e.preventDefault(); const t = ta.value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; }
-    busy($('#cf button[type=submit]'), async () => {
-      const h = location.hash;
-      if (!await Board.comment(id, t.slice(0, 300))) return;
-      ta.value = '';
-      if (!REMOTE) return renderPost(Board.get(id));
-      /* 등록된 댓글을 바로 보여 주고, 익명 번호 등은 뒤에서 새로 받아 맞춰요 */
-      p.comments.push({ id: uid(), body: t.slice(0, 300), t: Date.now(), mine: true, author: mine ? p.author : dev });
-      const b = (mem.rposts || []).find(x => x.id === id); if (b && b !== p) { b.comments = b.comments.concat({}); Board.saveCache(); }
-      if (location.hash === h) renderPost(p);
-      const f = await Board.loadPost(id); if (f && location.hash === h) renderPost(f);
-    });
-  });
+  $('#plike').addEventListener('click', async () => { await Board.like(id); viewPost(id); });
+  const d = $('#pdel'); if (d) d.addEventListener('click', async () => { if (confirm('이 글을 삭제할까요?')) { await Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; } });
+  $('#cf').addEventListener('submit', async e => { e.preventDefault(); const t = $('textarea', e.target).value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; } await Board.comment(id, t.slice(0, 300)); viewPost(id); });
 }
 let lastPost = 0;
 async function viewWrite() {
-  if (REMOTE && !mem.rcats) { main.innerHTML = LOADING; await Board.sync(); }
+  if (REMOTE && !mem.rcats) await Board.sync();
   const cats = Cats.all(), def = cats.some(c => c.id === bcur) ? bcur : (cats.find(c => c.id === 'free') || cats[0]).id;
   main.innerHTML = cafeShell(`
     <div class="ctb"><h1>글쓰기</h1><span>익명으로 등록됩니다</span></div>
@@ -1236,13 +1167,7 @@ async function route() {
   window.onscroll = null; window.onkeydown = null; window.onresize = null;
   document.body.classList.remove('viewer');
   const h0 = location.hash, p = h0.replace(/^#\/?/, '').split('/');
-  if (REMOTE && (p[0] === 'novels' || !p[0])) {
-    if (!loadNovels._at && !cachedWorks) { main.innerHTML = LOADING; await loadNovels(); if (location.hash !== h0) return; }
-    else loadNovels().then(ch => {
-      if (!ch || location.hash !== h0 || p[2]) return;
-      const y = scrollY; if (!p[0]) viewHome(); else if (!p[1]) viewNovels(); else viewNovel(p[1]); scrollTo(0, y);
-    });
-  }
+  if (REMOTE && (p[0] === 'novels' || !p[0])) { if (!loadNovels._at) main.innerHTML = LOADING; await loadNovels(); if (location.hash !== h0) return; }
   let nav = 'home', keep = false;
   if (p[0] === 'novels') { nav = 'novels'; if (!p[1]) viewNovels(); else if (!p[2]) viewNovel(p[1]); else viewRead(p[1], parseInt(p[2], 10) || 1); }
   else if (p[0] === 'export') { nav = ''; viewExport(); }
@@ -1272,9 +1197,13 @@ let mode = LS.get('psi.mode', 'auto'); applyMode(mode);
 $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mode) + 1) % 3]; LS.set('psi.mode', mode); applyMode(mode); });
 
 route();
-/* 저장소 연결 상태: 다른 요청이 하나도 없을 때만 따로 확인해요 */
-if (!REMOTE) { const el = $('#conn'); if (el) el.textContent = '⚪ 저장소 연결 안 됨 (이 브라우저에만 저장)'; }
-else setTimeout(() => { const el = $('#conn'); if (el && el.textContent.includes('확인 중')) api('ping').catch(() => {}); }, 4000);
+/* 저장소(구글 시트) 연결 상태 표시: 후기·게시판이 모두에게 공유되는지 한눈에 확인 */
+(async () => {
+  const el = $('#conn'); if (!el) return;
+  if (!REMOTE) { el.textContent = '⚪ 저장소 연결 안 됨 (이 브라우저에만 저장)'; return; }
+  try { const r = await api('ping'); el.textContent = r && r.ok ? '🟢 온라인 저장소 연결됨 (모두와 공유)' : '🔴 저장소에 연결하지 못했어요'; }
+  catch (e) { el.textContent = '🔴 저장소에 연결하지 못했어요'; }
+})();
 </script>
 </body>
 </html>
