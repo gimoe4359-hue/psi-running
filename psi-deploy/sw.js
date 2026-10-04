@@ -1,6 +1,6 @@
 /* 싸이뛰어! 서비스 워커 — 한 번 열어 본 화면을 오프라인에서도 보여 줍니다.
    배포 후 화면이 안 바뀌면 아래 VERSION 숫자를 올리면 됩니다. */
-const VERSION = 'psi-v16';
+const VERSION = 'psi-v17';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'assets/cover.webp', 'assets/game-icon.webp', 'assets/game-poster.webp'];
 
 self.addEventListener('install', e => {

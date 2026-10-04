@@ -642,7 +642,7 @@ nav a.nl .ls{display:none}
 .pls-menu button:hover,.pls-menu button:focus-visible{background:#0b0b0b;color:#ffd23f;outline:0}
 .pls-menu button.on{background:#0b0b0b;color:#fff;font-size:calc(44*var(--u));padding:calc(2*var(--u)) calc(16*var(--u));text-shadow:calc(-2*var(--u)) 0 rgba(255,40,90,.7),calc(2*var(--u)) 0 rgba(0,220,255,.6)}
 .pls-menu button[aria-pressed="false"]{opacity:.45}
-.pls-title{position:absolute;right:calc(46*var(--u));top:calc(500*var(--u));z-index:9;width:calc(700*var(--u));text-align:right;transform:translate(calc(var(--px)*calc(-12*var(--u))),calc(var(--py)*calc(-8*var(--u)))) perspective(calc(1100*var(--u))) rotateY(-22deg) rotateZ(-2deg);transform-origin:right center}
+.pls-title{position:absolute;right:calc(46*var(--u));top:calc(484*var(--u));z-index:9;width:calc(700*var(--u));text-align:right;transform:translate(calc(var(--px)*calc(-12*var(--u))),calc(var(--py)*calc(-8*var(--u)))) perspective(calc(1100*var(--u))) rotateY(-22deg) rotateZ(-2deg);transform-origin:right center}
 .pls-title .k{font:400 calc(16*var(--u)) 'Y1 Gaen',sans-serif;letter-spacing:.3em;color:#ffd23f}
 .pls-title h1{margin:calc(6*var(--u)) 0 0;font:400 calc(64*var(--u))/1.05 'Black Han Sans',sans-serif;color:#fff;text-shadow:calc(-2*var(--u)) 0 rgba(255,40,90,.55),calc(2*var(--u)) 0 rgba(0,220,255,.45);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all}
 .pls-title h1.gl{animation:plsgl .5s steps(2) 1}
@@ -668,7 +668,7 @@ nav a.nl .ls{display:none}
 .pls .pl-trk[aria-current="true"]::before{content:'▶';position:absolute;left:calc(-24*var(--u));color:#ffd23f;font-size:calc(13*var(--u))}
 .pls .pl-trk.sk{opacity:.4;pointer-events:none}
 .pls .pl-err{color:#c9c4b2;font-size:calc(14*var(--u));line-height:1.6}.pls .pl-err a{color:#ffd23f}
-.vol{position:absolute;right:calc(46*var(--u));top:calc(712*var(--u));z-index:12;display:flex;align-items:center;gap:calc(16*var(--u));transform:rotate(-2deg)}
+.vol{position:absolute;right:calc(46*var(--u));top:calc(744*var(--u));z-index:12;display:flex;align-items:center;gap:calc(16*var(--u));transform:rotate(-2deg)}
 .vlb{display:flex;align-items:center;gap:calc(10*var(--u));color:#ffd23f}
 .vlb svg{width:calc(30*var(--u));height:calc(30*var(--u))}
 .vlb span{font:400 calc(10*var(--u)) 'Y1 Gaen',sans-serif;letter-spacing:.22em;color:#8a8470;line-height:1}
@@ -697,7 +697,25 @@ nav a.nl .ls{display:none}
 .pls-fx .grain{inset:-50%;opacity:.22;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");animation:plsgrain .9s steps(6) infinite}
 
 #mp.big{border-radius:0}
-.pls-prog{display:none}
+#mpCover{position:absolute;inset:0;z-index:1;background:#000;opacity:1;transition:opacity .5s;pointer-events:none}
+#mpCover img{width:100%;height:100%;object-fit:cover;display:block}
+#mpCover:after{content:'';position:absolute;inset:0;background:radial-gradient(transparent 40%,rgba(0,0,0,.55))}
+#mpCover i{position:absolute;left:50%;top:50%;z-index:1;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:#ffd23f;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+#mpCover i:before{content:'';position:absolute;left:25px;top:19px;border-style:solid;border-width:13px 0 13px 22px;border-color:transparent transparent transparent #0b0b0b}
+.mpv #mpCover{opacity:0}
+.mpp #mpCover i{opacity:0}
+#mp.mini #mpCover i{width:40px;height:40px;margin:-20px 0 0 -20px}#mp.mini #mpCover i:before{left:15px;top:11px;border-width:9px 0 9px 15px}
+.pls-prog{position:relative;display:block;margin-top:16px;height:12px;background:#1b1b1b;cursor:pointer;touch-action:none;user-select:none}
+.pls-prog::before{content:'';position:absolute;left:-6px;right:-6px;top:-16px;bottom:-16px}
+.pls-prog i{position:absolute;left:0;top:0;bottom:0;width:0;background:#ffd23f;transition:width .4s linear}
+.pls-prog i:after{content:'';position:absolute;right:-7px;top:50%;width:14px;height:22px;margin-top:-11px;background:#fff;transform:skewX(-14deg);box-shadow:0 0 10px rgba(255,210,63,.7)}
+.pls-prog .rn{position:absolute;right:-14px;top:-34px;width:28px;height:28px;color:#ffd23f}
+.pls-prog .rn svg{width:100%;height:100%;display:block}
+.pls-prog .rf1,.pls-prog .rf2{animation-play-state:paused}
+.mpp .pls-prog .rf1,.mpp .pls-prog .rf2{animation-play-state:running;animation-duration:.3s}
+.pls-prog .tip{position:absolute;bottom:30px;left:0;transform:translateX(-50%);padding:5px 9px;background:#ffd23f;color:#0b0b0b;font:400 15px 'Y1 Lava',monospace;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
+.pls-prog.drag{height:16px}.pls-prog.drag .tip{opacity:1}.pls-prog.drag .rn{opacity:0}
+.pls-prog:hover i:after{background:#ffd23f}
 html.psi-music body{background:#050505}
 html.psi-music main{padding:0}
 @keyframes plspaint{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
@@ -717,13 +735,8 @@ html.psi-music main{padding:0}
   .pls-title .k{font-size:10px;letter-spacing:.24em}
   .pls-title h1{font-size:27px;line-height:1.15;margin-top:8px}
   .pls-title .tc{font-size:14px;margin-top:10px}
-  .pls-prog{order:4;display:block;margin:30px 16px 0;height:12px;background:#1b1b1b;cursor:pointer;touch-action:none}
-  .pls-prog::before{content:'';position:absolute;left:0;right:0;top:-14px;bottom:-14px}
-  .pls-prog i{position:absolute;left:0;top:0;bottom:0;width:0;background:#ffd23f;transition:width .4s linear}
-  .pls-prog .rn{position:absolute;right:-14px;top:-30px;width:28px;height:28px;color:#ffd23f}
-  .pls-prog .rn svg{width:100%;height:100%;display:block}
-  .pls-prog .rf1,.pls-prog .rf2{animation-play-state:paused}
-  .mpp .pls-prog .rf1,.mpp .pls-prog .rf2{animation-play-state:running;animation-duration:.3s}
+  .pls-prog{margin-top:44px;height:14px}
+  .pls-prog::before{top:-22px;bottom:-22px}
   .pls-band{order:5;display:block;position:relative;height:auto;margin:30px 0 0;padding:20px 18px}
   .pls-stroke{left:-24px;right:-24px;top:0;width:auto;height:100%;transform:rotate(-2.5deg)}
   .pls-menu{position:relative;left:auto;top:auto;transform:none;display:grid;grid-template-columns:1fr 1.5fr 1fr .8fr;gap:6px;align-items:center}
@@ -819,7 +832,7 @@ html.psi-music main{padding:0}
   </div>
 </footer>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="pls-rough"><feTurbulence type="fractalNoise" baseFrequency=".035 .9" numOctaves="3" seed="4"/><feDisplacementMap in="SourceGraphic" scale="34"/></filter><filter id="pls-speck"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="2" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.4 1.22" result="m"/><feComposite in="SourceGraphic" in2="m" operator="in"/></filter></svg>
-<div id="mp" class="off" aria-label="플레이리스트 영상"><div id="mpVid"><div id="mpYT"></div></div><button id="mpTap" type="button" aria-label="영상 재생 또는 일시정지"></button><div class="mp-bar"><button id="mpT" class="ttl" type="button">플레이리스트</button><button id="mpPP" class="ib sm" type="button" aria-label="재생 또는 일시정지"><svg class="ic f" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/></svg></button><button id="mpNx" class="ib sm" type="button" aria-label="다음 곡"><svg class="ic f" viewBox="0 0 24 24" aria-hidden="true"><rect x="16.4" y="5" width="2.6" height="14" rx="1.2"/><path d="M5 6.2v11.6a.8.8 0 0 0 1.25.66l8.2-5.8a.8.8 0 0 0 0-1.32l-8.2-5.8A.8.8 0 0 0 5 6.2z"/></svg></button><button id="mpCo" class="ib sm" type="button" aria-label="작게 접기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><button id="mpCl" class="ib sm" type="button" aria-label="음악 끄기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+<div id="mp" class="off" aria-label="플레이리스트 영상"><div id="mpVid"><div id="mpYT"></div><div id="mpCover" aria-hidden="true"><img id="mpCoverImg" alt=""><i></i></div></div><button id="mpTap" type="button" aria-label="영상 재생 또는 일시정지"></button><div class="mp-bar"><button id="mpT" class="ttl" type="button">플레이리스트</button><button id="mpPP" class="ib sm" type="button" aria-label="재생 또는 일시정지"><svg class="ic f" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/></svg></button><button id="mpNx" class="ib sm" type="button" aria-label="다음 곡"><svg class="ic f" viewBox="0 0 24 24" aria-hidden="true"><rect x="16.4" y="5" width="2.6" height="14" rx="1.2"/><path d="M5 6.2v11.6a.8.8 0 0 0 1.25.66l8.2-5.8a.8.8 0 0 0 0-1.32l-8.2-5.8A.8.8 0 0 0 5 6.2z"/></svg></button><button id="mpCo" class="ib sm" type="button" aria-label="작게 접기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><button id="mpCl" class="ib sm" type="button" aria-label="음악 끄기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
 <button id="mpPill" type="button" hidden aria-label="플레이리스트 펼치기"><span class="eqb"><i></i><i></i><i></i></span><span id="mpPillT">재생 중</span></button>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -1633,12 +1646,12 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
 (function () {
   const IC = {"play": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z\"/></svg>", "pause": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"6\" y=\"5\" width=\"4.2\" height=\"14\" rx=\"1.2\"/><rect x=\"13.8\" y=\"5\" width=\"4.2\" height=\"14\" rx=\"1.2\"/></svg>", "prev": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"5\" y=\"5\" width=\"2.6\" height=\"14\" rx=\"1.2\"/><path d=\"M19 6.2v11.6a.8.8 0 0 1-1.25.66l-8.2-5.8a.8.8 0 0 1 0-1.32l8.2-5.8A.8.8 0 0 1 19 6.2z\"/></svg>", "next": "<svg class=\"ic f\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"16.4\" y=\"5\" width=\"2.6\" height=\"14\" rx=\"1.2\"/><path d=\"M5 6.2v11.6a.8.8 0 0 0 1.25.66l8.2-5.8a.8.8 0 0 0 0-1.32l-8.2-5.8A.8.8 0 0 0 5 6.2z\"/></svg>", "repeat": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M17 2l4 4-4 4\"/><path d=\"M3 11V9a3 3 0 0 1 3-3h15\"/><path d=\"M7 22l-4-4 4-4\"/><path d=\"M21 13v2a3 3 0 0 1-3 3H3\"/></svg>", "full": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3\"/></svg>", "close": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 6l12 12M18 6L6 18\"/></svg>", "down": "<svg class=\"ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\"/></svg>"};
   const IDS = ['FmS3OnaL8Ig', 'moTX9Blsyls', 'V126nvkIKMk', 'ADo0_QRSk1A'], PL_URL = 'https://youtu.be/' + IDS[0];
-  const S = { api: 'idle', yt: null, ids: [], titles: LS.get('psi.mT3', {}) || {}, durs: LS.get('psi.mD', {}) || {}, vol: LS.get('psi.vol', 80), muted: !!LS.get('psi.mute', 0), idx: 0, playing: false, started: false, mode: 'off', slot: null, loop: true };
+  const S = { api: 'idle', yt: null, ids: [], titles: LS.get('psi.mT4', {}) || {}, durs: LS.get('psi.mD', {}) || {}, vol: LS.get('psi.vol', 80), muted: !!LS.get('psi.mute', 0), idx: 0, playing: false, started: false, mode: 'off', slot: null, loop: true };
   const mp = $('#mp'), pill = $('#mpPill'), root = document.documentElement;
-  const saveT = () => LS.set('psi.mT3', S.titles);
+  const saveT = () => LS.set('psi.mT4', S.titles);
   const thumb = id => 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg';
   const curId = () => S.ids[S.idx];
-  const titleOf = i => (S.titles[S.ids[i]] || '곡 ' + (i + 1)).replace(/^\s*\[playlist\]\s*/i, '');
+  const titleOf = i => (S.titles[S.ids[i]] || '곡 ' + (i + 1)).replace(/\s*[\[(【]\s*(playlist|플레이리스트|플리)\s*[\])】]\s*/gi, ' ').trim();
   const fmt = t => { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
   function place() {
     const sl = S.slot;
@@ -1678,7 +1691,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     S.api = 'ready'; S.ids = IDS.slice(); S.idx = 0; applyVol(); renderList(); sync(); fetchTitles(); const sl = $('#mpSlot'); if (sl) sl.textContent = '';
   }
   function go(i) {
-    const n = S.ids.length; if (!n) return; S.idx = ((i % n) + n) % n; sync();
+    const n = S.ids.length; if (!n) return; S.idx = ((i % n) + n) % n; clearTimeout(S.covT); root.classList.remove('mpv'); sync();
     try { S.yt.loadVideoById(S.ids[S.idx]); } catch (x) {}
   }
   function onError(e) {
@@ -1689,6 +1702,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   }
   function onState(e) {
     const st = e.data; S.playing = st === 1 || (st === 3 && S.playing);
+    clearTimeout(S.covT); if (st === 1) S.covT = setTimeout(() => root.classList.add('mpv'), 1200); else if (st !== 3) root.classList.remove('mpv');
     if (st === 1) {
       S.errs = 0; S.started = true;
       try { const d = S.yt.getVideoData(); if (d && d.title && d.video_id === S.ids[S.idx] && !S.titles[d.video_id]) { S.titles[d.video_id] = d.title; saveT(); titlesOnly(); } } catch (x) {}
@@ -1759,6 +1773,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     const b = $('#plSub'); if (b) b.textContent = !S.started ? 'STANDBY' : (S.playing ? 'ON AIR' : 'PAUSED');
     const no = $('#plNo'); if (no) no.textContent = S.started ? String(S.idx + 1).padStart(2, '0') : '--';
     const tot = $('#plTot'); if (tot) tot.textContent = S.ids.length ? String(S.ids.length).padStart(2, '0') : '--';
+    const ci = $('#mpCoverImg'), cid = curId(); if (ci && cid && ci.dataset.id !== cid) { ci.dataset.id = cid; ci.onerror = () => { ci.onerror = null; ci.src = 'https://i.ytimg.com/vi/' + cid + '/hqdefault.jpg'; }; ci.src = 'https://i.ytimg.com/vi/' + cid + '/maxresdefault.jpg'; }
     const kn = $('#plKno'); if (kn) kn.textContent = S.started ? String(S.idx + 1).padStart(2, '0') : '--';
     const mpp = $('#mpPP'); if (mpp) mpp.innerHTML = S.playing ? IC.pause : IC.play;
     const ppb = $('#plPP'); if (ppb) ppb.textContent = S.playing ? 'PAUSE' : 'PLAY';
@@ -1774,14 +1789,14 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
       if (d && id && S.durs[id] !== Math.round(d)) { S.durs[id] = Math.round(d); LS.set('psi.mD', S.durs); const tt = $(`.pl-trk[data-i="${S.idx}"] .t`); if (tt) tt.textContent = fmt(d); }
       const pc = d ? Math.min(100, c / d * 100) + '%' : '0';
       const bi = S.started && $('.pl-trk[aria-current="true"] .bar i'); if (bi) bi.style.width = pc;
-      const pg = $('.pls-prog i'); if (pg) pg.style.width = S.started ? pc : '0';
+      const pg = !S.drag && $('.pls-prog i'); if (pg) pg.style.width = S.started ? pc : '0';
     } catch (e) {}
   }, 400);
   const ok = () => { if (S.api !== 'ready') { toast('플레이어를 준비하고 있어요. 잠시만요.'); return false; } return true; };
   const toggle = () => { if (!ok()) return; try { S.playing ? S.yt.pauseVideo() : S.yt.playVideo(); } catch (e) {} };
   document.addEventListener('click', e => {
-    const bar = e.target.closest && e.target.closest('.pl-trk[aria-current="true"] .bar, .pls-prog');
-    if (bar) { if (!ok()) return; kick(bar.closest('.pl-trk') || bar, { y: -160 }); const r = bar.getBoundingClientRect(); try { S.yt.seekTo(S.yt.getDuration() * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), true); } catch (x) {} return; }
+    const bar = e.target.closest && e.target.closest('.pl-trk[aria-current="true"] .bar');
+    if (bar) { if (!ok()) return; kick(bar.closest('.pl-trk'), { y: -160 }); const r = bar.getBoundingClientRect(); try { S.yt.seekTo(S.yt.getDuration() * Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), true); } catch (x) {} return; }
     const t = e.target.closest && e.target.closest('.pl-trk[data-i]');
     if (t) { const rows = $$('.pl-trk[data-i]'), at = rows.indexOf(t); kick(t, { x: 520, r: -30 }); ripple(rows, at, d => d ? { x: 240 / d, r: jit(8) } : {}); if (ok()) go(+t.dataset.i); return; }
     const vb = e.target.closest && e.target.closest('.vseg button'); if (vb) { setVol(+vb.dataset.v); return; }
@@ -1800,19 +1815,33 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     else if (id.id === 'mpCo') { LS.set('psi.mMin', 1); setMode('min'); }
     else if (id.id === 'mpCl') { try { S.yt.pauseVideo(); } catch (x) {} S.started = false; S.playing = false; setMode('off'); sync(); }
   });
+  document.addEventListener('pointerdown', e => {
+    const bar = e.target.closest && e.target.closest('.pls-prog'); if (!bar || e.button > 0) return;
+    e.preventDefault(); if (!ok()) return;
+    let d = 0; try { d = S.yt.getDuration(); } catch (x) {} if (!d) return;
+    const fill = bar.querySelector('i'), tip = bar.querySelector('.tip');
+    const at = x => { const r = bar.getBoundingClientRect(), f = Math.min(1, Math.max(0, (x - r.left) / r.width)); fill.style.width = f * 100 + '%'; tip.textContent = fmt(f * d); tip.style.left = f * 100 + '%'; return f; };
+    let f = at(e.clientX); S.drag = true; bar.classList.add('drag'); fill.style.transition = 'none';
+    try { bar.setPointerCapture(e.pointerId); } catch (x) {}
+    bar.onpointermove = ev => { f = at(ev.clientX); };
+    bar.onpointerup = bar.onpointercancel = () => {
+      bar.onpointermove = bar.onpointerup = bar.onpointercancel = null; S.drag = false; bar.classList.remove('drag'); fill.style.transition = '';
+      try { S.yt.seekTo(f * d, true); } catch (x) {} kick(bar, { y: -140 }); kick($('.pls-prog .rn'), { y: -300 });
+    };
+  });
+  const seekBy = sec => { if (!ok()) return; try { const d = S.yt.getDuration(); S.yt.seekTo(Math.max(0, Math.min(d - 1, S.yt.getCurrentTime() + sec)), true); kick($('.pls-prog'), { x: sec * 12 }); } catch (x) {} };
   pill.addEventListener('click', () => { LS.set('psi.mMin', 0); setMode('mini'); });
   window.viewMusic = function () {
     root.classList.add('psi-music');
     main.innerHTML = `<section class="pls" aria-label="플레이리스트">
       <div class="pls-psi" aria-hidden="true">PS<b>I</b></div>
-      <div class="pls-keys" aria-hidden="true">NAVIGATION: ← → &nbsp;·&nbsp; PLAY / PAUSE: SPACE<br>VOLUME: ↑ ↓ &nbsp;·&nbsp; MUTE: M &nbsp;·&nbsp; BACK: ESC</div>
+      <div class="pls-keys" aria-hidden="true">NAVIGATION: ← → &nbsp;·&nbsp; PLAY / PAUSE: SPACE<br>SEEK: J / L &nbsp;·&nbsp; VOLUME: ↑ ↓ &nbsp;·&nbsp; MUTE: M &nbsp;·&nbsp; BACK: ESC</div>
       <div class="pls-corner" aria-hidden="true"><b>PSI</b>INFORMATION RESCUE TEAM<br>INTERNAL BROADCAST v1.0.0</div>
       <div class="pls-head"><div class="pls-no" aria-hidden="true"><span id="plNo">--</span><small>/ <span id="plTot">--</span> TRACK</small></div><div class="pls-brand">싸이뛰어!</div></div>
       <div class="pls-scr"><div class="pls-hud"><i></i><span id="plSub">STANDBY</span> · CH.01</div><div id="mpSlot" class="pls-slot">플레이어를 불러오는 중</div><span class="pls-secret" aria-hidden="true">대외비</span></div>
       <div class="pls-band"><div class="pls-stroke"></div><div class="pls-stroke2"></div><div class="pls-stencil" aria-hidden="true">NOW PLAYING</div>
         <div class="pls-menu"><button id="plPv" type="button" aria-label="이전 곡">PREV</button><button id="plPP" class="on" type="button" aria-label="재생 또는 일시정지">PLAY</button><button id="plNx" type="button" aria-label="다음 곡">NEXT</button><button id="plLp" type="button" aria-pressed="${S.loop}" aria-label="반복 재생">LOOP</button></div></div>
-      <div class="pls-title"><div class="k">PSI BROADCAST // TRACK <span id="plKno">--</span></div><h1 id="plTitle">불러오는 중</h1><div class="tc"><span id="plCur">0:00</span> / <span id="plDur">0:00</span></div></div>
-      <div class="pls-prog" role="slider" aria-label="재생 위치"><i><b class="rn">${RUN('')}</b></i></div>
+      <div class="pls-title"><div class="k">PSI BROADCAST // TRACK <span id="plKno">--</span></div><h1 id="plTitle">불러오는 중</h1><div class="tc"><span id="plCur">0:00</span> / <span id="plDur">0:00</span></div><div class="pls-prog" role="slider" aria-label="재생 위치 (끌어서 이동)" tabindex="0"><i><b class="rn">${RUN('')}</b></i><span class="tip">0:00</span></div></div>
       <div class="pls-trk"><ol class="pl-list" id="plList" aria-label="곡 목록"></ol></div>
       <div class="vol" role="group" aria-label="볼륨 조절">
         <div class="vlb"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>VOLUME<b>볼륨</b></span></div>
@@ -1835,6 +1864,8 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
       else if (k === 'ArrowUp') { e.preventDefault(); setVol((S.muted ? 0 : S.vol) + 20); }
       else if (k === 'ArrowDown') { e.preventDefault(); if (!S.muted && S.vol <= 20) $('#plMute').click(); else setVol(S.vol - 20); }
       else if (k === 'm' || k === 'M') $('#plMute').click();
+      else if (k === 'j' || k === 'J') seekBy(-10);
+      else if (k === 'l' || k === 'L') seekBy(10);
       else if (k === 'Escape') location.hash = '#/';
     };
     const st = $('.pls');
