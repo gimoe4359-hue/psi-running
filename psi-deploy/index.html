@@ -609,38 +609,98 @@ nav a.nl .ls{display:none}
 }
 @media (prefers-reduced-motion:reduce){.eqb i,.pl-trk .eq i,.docmeta i{animation:none!important}}
 .srv .th{font-size:12px;font-weight:700;letter-spacing:-.02em}
-/* 플레이리스트 — 날카로운 사선 UI */
-.wrap:has(.pl) .phead h1{font-size:clamp(46px,8vw,92px);letter-spacing:.02em;transform:skewX(-8deg);transform-origin:left bottom;text-shadow:4px 4px 0 var(--blue);line-height:1}
-.pl{position:relative;gap:72px;padding-top:22px}
-.pl::before{content:'';position:absolute;right:-6%;top:-30px;width:34%;height:130%;background:linear-gradient(180deg,rgba(123,151,255,.14),rgba(123,151,255,0));transform:skewX(-14deg);z-index:-1;pointer-events:none}
-.pl-frame{border:0;border-radius:0;box-shadow:12px 12px 0 var(--blue),0 0 0 3px var(--ink)}
-#mp.big{border-radius:0}
-.pl-tag{display:inline-block;background:var(--ink);color:var(--paper);font:700 12px/1 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.22em;padding:8px 22px 8px 14px;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);margin-bottom:14px}
-.pl-info{margin-top:34px}
-.pl-title{font-size:clamp(30px,4.8vw,54px);line-height:1.1;transform:skewX(-7deg);transform-origin:left bottom;text-shadow:3px 3px 0 var(--blue);font-style:normal}
-.pl-sub{font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.16em;margin-top:10px}
-.pl-bar{height:10px;border-radius:0;transform:skewX(-20deg);outline:2px solid var(--edge);background:var(--soft)}
-.pl-bar i{border-radius:0}
-.pl-bar i::after{border-radius:0;width:6px;height:24px;margin-top:-12px;right:-3px;background:var(--ink)}
-.pl-btns{gap:6px}
-.pl-btns .ib{width:58px;height:46px;border:0;border-radius:0;background:var(--soft);clip-path:polygon(24% 0,100% 0,76% 100%,0 100%);transition:background .15s,transform .15s}
-.pl-btns .ib:hover{background:var(--blue);color:var(--on-blue);transform:translateY(-2px)}
-.pl-btns .ib.big{width:104px;height:64px;background:var(--ink);color:var(--paper)}
-.pl-btns .ib.big:hover{background:var(--blue);color:var(--on-blue)}
-.pl-btns .ib[aria-pressed="true"]{background:var(--blue);color:var(--on-blue)}
-.pl-side h2{font-size:14px;letter-spacing:.24em;color:var(--ink);padding:0 2px 10px;border-bottom:3px solid var(--blue);margin-bottom:22px}
-.pl-list{gap:16px;padding-left:22px}
-.pl-trk{border:0;border-radius:0;background:var(--card);clip-path:polygon(20px 0,100% 0,calc(100% - 20px) 100%,0 100%);padding:10px 38px 10px 34px;grid-template-columns:112px minmax(0,1fr) 20px;transition:transform .2s cubic-bezier(.2,.9,.3,1.2),background .2s}
-.pl-trk:hover{transform:translateX(-8px);background:var(--soft)}
-.pl-trk:focus-visible{background:var(--soft);outline:0}
-.pl-trk .th{width:112px;border-radius:0;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
-.pl-trk .no{font-family:var(--display);font-size:24px;letter-spacing:.04em;color:var(--blue);margin-bottom:4px}
-.pl-trk .tt{font-size:16px}
-.pl-trk[aria-current="true"]{background:var(--ink);color:var(--paper);transform:translateX(-20px)}
-.pl-trk[aria-current="true"] .no{color:var(--red)}
-.pl-trk[aria-current="true"] .eq{color:var(--paper)}
-@media (max-width:860px){.pl{gap:40px}.pl::before{display:none}}
-@media (max-width:640px){.pl-list{padding-left:12px}.pl-trk{grid-template-columns:84px minmax(0,1fr) 16px;padding:8px 28px 8px 26px}.pl-trk .th{width:84px}.pl-trk[aria-current="true"]{transform:translateX(-10px)}.pl-btns .ib{width:50px}.pl-btns .ib.big{width:84px}.pl-frame{box-shadow:8px 8px 0 var(--blue),0 0 0 2px var(--ink)}}
+
+/* ===== 플레이리스트: 싸이뛰어! 사내 방송 (검정 × 노랑, 음악에 맞춰 움직임) ===== */
+html:root.psi-music{--tk-bg:#ffd23f;--tk-ink:#0a0a0a;--tk-lab-bg:#0a0a0a;--tk-lab-ink:#ffd23f;--paper:#0a0a0a;--card:#141414;--ink:#f6f1df;--ink-2:#a9a38c;--line:#262626;--blue:#ffd23f;--on-blue:#0a0a0a;--soft:#1b1b1b;--edge:#ffd23f;--red:#ff4d3d;--y:#ffd23f}
+html.psi-music body{background:#0a0a0a!important;background-image:none!important}
+html.psi-music .sysbar{background:#0a0a0a}
+html.psi-music #plBg{filter:blur(70px) brightness(.22) saturate(1.4)}
+.pls-mq{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:4vh;transform:rotate(-8deg) scale(1.25)}
+.pls-mq>div{display:flex;width:max-content;font-family:var(--display);font-size:clamp(64px,11vw,150px);line-height:1;white-space:nowrap;animation:mq 60s linear infinite}
+.pls-mq span{padding-right:.3em}
+.pls-mq .r1{color:transparent;-webkit-text-stroke:1.5px rgba(255,210,63,.16)}
+.pls-mq .r2{color:rgba(255,210,63,.05);animation-direction:reverse;animation-duration:80s}
+.mpp .pls-mq>div{animation-duration:18s}.mpp .pls-mq .r2{animation-duration:26s}
+@keyframes mq{to{transform:translateX(-50%)}}
+.pls{position:relative;padding-top:28px}
+.pls-head{margin-bottom:34px}
+.pls-air{display:inline-flex;align-items:center;gap:8px;font:700 12px/1 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.2em;color:var(--y);border:1.5px solid var(--y);border-radius:99px;padding:7px 14px 7px 11px}
+.pls-air i{width:8px;height:8px;border-radius:50%;background:#555}
+.pls-air .on{display:none}
+.mpp .pls-air{background:var(--y);color:#0a0a0a}.mpp .pls-air i{background:var(--red);animation:gblink 1s steps(1) infinite}
+.mpp .pls-air .on{display:inline}.mpp .pls-air .off{display:none}
+.pls-h{font-family:var(--display);font-weight:400;margin:16px 0 6px;line-height:.95;font-size:clamp(48px,9vw,112px)}
+.pls-h>span{display:block}
+.pls-h span span{display:inline-block;animation:drop .7s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(var(--i) * 45ms + 80ms)}
+.pls-h .a{color:var(--ink);font-size:.55em}
+.pls-h .b{color:var(--y)}
+.mpp .pls-h .b span{animation:drop .7s cubic-bezier(.2,1.6,.4,1) both,hop .47s ease-in-out infinite;animation-delay:calc(var(--i) * 45ms + 80ms),calc(var(--i) * -60ms)}
+@keyframes drop{from{opacity:0;transform:translateY(-.6em) rotate(-14deg) scale(1.3)}}
+@keyframes hop{50%{transform:translateY(-.06em) rotate(-3deg)}}
+.pls-head p{color:var(--ink-2);margin:6px 0 0;font-size:15px}
+.pl{gap:48px;padding-bottom:80px}
+.pl-frame{border:3px solid var(--y);border-radius:18px;box-shadow:0 0 0 6px #0a0a0a,0 0 0 8px rgba(255,210,63,.35),0 24px 60px rgba(0,0,0,.6);position:relative;overflow:visible;background:#000}
+.pl-frame::before,.pl-frame::after{content:'';position:absolute;width:120px;height:26px;background:repeating-linear-gradient(-45deg,#ffd23f 0 12px,#0a0a0a 12px 24px);z-index:21;pointer-events:none;box-shadow:0 4px 10px rgba(0,0,0,.4)}
+.pl-frame::before{left:-34px;top:16px;transform:rotate(-38deg)}
+.pl-frame::after{right:-34px;bottom:16px;transform:rotate(-38deg)}
+#mp.big{border-radius:15px}
+.pl-info{margin-top:30px}
+.pl-title{font-size:clamp(28px,4.4vw,48px);line-height:1.15;color:var(--ink)}
+.pl-title.go{animation:tpop .75s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes tpop{0%{opacity:0;transform:translateX(-40px) skewX(-18deg);color:var(--y)}60%{color:var(--y)}}
+.pl-sub{font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.14em;color:var(--y)}
+.pl-bar{height:14px;margin-top:30px;border-radius:99px;background:#1d1d1d;box-shadow:inset 0 0 0 1.5px #2e2e2e}
+.pl-bar i{border-radius:99px;background:repeating-linear-gradient(-45deg,#ffd23f 0 10px,#0a0a0a 10px 20px);background-size:28.28px 28.28px}
+.mpp .pl-bar i{animation:tape .6s linear infinite}
+@keyframes tape{to{background-position:28.28px 0}}
+.pl-bar i::after{display:none}
+.pl-run{position:absolute;right:-22px;bottom:2px;width:40px;height:40px;color:var(--y);filter:drop-shadow(0 2px 0 #0a0a0a)}
+.pl-run svg{width:100%;height:100%;display:block;overflow:visible}
+.pl-run .rf1,.pl-run .rf2{animation-play-state:paused}
+.mpp .pl-run .rf1,.mpp .pl-run .rf2{animation-play-state:running;animation-duration:.26s}
+.mpp .pl-run{animation:bob .26s ease-in-out infinite}
+.pl-time{color:var(--ink-2)}
+.pl-btns{gap:12px}
+.pl-btns .ib{border:1.5px solid #333;color:var(--ink);transition:transform .25s cubic-bezier(.2,1.8,.4,1),background .2s,color .2s,border-color .2s}
+.pl-btns .ib:hover{transform:translateY(-4px) rotate(-8deg);border-color:var(--y);color:var(--y);background:transparent}
+.pl-btns .ib:active{transform:scale(.88)}
+.pl-btns .ib.big{width:76px;height:76px;background:var(--y);color:#0a0a0a;border:0;position:relative}
+.pl-btns .ib.big .ic{width:30px;height:30px}
+.pl-btns .ib.big:hover{transform:scale(1.08) rotate(-10deg);background:var(--y);color:#0a0a0a}
+.mpp .pl-btns .ib.big{animation:beat .47s ease-out infinite}
+.mpp .pl-btns .ib.big::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid var(--y);animation:ring .94s ease-out infinite}
+@keyframes beat{0%{transform:scale(1.06)}40%{transform:scale(.98)}}
+@keyframes ring{to{transform:scale(1.8);opacity:0}}
+.pl-btns .ib[aria-pressed="true"]{border-color:var(--y);color:var(--y);background:rgba(255,210,63,.08)}
+.pl-side h2{color:var(--y);font-family:var(--display);font-weight:400;font-size:24px;letter-spacing:.02em}
+.pl-list{gap:10px}
+.pl-list li{animation:slin .55s cubic-bezier(.2,1.3,.4,1) both}
+.pl-list li:nth-child(2){animation-delay:.07s}.pl-list li:nth-child(3){animation-delay:.14s}.pl-list li:nth-child(4){animation-delay:.21s}.pl-list li:nth-child(n+5){animation-delay:.28s}
+@keyframes slin{from{opacity:0;transform:translateX(60px) rotate(4deg)}}
+.pl-trk{position:relative;overflow:hidden;border:1.5px solid #262626;border-radius:16px;background:#121212;transition:transform .3s cubic-bezier(.2,1.6,.4,1),border-color .2s,color .2s;isolation:isolate}
+.pl-trk::before{content:'';position:absolute;inset:0;background:var(--y);transform:scaleX(0);transform-origin:left;transition:transform .32s cubic-bezier(.7,0,.2,1);z-index:-1}
+.pl-trk:hover{transform:translateX(-6px) rotate(-1.2deg);border-color:var(--y)}
+.pl-trk:hover::before{transform:scaleX(.035)}
+.pl-trk .th{border-radius:10px;transition:transform .3s cubic-bezier(.2,1.6,.4,1)}
+.pl-trk:hover .th{transform:scale(1.06) rotate(2deg)}
+.pl-trk .no{color:var(--y);font-family:var(--display);font-size:18px}
+.pl-trk[aria-current="true"]{color:#0a0a0a;border-color:var(--y);transform:rotate(-1.5deg) scale(1.02)}
+.pl-trk[aria-current="true"]::before{transform:scaleX(1)}
+.pl-trk[aria-current="true"] .no{color:#0a0a0a}
+.pl-trk[aria-current="true"] .eq{color:#0a0a0a}
+.mpp .pl-trk[aria-current="true"]{animation:wob .94s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(-1.5deg) scale(1.02)}50%{transform:rotate(1deg) scale(1.02)}}
+.pl-foot a{color:var(--y)}
+.pls-wipe{position:fixed;inset:0;z-index:900;pointer-events:none;background:var(--y);clip-path:polygon(-30% 0,-10% 0,-30% 100%,-50% 100%);display:grid;place-items:center}
+.pls-wipe div{width:min(26vw,180px);height:min(26vw,180px);color:#0a0a0a;opacity:0}
+.pls-wipe svg{width:100%;height:100%}
+.pls-wipe.go{animation:wipe .85s cubic-bezier(.7,0,.25,1) both}
+.pls-wipe.go div{animation:wiperun .85s linear both}
+@keyframes wipe{0%{clip-path:polygon(-30% 0,-10% 0,-30% 100%,-50% 100%)}45%,55%{clip-path:polygon(-30% 0,130% 0,110% 100%,-50% 100%)}100%{clip-path:polygon(130% 0,150% 0,130% 100%,110% 100%)}}
+@keyframes wiperun{0%{opacity:0;transform:translateX(-60vw)}35%,65%{opacity:1}100%{opacity:0;transform:translateX(60vw)}}
+@media (max-width:860px){.pl{gap:34px}.pl-frame::before{left:-18px;width:90px}.pl-frame::after{right:-18px;width:90px}}
+@media (max-width:640px){.pls-head{margin-bottom:24px}.pl-btns .ib.big{width:66px;height:66px}.pl-run{width:32px;height:32px;right:-16px}}
+@media (prefers-reduced-motion:reduce){.pls-mq>div,.pls-h span span,.mpp .pls-h .b span,.pl-list li,.mpp .pl-trk[aria-current="true"],.mpp .pl-btns .ib.big,.mpp .pl-btns .ib.big::after,.mpp .pl-bar i,.mpp .pl-run,.pl-title.go{animation:none!important}.pls-wipe{display:none}}
 </style>
 </head>
 <body>
@@ -1543,6 +1603,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   function setMode(m) { S.mode = m; mp.className = m; place(); pill.hidden = !(m === 'min' && S.started); }
   window.__mpRoute = function (nav) {
     if (nav === 'music') return;
+    root.classList.remove('psi-music');
     S.slot = null; const bg = $('#plBg'); if (bg) bg.remove();
     setMode(S.started ? (LS.get('psi.mMin', 0) ? 'min' : 'mini') : 'off'); sync();
   };
@@ -1600,7 +1661,11 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   }
   function renderList() { const l = $('#plList'); if (l) l.innerHTML = listHTML(); const c = $('#plCount'); if (c) c.textContent = S.ids.length ? S.ids.length + '곡' : ''; }
   function titlesOnly() { $$('.pl-trk[data-i] .tt').forEach(el => { el.textContent = titleOf(+el.closest('.pl-trk').dataset.i); }); }
+  function fx() {
+    ['#plTitle', '.pls-wipe'].forEach(q => { const el = $(q); if (!el) return; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); });
+  }
   function sync() {
+    if (S.started && S._last !== curId()) { S._last = curId(); fx(); }
     root.classList.toggle('mpp', S.playing);
     $$('.pl-trk[data-i]').forEach(b => b.setAttribute('aria-current', (+b.dataset.i === S.idx && S.started) ? 'true' : 'false'));
     const t = S.ids.length ? titleOf(S.idx) : '플레이리스트';
@@ -1635,12 +1700,19 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
   });
   pill.addEventListener('click', () => { LS.set('psi.mMin', 0); setMode('mini'); });
   window.viewMusic = function () {
-    main.innerHTML = `<div id="plBg"></div><div class="wrap"><div class="phead"><h1>플레이리스트</h1><p>싸이뛰어!의 노래들이에요. 영상과 함께 들어 보세요.</p></div>
+    root.classList.add('psi-music');
+    const MQ = '싸이뛰어! ✦ PSI RUN ✦ 정보구출반 사내 방송 ✦ 야근 중 BGM ✦ ';
+    const letters = t => [...t].map((c, i) => `<span style="--i:${i}">${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('');
+    main.innerHTML = `<div id="plBg"></div>
+    <div class="pls-mq" aria-hidden="true"><div class="r1"><span>${MQ.repeat(4)}</span><span>${MQ.repeat(4)}</span></div><div class="r2"><span>${MQ.repeat(4)}</span><span>${MQ.repeat(4)}</span></div></div>
+    <div class="pls-wipe" aria-hidden="true"><div>${RUN('')}</div></div>
+    <div class="wrap pls">
+    <header class="pls-head"><span class="pls-air"><i></i><b class="on">ON AIR</b><b class="off">STANDBY</b></span><h1 class="pls-h"><span class="a">${letters('사내 방송')}</span><span class="b">${letters('싸이뛰어!')}</span></h1><p>음악이 나오면 회사가 뛰기 시작합니다.</p></header>
     <section class="pl">
       <div class="pl-main">
         <div class="pl-frame"><div id="mpSlot" class="pl-slot">플레이어를 불러오는 중</div></div>
-        <div class="pl-info"><div class="pl-tag">NOW PLAYING</div><h2 class="pl-title" id="plTitle">불러오는 중</h2><div class="pl-sub" id="plSub"></div></div>
-        <div class="pl-bar" id="plBar" role="slider" aria-label="재생 위치" tabindex="0"><i></i></div>
+        <div class="pl-info"><h2 class="pl-title" id="plTitle">불러오는 중</h2><div class="pl-sub" id="plSub"></div></div>
+        <div class="pl-bar" id="plBar" role="slider" aria-label="재생 위치" tabindex="0"><i><b class="pl-run">${RUN('')}</b></i></div>
         <div class="pl-time"><span id="plCur">0:00</span><span id="plDur">0:00</span></div>
         <div class="pl-btns"><button id="plLp" class="ib" type="button" aria-pressed="${S.loop}" aria-label="반복 재생">${IC.repeat}</button><span class="sp"></span><button id="plPv" class="ib" type="button" aria-label="이전 곡">${IC.prev}</button><button id="plPP" class="ib big" type="button" aria-label="재생 또는 일시정지">${IC.play}</button><button id="plNx" class="ib" type="button" aria-label="다음 곡">${IC.next}</button><span class="sp"></span><button id="plFs" class="ib" type="button" aria-label="전체화면">${IC.full}</button></div>
       </div>
