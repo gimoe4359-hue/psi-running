@@ -40,6 +40,7 @@ input,textarea,select{font:inherit}
 .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
 
 /* ── header ── */
+body::before{content:'';position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top,0px);background:var(--paper);z-index:60;pointer-events:none}
 #top{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:var(--paper);border-bottom:2px solid var(--edge)}
 #top .wrap{display:flex;align-items:center;gap:20px;height:68px}
 .badge{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
@@ -1298,7 +1299,8 @@ async function viewGames(sel) {
     e.preventDefault(); const text = ta.value.trim();
     if (rec === null) { toast('추천 또는 비추천을 골라 주세요.'); return; }
     if (text.length < 2) { toast('후기를 두 글자 이상 적어 주세요.'); ta.focus(); return; }
-    const okk = await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() });
+    if (form.dataset.busy) return; const btns = $$('button', form); form.dataset.busy = '1'; btns.forEach(b => b.disabled = true);
+    let okk = false; try { okk = await GRV.add(g.id, { rec, text: text.slice(0, 500), name: $('input', form).value.trim().slice(0, 12), t: Date.now() }); } finally { delete form.dataset.busy; btns.forEach(b => b.disabled = false); }
     if (!okk) { toast('후기를 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
     toast('후기가 게시되었습니다. 고마워요!'); viewGames(g.id);
   });
@@ -1365,7 +1367,7 @@ const Board = {
     const l = this.all(), p = l.find(x => x.id === id); if (!p) return; const i = p.likedBy.indexOf(dev); if (i >= 0) { p.likedBy.splice(i, 1); p.likes--; } else { p.likedBy.push(dev); p.likes++; } this.save(l);
   },
   async comment(id, body) {
-    if (REMOTE) { const r = await apiPost({ action: 'comment', post: id, body }); if (!r.ok) toast(r.error === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 등록하지 못했어요.'); return; }
+    if (REMOTE) { const r = await apiPost({ action: 'comment', post: id, body, rid: uid() }); if (!r.ok) toast(r.error === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 등록하지 못했어요.'); return; }
     const l = this.all(), p = l.find(x => x.id === id); if (!p) return; p.comments.push({ id: uid(), body, t: Date.now(), author: dev }); this.save(l);
   },
   async del(id) {
@@ -1416,11 +1418,13 @@ async function viewBoard(fresh) {
   $('#cs').addEventListener('submit', e => { e.preventDefault(); bq = $('#csq').value.trim(); bqf = $('#csf').value; bpage = 1; viewBoard(); });
 }
 
+const dedupC = cs => { const last = new Map(); return cs.filter(c => { const k = (c.author || '') + '|' + String(c.body || '').replace(/\s+/g, ' ').trim(); const t = +c.t || 0, pv = last.get(k); if (pv !== undefined && Math.abs(t - pv) < 600e3) return false; last.set(k, t); return true; }); };
 async function viewPost(id) {
   let p;
   if (REMOTE) { main.innerHTML = LOADING; if (!mem.rcats) await Board.sync(); p = await Board.loadPost(id); }
   else { p = Board.get(id); Board.view(id); }
   if (!p) return notFound();
+  p.comments = dedupC(p.comments);
   const order = []; p.comments.forEach(c => { if (c.author !== p.author && !order.includes(c.author)) order.push(c.author); });
   const nick = a => a === p.author ? '<b class="op">글쓴이</b>' : `<b>익명${order.indexOf(a) + 1}</b>`;
   const liked = p.likedBy.includes(dev), mine = p.author === dev;
@@ -1435,7 +1439,13 @@ async function viewPost(id) {
   bindShell();
   $('#plike').addEventListener('click', async () => { await Board.like(id); viewPost(id); });
   const d = $('#pdel'); if (d) d.addEventListener('click', async () => { if (confirm('이 글을 삭제할까요?')) { await Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; } });
-  $('#cf').addEventListener('submit', async e => { e.preventDefault(); const t = $('textarea', e.target).value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; } await Board.comment(id, t.slice(0, 300)); viewPost(id); });
+  $('#cf').addEventListener('submit', async e => {
+    e.preventDefault(); const f = e.target; if (f.dataset.busy) return;
+    const t = $('textarea', f).value.trim(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; }
+    const btns = $$('button', f); f.dataset.busy = '1'; btns.forEach(b => b.disabled = true);
+    try { await Board.comment(id, t.slice(0, 300)); } finally { delete f.dataset.busy; btns.forEach(b => b.disabled = false); }
+    viewPost(id);
+  });
 }
 let lastPost = 0;
 async function viewWrite() {
