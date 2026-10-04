@@ -749,6 +749,9 @@ html.psi-music main{padding:0}
 @keyframes plspaint{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
 @keyframes plsgl{0%{text-shadow:-6px 0 rgba(255,40,90,.8),6px 0 rgba(0,220,255,.7);transform:translateX(4px)}50%{text-shadow:4px 0 rgba(255,40,90,.8),-4px 0 rgba(0,220,255,.7);transform:translateX(-3px)}}
 @keyframes plsgrain{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}60%{transform:translate(-6%,-2%)}80%{transform:translate(5%,4%)}100%{transform:translate(0,0)}}
+@media (min-width:861px) and (max-width:1024px){
+  .pls>.pls-zen{position:absolute;right:16px;top:20px;z-index:33;font-size:13px;padding:6px 10px}
+}
 @media (max-width:860px){
   .pls{--u:1px;width:auto;height:auto;display:flex;flex-direction:column;padding:0 0 48px}
   .pls>*{position:relative;left:auto;top:auto;right:auto;transform:none}
