@@ -1514,34 +1514,42 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     S.slot = null; const bg = $('#plBg'); if (bg) bg.remove();
     setMode(S.started ? (LS.get('psi.mMin', 0) ? 'min' : 'mini') : 'off'); sync();
   };
-  function fail() {
-    S.api = 'fail'; renderList(); const sl = $('#mpSlot'); if (sl) sl.innerHTML = '플레이어를 불러오지 못했어요.<br>아래 “유튜브에서 열기”로 들어 보세요.'; mp.style.visibility = 'hidden';
+  function fail(why) {
+    S.api = 'fail'; S.why = why || ''; renderList(); const sl = $('#mpSlot'); if (sl) sl.innerHTML = '플레이어를 불러오지 못했어요.<br>아래 “유튜브에서 열기”로 들어 보세요.' + (S.why ? '<br><small>(' + esc(S.why) + ')</small>' : ''); mp.style.visibility = 'hidden';
+  }
+  function grabIds() {
+    if (S.ids.length || !S.yt) return !!S.ids.length;
+    let a = null; try { a = S.yt.getPlaylist(); } catch (e) {}
+    if (!(a && a.length)) return false;
+    S.ids = a; try { S.idx = Math.max(0, S.yt.getPlaylistIndex()); } catch (e) {}
+    renderList(); sync(); fetchTitles(); const sl = $('#mpSlot'); if (sl) sl.textContent = '';
+    return true;
   }
   function loadAPI() {
     if (S.api !== 'idle') return; S.api = 'loading';
     if (window.YT && window.YT.Player) { init(); return; }
     const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { try { prev && prev(); } catch (e) {} init(); };
-    const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = fail; document.head.append(sc);
-    setTimeout(() => { if (S.api === 'loading' && !S.yt) fail(); }, 14000);
+    const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = () => fail('유튜브 스크립트 차단'); document.head.append(sc);
+    setTimeout(() => { if (S.api === 'loading' && !S.yt) fail('응답 시간 초과'); }, 14000);
   }
   function init() {
     try {
       const pv = { listType: 'playlist', list: PL, controls: 0, playsinline: 1, rel: 0, modestbranding: 1, disablekb: 1, iv_load_policy: 3, fs: 0 };
       if (/^https?:/.test(location.origin)) pv.origin = location.origin;
       S.yt = new YT.Player('mpYT', { width: '100%', height: '100%', playerVars: pv, events: { onReady, onStateChange: onState, onError } });
-    } catch (e) { fail(); }
+    } catch (e) { fail('초기화 오류'); }
   }
   function onReady() {
     S.api = 'ready'; try { S.yt.setLoop(true); } catch (e) {}
+    const sl = $('#mpSlot'); if (sl) sl.textContent = '';
     let n = 0; const t = setInterval(() => {
-      let a = null; try { a = S.yt.getPlaylist(); } catch (e) {}
-      if (a && a.length) { clearInterval(t); S.ids = a; try { S.idx = Math.max(0, S.yt.getPlaylistIndex()); } catch (e) {} renderList(); sync(); fetchTitles(); const sl = $('#mpSlot'); if (sl) sl.textContent = ''; }
-      else if (++n > 40) { clearInterval(t); fail(); }
+      if (grabIds()) { clearInterval(t); return; }
+      if (++n === 40) { const s2 = $('#mpSlot'); if (s2) s2.textContent = '재생 버튼을 누르면 곡 목록이 나타나요.'; }
     }, 300);
   }
-  function onError() { toast('이 영상은 여기서 재생할 수 없어요. 유튜브에서 열어 보세요.'); try { if (S.ids.length > 1) S.yt.nextVideo(); } catch (x) {} }
+  function onError(e) { if (!S.ids.length && e && (e.data === 2 || e.data === 100 || e.data === 101 || e.data === 150)) { fail('유튜브 오류 ' + e.data); return; } toast('이 영상은 여기서 재생할 수 없어요. 유튜브에서 열어 보세요.'); try { if (S.ids.length > 1) S.yt.nextVideo(); } catch (x) {} }
   function onState(e) {
-    const st = e.data; S.playing = st === 1 || (st === 3 && S.playing);
+    grabIds(); const st = e.data; S.playing = st === 1 || (st === 3 && S.playing);
     try { const i = S.yt.getPlaylistIndex(); if (i >= 0) S.idx = i; } catch (x) {}
     if (st === 1) { S.started = true; try { const d = S.yt.getVideoData(); if (d && d.title && curId()) { S.titles[curId()] = d.title; saveT(); titlesOnly(); } } catch (x) {} }
     if (st === 0 && S.loop) setTimeout(() => { try { if (S.yt.getPlayerState() === 0) S.yt.playVideoAt(0); } catch (x) {} }, 1500);
@@ -1578,7 +1586,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     if (!S.yt || S.api !== 'ready') return; const bar = $('#plBar i'); if (!bar) return;
     try { const c = S.yt.getCurrentTime(), d = S.yt.getDuration(); bar.style.width = d ? Math.min(100, c / d * 100) + '%' : '0'; $('#plCur').textContent = fmt(c); $('#plDur').textContent = fmt(d); } catch (e) {}
   }, 400);
-  const ok = () => { if (S.api !== 'ready' || !S.ids.length) { toast('플레이어를 준비하고 있어요. 잠시만요.'); return false; } return true; };
+  const ok = () => { grabIds(); if (S.api !== 'ready') { toast('플레이어를 준비하고 있어요. 잠시만요.'); return false; } return true; };
   const toggle = () => { if (!ok()) return; try { S.playing ? S.yt.pauseVideo() : S.yt.playVideo(); } catch (e) {} };
   document.addEventListener('click', e => {
     const t = e.target.closest && e.target.closest('.pl-trk[data-i]'); if (t) { if (ok()) try { S.yt.playVideoAt(+t.dataset.i); } catch (x) {} return; }
