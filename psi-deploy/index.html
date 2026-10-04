@@ -609,6 +609,38 @@ nav a.nl .ls{display:none}
 }
 @media (prefers-reduced-motion:reduce){.eqb i,.pl-trk .eq i,.docmeta i{animation:none!important}}
 .srv .th{font-size:12px;font-weight:700;letter-spacing:-.02em}
+/* 플레이리스트 — 날카로운 사선 UI */
+.wrap:has(.pl) .phead h1{font-size:clamp(46px,8vw,92px);letter-spacing:.02em;transform:skewX(-8deg);transform-origin:left bottom;text-shadow:4px 4px 0 var(--blue);line-height:1}
+.pl{position:relative;gap:72px;padding-top:22px}
+.pl::before{content:'';position:absolute;right:-6%;top:-30px;width:34%;height:130%;background:linear-gradient(180deg,rgba(123,151,255,.14),rgba(123,151,255,0));transform:skewX(-14deg);z-index:-1;pointer-events:none}
+.pl-frame{border:0;border-radius:0;box-shadow:12px 12px 0 var(--blue),0 0 0 3px var(--ink)}
+#mp.big{border-radius:0}
+.pl-tag{display:inline-block;background:var(--ink);color:var(--paper);font:700 12px/1 'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.22em;padding:8px 22px 8px 14px;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%);margin-bottom:14px}
+.pl-info{margin-top:34px}
+.pl-title{font-size:clamp(30px,4.8vw,54px);line-height:1.1;transform:skewX(-7deg);transform-origin:left bottom;text-shadow:3px 3px 0 var(--blue);font-style:normal}
+.pl-sub{font-family:'IBM Plex Mono',ui-monospace,monospace;letter-spacing:.16em;margin-top:10px}
+.pl-bar{height:10px;border-radius:0;transform:skewX(-20deg);outline:2px solid var(--edge);background:var(--soft)}
+.pl-bar i{border-radius:0}
+.pl-bar i::after{border-radius:0;width:6px;height:24px;margin-top:-12px;right:-3px;background:var(--ink)}
+.pl-btns{gap:6px}
+.pl-btns .ib{width:58px;height:46px;border:0;border-radius:0;background:var(--soft);clip-path:polygon(24% 0,100% 0,76% 100%,0 100%);transition:background .15s,transform .15s}
+.pl-btns .ib:hover{background:var(--blue);color:var(--on-blue);transform:translateY(-2px)}
+.pl-btns .ib.big{width:104px;height:64px;background:var(--ink);color:var(--paper)}
+.pl-btns .ib.big:hover{background:var(--blue);color:var(--on-blue)}
+.pl-btns .ib[aria-pressed="true"]{background:var(--blue);color:var(--on-blue)}
+.pl-side h2{font-size:14px;letter-spacing:.24em;color:var(--ink);padding:0 2px 10px;border-bottom:3px solid var(--blue);margin-bottom:22px}
+.pl-list{gap:16px;padding-left:22px}
+.pl-trk{border:0;border-radius:0;background:var(--card);clip-path:polygon(20px 0,100% 0,calc(100% - 20px) 100%,0 100%);padding:10px 38px 10px 34px;grid-template-columns:112px minmax(0,1fr) 20px;transition:transform .2s cubic-bezier(.2,.9,.3,1.2),background .2s}
+.pl-trk:hover{transform:translateX(-8px);background:var(--soft)}
+.pl-trk:focus-visible{background:var(--soft);outline:0}
+.pl-trk .th{width:112px;border-radius:0;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.pl-trk .no{font-family:var(--display);font-size:24px;letter-spacing:.04em;color:var(--blue);margin-bottom:4px}
+.pl-trk .tt{font-size:16px}
+.pl-trk[aria-current="true"]{background:var(--ink);color:var(--paper);transform:translateX(-20px)}
+.pl-trk[aria-current="true"] .no{color:var(--red)}
+.pl-trk[aria-current="true"] .eq{color:var(--paper)}
+@media (max-width:860px){.pl{gap:40px}.pl::before{display:none}}
+@media (max-width:640px){.pl-list{padding-left:12px}.pl-trk{grid-template-columns:84px minmax(0,1fr) 16px;padding:8px 28px 8px 26px}.pl-trk .th{width:84px}.pl-trk[aria-current="true"]{transform:translateX(-10px)}.pl-btns .ib{width:50px}.pl-btns .ib.big{width:84px}.pl-frame{box-shadow:8px 8px 0 var(--blue),0 0 0 2px var(--ink)}}
 </style>
 </head>
 <body>
@@ -1607,7 +1639,7 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
     <section class="pl">
       <div class="pl-main">
         <div class="pl-frame"><div id="mpSlot" class="pl-slot">플레이어를 불러오는 중</div></div>
-        <div class="pl-info"><h2 class="pl-title" id="plTitle">불러오는 중</h2><div class="pl-sub" id="plSub"></div></div>
+        <div class="pl-info"><div class="pl-tag">NOW PLAYING</div><h2 class="pl-title" id="plTitle">불러오는 중</h2><div class="pl-sub" id="plSub"></div></div>
         <div class="pl-bar" id="plBar" role="slider" aria-label="재생 위치" tabindex="0"><i></i></div>
         <div class="pl-time"><span id="plCur">0:00</span><span id="plDur">0:00</span></div>
         <div class="pl-btns"><button id="plLp" class="ib" type="button" aria-pressed="${S.loop}" aria-label="반복 재생">${IC.repeat}</button><span class="sp"></span><button id="plPv" class="ib" type="button" aria-label="이전 곡">${IC.prev}</button><button id="plPP" class="ib big" type="button" aria-label="재생 또는 일시정지">${IC.play}</button><button id="plNx" class="ib" type="button" aria-label="다음 곡">${IC.next}</button><span class="sp"></span><button id="plFs" class="ib" type="button" aria-label="전체화면">${IC.full}</button></div>
