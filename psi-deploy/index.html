@@ -745,8 +745,7 @@ nav a.nl .ls{display:none}
 .pls-prog .tip{position:absolute;bottom:30px;left:0;transform:translateX(-50%);padding:5px 9px;background:#ffd23f;color:#0b0b0b;font:400 15px 'Y1 Lava',monospace;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s}
 .pls-prog.drag{height:16px}.pls-prog.drag .tip{opacity:1}.pls-prog.drag .rn{opacity:0}
 .pls-prog:hover i:after{background:#ffd23f}
-@keyframes plsbob{0%,100%{translate:0 0;rotate:0deg}22%{translate:calc(4*var(--u)) calc(-11*var(--u));rotate:.7deg}50%{translate:calc(-2*var(--u)) calc(5*var(--u));rotate:-.2deg}78%{translate:calc(-5*var(--u)) calc(-6*var(--u));rotate:-.7deg}}
-.mpp .pls-slot{animation:plsbob 3.4s ease-in-out infinite}
+.pls-slot,#mp.big{will-change:transform,translate,rotate}
 html.psi-music body{background:#050505}
 html.psi-music main{padding:0}
 html.psi-music #top,html.psi-music #ticker{display:none}
@@ -799,7 +798,7 @@ html.psi-music #top,html.psi-music #ticker{display:none}
   .pls .pl-trk[aria-current="true"] .n,.pls .pl-trk[aria-current="true"] .t{color:#0b0b0b}
   .pls .pl-trk[aria-current="true"]::before{display:none}
 }
-@media (prefers-reduced-motion:reduce){.pls-stroke.go,.pls-title h1.gl,.mpp .pls-slot,.pls-fx .grain,.mpp .pls-hud i{animation:none!important}.vthumb{transition:none}}
+@media (prefers-reduced-motion:reduce){.pls-stroke.go,.pls-title h1.gl,.pls-fx .grain,.mpp .pls-hud i{animation:none!important}.vthumb{transition:none}}
 
 </style>
 </head>
@@ -1711,7 +1710,27 @@ $('#themeBtn').addEventListener('click', () => { mode = MODES[(MODES.indexOf(mod
       if (mp._k !== k) { mp._k = k; Object.assign(mp.style, { left: x + 'px', top: y + 'px', width: sl.offsetWidth + 'px', height: sl.offsetHeight + 'px', transform: nz(cs.transform), transformOrigin: cs.transformOrigin, translate: nz(cs.translate), rotate: nz(cs.rotate), scale: nz(cs.scale) }); }
     } else { mp._k = ''; ['left', 'top', 'width', 'height', 'transform', 'transformOrigin', 'translate', 'rotate', 'scale'].forEach(k => mp.style[k] = ''); }
   }
-  (function loop() { if (S.mode === 'big') place(); requestAnimationFrame(loop); })();
+  const swim = { amp: 0, x: 0, y: 0, r: 0, vx: 0, vy: 0, vr: 0, last: 0 };
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  function drift(now) {
+    const sl = S.slot;
+    if (!sl || !document.body.contains(sl)) { swim.last = 0; return; }
+    const dt = swim.last ? Math.min((now - swim.last) / 1000, 0.05) : 0; swim.last = now;
+    const want = S.playing && !calm.matches && !root.classList.contains('plz') ? 1 : 0;
+    swim.amp += (want - swim.amp) * (1 - Math.exp(-dt / 1.6));
+    const t = now / 1000, u = sl.offsetWidth / 560, a = swim.amp, W = Math.PI * 2;
+    const tx = a * u * (7 * Math.sin(t * W / 9.3) + 3 * Math.sin(t * W / 5.7 + 1.3));
+    const ty = a * u * (11 * Math.sin(t * W / 7.1 + 0.5) + 4 * Math.sin(t * W / 4.3 + 2.1));
+    const tr = a * (0.9 * Math.sin(t * W / 10.7 + 0.9) + 0.35 * Math.sin(t * W / 6.2));
+    const K = 7, C = 4.2;
+    swim.vx += (K * (tx - swim.x) - C * swim.vx) * dt; swim.x += swim.vx * dt;
+    swim.vy += (K * (ty - swim.y) - C * swim.vy) * dt; swim.y += swim.vy * dt;
+    swim.vr += (K * (tr - swim.r) - C * swim.vr) * dt; swim.r += swim.vr * dt;
+    const still = a < 0.002 && Math.abs(swim.x) + Math.abs(swim.y) + Math.abs(swim.r) < 0.01;
+    sl.style.translate = still ? '' : swim.x.toFixed(2) + 'px ' + swim.y.toFixed(2) + 'px';
+    sl.style.rotate = still ? '' : swim.r.toFixed(3) + 'deg';
+  }
+  (function loop(now) { drift(now || 0); if (S.mode === 'big') place(); requestAnimationFrame(loop); })();
   addEventListener('resize', place);
   function setMode(m) { S.mode = m; mp.className = m; place(); pill.hidden = !(m === 'min' && S.started); }
   window.__mpRoute = function (nav) {
