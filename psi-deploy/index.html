@@ -96,6 +96,8 @@ p.sec-sub{color:var(--ink-2);margin:0 0 24px}
 .memo dt{font-weight:700;color:var(--ink-2);padding:12px 0;border-top:1px solid var(--line);font-size:15px}
 .memo dd{margin:0;padding:12px 0;border-top:1px solid var(--line)}
 .memo dt:first-of-type,.memo dd:first-of-type{border-top:0}
+.memo a.sneak{color:inherit;text-decoration:underline dotted;text-decoration-color:var(--dusk);text-underline-offset:4px}
+.memo a.sneak:hover{color:var(--blue);text-decoration-style:solid}
 .doors{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .door{display:block;text-decoration:none;color:var(--ink);border:2px solid var(--edge);border-radius:6px;padding:26px 24px 24px;position:relative;min-height:200px}
 .door.n{background:var(--blue);color:var(--on-blue)}
@@ -231,7 +233,7 @@ body.viewer{overflow:hidden}
 .scap svg{width:100%;height:100%;display:block}
 .scap.vid{aspect-ratio:16/9}
 .scap.vid a{display:block;height:100%}
-.scap video{width:100%;height:100%;object-fit:cover;display:block}
+.scap video,.scap img{width:100%;height:100%;object-fit:cover;display:block}
 .slib .ic img{width:100%;height:100%;object-fit:cover;display:block}
 .sinfo{background:#16202d;padding:14px 16px;font-size:13px;line-height:1.55;display:grid;gap:10px;align-content:start}
 .sinfo .row{display:grid;grid-template-columns:78px 1fr;gap:8px}
@@ -905,13 +907,18 @@ const TICKER = [
   '분실물 안내: 어제의 의욕을 찾습니다',
   '방문자는 사원증을 목에 걸어 주세요 (거는 시늉도 가능)',
   '오늘의 능력 사용 지침: 쓸데없이, 하지만 성실하게',
-  '정보구출반 회의실은 늘 예약 중입니다 (유령 예약 의심)'
+  '정보구출반 회의실은 늘 예약 중입니다 (유령 예약 의심)',
+  '송천동행 막차가 정시에 도착했습니다 (탑승 여부는 개인 판단)'
 ];
 const GAMES = [
   { id: 'bridge8', title: '8번다리에는 무엇도 없었다', status: '플레이 가능', tags: ['호러', '추리', '어드벤처', '스토리 중심'],
     dev: '제작 정보 준비 중', date: '2026.09', lang: '한국어',
     summary: '지방 파출소로 좌천된 순경이 이상한 신고 전화를 받고, 38년 전 실종 사건을 파헤치는 호러 추리 어드벤처입니다. 통화 음성, 방 수색, 익명 게시판 조사까지 — 헤드폰 착용을 권장합니다.',
-    link: 'games/bridge8/index.html', note: '샘플로 등록된 작품', video: G_VIDEO, poster: G_POSTER, icon: G_ICON }
+    link: 'games/bridge8/index.html', note: '샘플로 등록된 작품', video: G_VIDEO, poster: G_POSTER, icon: G_ICON },
+  { id: 'songcheon', title: '송천동', status: '플레이 가능', tags: ['힐링', '관찰', '일상', '이상현상'],
+    dev: '정보구출반 8팀', date: '2026.10', lang: '한국어',
+    summary: '막차가 닿는 동네, 송천동을 천천히 구경하는 게임입니다. 끌어서 둘러보고 확대해 보면 사람과 가게, 하늘의 이상한 것들까지 전부 눌러 볼 수 있어요. 가게에 들어가 보고, 사내 PC를 켜서 메신저·사내망 게시판·공유의 노트도 열어 보세요.',
+    link: 'games/songcheon/index.html', note: '조용히 보기 모드 지원 · 소리 켜고 플레이 권장', poster: 'assets/songcheon-poster.jpg', icon: 'assets/songcheon-icon.jpg' }
 ];
 const NOVELS = [
   { id: 'psi', title: '싸이!!뛰어!!', status: '연재중', up: true, remote: true,
@@ -1012,6 +1019,7 @@ function viewHome() {
         <dt>업무</dt><dd>이상현상(괴현상) 처리</dd>
         <dt>특이사항</dt><dd>팀원 전원이 쓸데없는 능력을 보유하고 있음</dd>
         <dt>분위기</dt><dd>유쾌 · 스릴 · 가끔은 슬픔</dd>
+        <dt>퇴근길</dt><dd>막차는 <a class="sneak" href="games/songcheon/index.html" target="_blank" rel="noopener">송천동행</a> (탑승은 자유, 하차는 신중히)</dd>
       </dl>
     </div>
   </div></section>
@@ -1291,6 +1299,10 @@ function capsule(g) {
   if (g.video) {
     const v = `<video src="${g.video}" poster="${g.poster || ''}" autoplay muted loop playsinline preload="auto" aria-label="${esc(g.title)} 대표 영상"></video>`;
     return `<div class="scap vid">${g.link ? `<a href="${esc(g.link)}" target="_blank" rel="noopener" aria-label="${esc(g.title)} 플레이하기">${v}</a>` : v}</div>`;
+  }
+  if (g.poster) {
+    const im = `<img src="${g.poster}" alt="${esc(g.title)} 대표 이미지" loading="lazy">`;
+    return `<div class="scap vid">${g.link ? `<a href="${esc(g.link)}" target="_blank" rel="noopener" aria-label="${esc(g.title)} 플레이하기">${im}</a>` : im}</div>`;
   }
   return `<div class="scap">${gcover(g, true)}</div>`;
 }
