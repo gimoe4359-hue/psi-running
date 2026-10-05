@@ -14,7 +14,7 @@
 <title>싸이뛰어! — PSI 정보구출반 연성 아카이브</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Bodoni+Moda:ital,opsz,wght@0,6..96,800;1,6..96,800&family=Anton&family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Nanum+Myeongjo:wght@400;700;800&family=Bodoni+Moda:ital,opsz,wght@0,6..96,800;1,6..96,800&family=Anton&family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --paper:#f4f6fb;--card:#ffffff;--ink:#0e1b3d;--ink-2:#42507a;--line:#cfd7ea;
@@ -614,68 +614,12 @@ nav a.nl .ls{display:none}
 .srv .th{font-size:12px;font-weight:700;letter-spacing:-.02em}
 
 
-/* ===== 기타 칸 (지하철 객차) ===== */
-html.psi-etc body{background:#1a1712}
+/* ===== 기타 칸 (지하철 객차) — 나머지는 etc-train.js ===== */
+html.psi-etc body{background:#030a20}
 html.psi-etc main{padding:0}
-html.psi-etc #top,html.psi-etc #ticker{display:none}
-.etc{position:relative;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:420px;overflow:hidden;background:#e8e2d4;color:#fff;user-select:none;-webkit-user-select:none}
-.etc-stage{position:absolute;left:50%;top:50%;width:max(100%,calc((100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)) * 16 / 9));aspect-ratio:16/9;transform:translate(-50%,-50%);will-change:translate}
-.etc-out{position:absolute;inset:0;background:linear-gradient(#3f86d8 0%,#7fb6ec 26%,#c9e0f3 44%,#ffd9a0 58%,#ffc36e 70%)}
-.etc-out i{position:absolute;left:0;right:0;background-repeat:repeat-x;will-change:background-position}
-.etc-out .sun{inset:0;z-index:1;background:radial-gradient(16% 24% at 20% 42%,rgba(255,252,232,.9),rgba(255,226,160,.3) 50%,transparent 75%)}
-.etc-out .cloud{top:16%;height:24%;background-size:1400px 100%;animation:etcscroll 160s linear infinite;--tw:1400px;opacity:.95}
-.etc-out .far{top:24%;height:32%;background-size:900px 100%;animation:etcscroll 46s linear infinite;--tw:900px}
-.etc-out .near{top:40%;height:16%;background-size:1300px 100%;animation:etcscroll 11s linear infinite;--tw:1300px}
-.etc-out .pole{top:12%;height:50%;background-size:760px 100%;animation:etcscroll 1.35s linear infinite;--tw:760px}
-@keyframes etcscroll{to{background-position-x:calc(-1 * var(--tw))}}
-.etc-car{position:absolute;inset:0;width:100%;height:100%;display:block}
-.etc-light{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;background:linear-gradient(118deg,transparent 18%,rgba(255,226,160,.2) 24%,transparent 31%),linear-gradient(118deg,transparent 46%,rgba(255,226,160,.16) 52%,transparent 59%),linear-gradient(118deg,transparent 70%,rgba(255,226,160,.12) 75%,transparent 81%);animation:etcflick 1.35s linear infinite}
-@keyframes etcflick{0%,100%{opacity:1}46%{opacity:1}50%{opacity:.55}54%{opacity:1}}
-.etc-shade{position:absolute;top:0;bottom:0;left:-12%;width:9%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(30,25,15,.16),transparent);transform:skewX(-28deg);animation:etcshade 1.35s linear infinite}
-@keyframes etcshade{from{left:-12%}to{left:112%}}
-.etc-vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 18vmin 4vmin rgba(40,28,10,.45)}
-.etc-ui{position:absolute;inset:0;z-index:5}
-.etc-back{position:absolute;left:max(18px,env(safe-area-inset-left));top:18px;padding:8px 14px;border:1.5px solid #ffd23f;background:rgba(18,16,12,.78);color:#ffd23f;font:400 15px 'Black Han Sans',sans-serif;transform:skewX(-10deg);text-decoration:none}
-.etc-back:hover,.etc-back:focus-visible{background:#ffd23f;color:#111;outline:0}
-.etc-led{position:absolute;left:36%;top:4.5vh;width:min(30vw,420px);height:clamp(30px,4.6vh,46px);background:#111;border:3px solid #6d7378;border-radius:6px;overflow:hidden;box-shadow:0 6px 14px rgba(0,0,0,.25)}
-.etc-led span{position:absolute;top:50%;left:100%;white-space:nowrap;transform:translateY(-50%);font:700 clamp(14px,2.1vh,20px) 'IBM Plex Mono',monospace;color:#ff8a1f;text-shadow:0 0 6px rgba(255,138,31,.8);letter-spacing:.06em;animation:etcled 9s linear infinite}
-.etc-led::after{content:'';position:absolute;inset:0;background:radial-gradient(circle,transparent 45%,rgba(0,0,0,.55) 46%) 0 0/3px 3px;pointer-events:none}
-@keyframes etcled{from{left:100%;transform:translate(0,-50%)}to{left:0;transform:translate(-100%,-50%)}}
-.etc-ad{position:absolute;right:6vw;top:3.5vh;width:min(19vw,300px);aspect-ratio:16/9;border:5px solid #d6dbde;border-radius:4px;background:#111;box-shadow:0 8px 18px rgba(0,0,0,.28);overflow:hidden}
-.etc-ad img{width:100%;height:100%;object-fit:cover;display:block}
-.etc-ad .card{position:absolute;inset:0;display:grid;place-content:center;gap:4px;text-align:center;background:#0b0b0b;color:#ffd23f;font:400 clamp(14px,1.8vw,26px)/1 'Black Han Sans',sans-serif}
-.etc-ad .card small{font:400 clamp(9px,.8vw,12px) 'Y1 Gaen',sans-serif;letter-spacing:.2em;color:#ff3d7f}
-.etc-ad .card.q{background:repeating-linear-gradient(45deg,#ffd23f 0 14px,#111 14px 28px);color:#111}
-.etc-ad .card.q b{background:#ffd23f;padding:4px 10px;font-weight:400}
-.etc-ad em{position:absolute;left:6px;top:4px;font:400 9px 'Y1 Gaen',sans-serif;font-style:normal;letter-spacing:.2em;color:rgba(255,255,255,.75);text-shadow:0 1px 2px #000;z-index:1}
-.etc-title{position:absolute;left:7vw;top:20vh;color:#141414;line-height:1}
-.etc-title h1{margin:0;font:400 clamp(52px,9vw,148px)/.95 'Black Han Sans',sans-serif;letter-spacing:-.01em;text-shadow:0 2px 0 rgba(255,255,255,.35)}
-.etc-title p{margin:.6em 0 0 .3vw;display:flex;align-items:baseline;gap:1.4vw;font:600 clamp(16px,2.1vw,32px) 'IBM Plex Mono',monospace}
-.etc-title p small{font:600 clamp(10px,1vw,15px) 'IBM Plex Mono',monospace}
-.etc-menu{position:absolute;left:7vw;top:61vh;display:flex;align-items:flex-end;gap:3.4vw}
-.etc-menu button{position:relative;background:none;border:0;padding:0;color:#fff;font:400 clamp(30px,4.4vw,72px)/1 'Black Han Sans',sans-serif;letter-spacing:.01em;text-shadow:0 3px 0 rgba(0,0,0,.3),0 0 16px rgba(0,0,0,.25);transition:color .15s,opacity .15s;cursor:pointer}
-.etc-menu button::before{content:attr(data-en);position:absolute;left:.1em;bottom:100%;margin-bottom:.35em;font:400 clamp(9px,.85vw,13px) 'Y1 Gaen',sans-serif;letter-spacing:.24em;color:rgba(255,255,255,.7);white-space:nowrap}
-.etc-menu button.dim{opacity:.6}
-.etc-menu button[aria-current="true"]{color:#ffd23f;text-shadow:0 3px 0 rgba(0,0,0,.35),0 0 22px rgba(255,210,63,.75),-2px 0 rgba(255,40,90,.55),2px 0 rgba(0,220,255,.45)}
-.etc-menu button[aria-current="true"]::before{color:#ffd23f}
-.etc-menu button[aria-current="true"]::after{content:'';position:absolute;left:0;right:0;bottom:-.28em;height:.09em;background:#ffd23f;box-shadow:0 0 10px rgba(255,210,63,.8)}
-.etc-menu button:focus-visible{outline:0}
-.etc-desc{position:absolute;left:7vw;top:calc(61vh + clamp(30px,4.4vw,72px) + 2.4vh);max-width:min(54vw,640px);margin:0;padding:6px 12px;background:rgba(12,14,12,.55);font:500 clamp(13px,1.15vw,17px)/1.5 'IBM Plex Sans KR',sans-serif;color:#f6f1e3}
-.etc-keys{position:absolute;left:7vw;bottom:5vh;margin:0;font:400 clamp(11px,1.2vw,18px)/1.75 'Y1 Gaen',sans-serif;letter-spacing:.1em;color:#ff3d7f;text-shadow:0 0 8px rgba(255,61,127,.45)}
-.etc-keys b{font-weight:400;color:#ff7fb0}
-.etc-sig{position:absolute;right:6vw;bottom:5vh;font:400 clamp(10px,1vw,15px) 'Y1 Gaen',sans-serif;letter-spacing:.12em;color:#ff3d7f;opacity:.85}
-.etc.go .etc-ui{opacity:0;transition:opacity .45s .1s}
-.etc.go::after{content:'';position:absolute;inset:0;z-index:9;background:#fff6dc;animation:etcflash .7s ease-in forwards}
-@keyframes etcflash{from{opacity:0}to{opacity:1}}
-@media (max-aspect-ratio:1/1){
-  .etc-ad,.etc-keys,.etc-sig{display:none}
-  .etc-led{left:auto;right:16px;top:18px;width:52vw}
-  .etc-title{left:6vw;top:27vh}.etc-title h1{font-size:15vw}.etc-title p{font-size:4.6vw}.etc-title p small{font-size:3vw}
-  .etc-menu{left:6vw;top:auto;bottom:22vh;flex-direction:column;align-items:flex-start;gap:4.6vh}
-  .etc-menu button{font-size:11vw}.etc-menu button::before{font-size:2.6vw}
-  .etc-desc{left:6vw;right:6vw;top:auto;bottom:8vh;max-width:none;font-size:14px}
-}
-@media (prefers-reduced-motion:reduce){.etc-out i,.etc-light,.etc-shade,.etc-led span{animation:none!important}.etc-led span{left:8px;transform:translateY(-50%)}}
+html.psi-etc #top,html.psi-etc #ticker,html.psi-etc #pwa{display:none!important}
+.etc{position:relative;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:420px;overflow:hidden;background:#030a20}
+.etc-load{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;font:400 16px 'Nanum Myeongjo',serif;letter-spacing:.2em;color:rgba(255,255,255,.7)}
 /* ===== 플레이리스트 (시안 D) ===== */
 @font-face{font-family:'Y1 Gaen';src:url('fonts/Y1GaenSansserif.otf') format('opentype');font-display:swap}
 @font-face{font-family:'Y1 Lava';src:url('fonts/Y1LavaLetter.otf') format('opentype');font-display:swap}
@@ -1649,110 +1593,13 @@ async function viewExport() {
 function notFound() { main.innerHTML = `<div class="wrap"><div class="phead"><h1>찾을 수 없어요</h1><p>주소가 바뀌었거나 아직 없는 페이지예요. <a href="#/">홈으로 돌아가기</a></p></div></div>`; }
 
 /* ---------- 기타 칸 (지하철 객차 메뉴) ---------- */
-const ETC = [
-  { id: 'songcheon', name: '송천동', en: 'SONGCHEON', station: '송천동', desc: '막차가 닿는 동네를 천천히 구경해요. 가게에 들어가 보고, 사내 PC도 켜 보세요.', go: 'games/songcheon/index.html', poster: 'assets/songcheon-poster.jpg' },
-  { id: 'music', name: '플레이리스트', en: 'PLAYLIST', station: '사내방송실', desc: '정보구출반 사내 방송. 뮤직비디오를 틀어 두고 일해요.', go: '#/music' },
-  { id: 'next', name: '???', en: 'NEXT STOP', station: '미정', desc: '아직 공사 중인 역이에요. 곧 문이 열립니다.', go: null }
-];
-let etcSel = 0;
-function etcTiles() {
-  let sd = 7; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-  const url = (w, h, body, pa) => `url('data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='0 0 ${w} ${h}' preserveAspectRatio='${pa || 'none'}'>${body}</svg>`).replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29')}')`;
-  let c = ''; for (let i = 0; i < 7; i++) { const x = i * 200 + rnd() * 80, y = 40 + rnd() * 110, s = 0.6 + rnd() * 0.8; c += `<g fill='#fff' opacity='${0.65 + rnd() * 0.3}'><ellipse cx='${x}' cy='${y}' rx='${70 * s}' ry='${18 * s}'/><ellipse cx='${x + 30 * s}' cy='${y - 12 * s}' rx='${40 * s}' ry='${20 * s}'/><ellipse cx='${x - 28 * s}' cy='${y - 6 * s}' rx='${30 * s}' ry='${14 * s}'/></g>`; }
-  let f = ''; for (let x = 0; x < 900;) { const w = 30 + rnd() * 60, h = 50 + rnd() * 130; if (x + w > 900) break; f += `<rect x='${x}' y='${200 - h}' width='${w}' height='${h}' fill='${rnd() > .5 ? '#7d9cc4' : '#6c8db8'}'/>`; for (let k = 0; k < 4; k++) f += `<rect x='${x + 6 + rnd() * (w - 14)}' y='${200 - h + 10 + rnd() * (h - 30)}' width='5' height='7' fill='#fff1c0' opacity='.85'/>`; x += w + rnd() * 14; }
-  let n = ''; for (let x = 20; x < 1260;) { if (rnd() > .45) { const r = 22 + rnd() * 26; n += `<circle cx='${x}' cy='${200 - r * 1.2}' r='${r}' fill='#3f6b52'/><circle cx='${x + r * .7}' cy='${200 - r * .9}' r='${r * .8}' fill='#355e47'/>`; x += r * 2.2; } else { const w = 60 + rnd() * 80, h = 40 + rnd() * 50; n += `<rect x='${x}' y='${200 - h}' width='${w}' height='${h}' fill='#56707f'/><path d='M${x - 6} ${200 - h}L${x + w / 2} ${200 - h - 22}L${x + w + 6} ${200 - h}z' fill='#8a5a4e'/>`; x += w + 10; } }
-  const p = `<path d='M0 46H760M0 70H760' stroke='#39434a' stroke-width='2'/><rect x='80' y='0' width='12' height='400' fill='#3c464d'/><rect x='60' y='38' width='60' height='8' fill='#3c464d'/>`;
-  return { cloud: url(1400, 200, c), far: url(900, 200, f), near: url(1300, 200, n), pole: url(760, 400, p) };
-}
-function etcScene() {
-  const straps = [120, 230, 340, 450, 650, 760, 870, 980, 1180, 1290].map(x => `<g class="strap" data-x="${x}"><path d="M${x} 140V196" stroke="#4a5257" stroke-width="7" stroke-linecap="round"/><path d="M${x - 15} 198h30l-15 28z" fill="#ffd23f" stroke="#2c3033" stroke-width="4" stroke-linejoin="round"/></g>`).join('');
-  return `<svg class="etc-car" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-    <defs><linearGradient id="etcFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a9387"/><stop offset="1" stop-color="#6c665c"/></linearGradient>
-      <linearGradient id="etcSeat" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b8573"/><stop offset="1" stop-color="#356556"/></linearGradient></defs>
-    <path fill-rule="evenodd" fill="#ebe5d7" d="M0 0H1600V900H0Z M92 160H498Q520 160 520 182V478Q520 500 498 500H92Q70 500 70 478V182Q70 160 92 160Z M622 160H1028Q1050 160 1050 182V478Q1050 500 1028 500H622Q600 500 600 478V182Q600 160 622 160Z M1152 160H1308Q1330 160 1330 182V478Q1330 500 1308 500H1152Q1130 500 1130 478V182Q1130 160 1152 160Z M1450 175H1545Q1560 175 1560 190V465Q1560 480 1545 480H1450Q1435 480 1435 465V190Q1435 175 1450 175Z"/>
-    <rect x="0" y="0" width="1600" height="110" fill="#f3efe6"/><rect x="40" y="34" width="1300" height="18" rx="9" fill="#fffdf2"/><rect x="40" y="30" width="1300" height="26" rx="13" fill="#fff8d8" opacity=".5"/>
-    <rect x="0" y="108" width="1600" height="14" fill="#d3ccbc"/>
-    <g fill="none" stroke="#b4bbbf" stroke-width="12"><rect x="70" y="160" width="450" height="340" rx="22"/><rect x="600" y="160" width="450" height="340" rx="22"/><rect x="1130" y="160" width="200" height="340" rx="22"/></g>
-    <g stroke="#d4d9dc" stroke-width="3" opacity=".8"><path d="M300 166V494M830 166V494"/></g>
-    <path fill-rule="evenodd" fill="#c4cbcf" d="M1385 110H1600V735H1385Z M1450 175H1545Q1560 175 1560 190V465Q1560 480 1545 480H1450Q1435 480 1435 465V190Q1435 175 1450 175Z"/>
-    <path d="M1492 110V735" stroke="#9aa2a7" stroke-width="4"/><rect x="1405" y="520" width="60" height="22" rx="3" fill="#ffd23f"/><text x="1435" y="536" font-family="Black Han Sans,sans-serif" font-size="15" text-anchor="middle" fill="#111">PSI</text>
-    <rect x="0" y="500" width="1385" height="48" fill="#ddd5c4"/><path d="M20 520H1360" stroke="#c9c0ad" stroke-width="3"/>
-    <rect x="30" y="548" width="1340" height="96" rx="16" fill="url(#etcSeat)"/><g stroke="#2f5a4c" stroke-width="3" opacity=".6"><path d="M200 556V636M380 556V636M560 556V636M740 556V636M920 556V636M1100 556V636"/></g>
-    <rect x="24" y="638" width="1352" height="44" rx="12" fill="#2f5d4e"/><rect x="24" y="680" width="1352" height="22" rx="4" fill="#c3cacd"/><rect x="40" y="702" width="1320" height="34" fill="#4a453c"/>
-    <rect x="0" y="735" width="1600" height="165" fill="url(#etcFloor)"/><g stroke="#fff" opacity=".08" stroke-width="2"><path d="M0 770H1600M0 812H1600M0 862H1600"/></g>
-    <g fill="#c9d0d3"><rect x="555" y="520" width="14" height="182" rx="7"/><rect x="1065" y="520" width="14" height="182" rx="7"/></g>
-    <path d="M20 140H1365" stroke="#cfd5d8" stroke-width="9" stroke-linecap="round"/><path d="M20 137H1365" stroke="#fff" stroke-width="2" opacity=".7"/>
-    <g fill="#b6bdc1"><rect x="295" y="110" width="8" height="32"/><rect x="815" y="110" width="8" height="32"/><rect x="1335" y="110" width="8" height="32"/></g>
-    ${straps}
-    <rect x="1366" y="0" width="18" height="900" fill="#d9dfe2"/><rect x="1370" y="0" width="4" height="900" fill="#fff" opacity=".7"/>
-  </svg>`;
-}
-function etcAd(it) {
-  if (it.poster) return `<em>NEXT STATION</em><img src="${it.poster}" alt="">`;
-  if (it.id === 'music') return `<em>NEXT STATION</em><div class="card"><small>PSI BROADCAST</small>NOW PLAYING</div>`;
-  return `<div class="card q"><b>공사 중</b></div>`;
-}
+let etcJs = null;
 function viewEtc() {
-  const R = document.documentElement; R.classList.add('psi-etc');
-  const T = etcTiles();
-  main.innerHTML = `<section class="etc" aria-label="기타 칸">
-    <div class="etc-stage" id="etcStage">
-      <div class="etc-out" aria-hidden="true"><i class="sun"></i><i class="cloud" style="background-image:${T.cloud}"></i><i class="far" style="background-image:${T.far}"></i><i class="near" style="background-image:${T.near}"></i><i class="pole" style="background-image:${T.pole}"></i></div>
-      ${etcScene()}<div class="etc-light"></div><div class="etc-shade"></div><div class="etc-vig"></div>
-    </div>
-    <div class="etc-ui">
-      <a class="etc-back" href="#/">← 나가기</a>
-      <div class="etc-led" aria-hidden="true"><span id="etcLed"></span></div>
-      <div class="etc-ad" id="etcAd" aria-hidden="true"></div>
-      <div class="etc-title"><h1>싸이뛰어!</h1><p>[잡동사니 칸]<small>v1.0.0</small></p></div>
-      <nav class="etc-menu" id="etcMenu" aria-label="기타 칸 메뉴">${ETC.map((it, i) => `<button type="button" data-i="${i}" data-en="${it.en}"${it.go ? '' : ' class="dim"'}>${esc(it.name)}</button>`).join('')}</nav>
-      <p class="etc-desc" id="etcDesc" aria-live="polite"></p>
-      <p class="etc-keys" aria-hidden="true">NAVIGATION: <b>← →</b> / <b>A D</b><br>CONFIRM: <b>ENTER</b> / <b>SPACE</b><br>BACK: <b>ESC</b></p>
-      <span class="etc-sig" aria-hidden="true">PSI-NET // LINE 8</span>
-    </div></section>`;
-  const sec = $('.etc'), stage = $('#etcStage'), btns = $$('#etcMenu button');
-  const straps = $$('.strap', stage).map((el, k) => ({ el, x: +el.dataset.x, a: 0, v: 0, k: 9 + (k % 4) * 1.7, c: 1.1 + (k % 3) * .25 }));
-  const car = { y: 0, v: 0 };
-  const shove = (s, b) => { straps.forEach(st => { st.v += s * (0.7 + Math.random() * 0.6); }); car.v += b; };
-  function pick(i, quiet) {
-    etcSel = (i + ETC.length) % ETC.length; const it = ETC[etcSel];
-    btns.forEach((b, k) => b.setAttribute('aria-current', String(k === etcSel)));
-    $('#etcDesc').textContent = it.desc; $('#etcAd').innerHTML = etcAd(it);
-    const L = $('#etcLed'); L.textContent = `이번 역은 ${it.station} 역입니다 · This stop is ${it.en} · 내리실 문은 오른쪽입니다`; L.style.animation = 'none'; void L.offsetWidth; L.style.animation = '';
-    if (!quiet) shove(10, 2);
-  }
-  function board(i) {
-    const it = ETC[i]; if (sec.classList.contains('go')) return;
-    if (!it.go) { toast('아직 공사 중인 역이에요. 곧 열려요.'); shove(-18, -3); return; }
-    $('#etcLed').textContent = `${it.station} 역에 도착합니다 · 문이 열립니다`; shove(-40, 6); sec.classList.add('go');
-    setTimeout(() => { if (it.go.startsWith('#')) location.hash = it.go; else location.href = it.go; }, 720);
-  }
-  btns.forEach(b => {
-    const i = +b.dataset.i;
-    b.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && etcSel !== i) pick(i); });
-    b.addEventListener('click', e => { if (etcSel !== i && e.pointerType === 'touch') { pick(i); return; } pick(i, true); board(i); });
-  });
-  window.onkeydown = e => {
-    if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA)$/.test((e.target || {}).tagName)) return;
-    const k = e.key;
-    if (k === 'ArrowRight' || k === 'd' || k === 'D' || k === 'ArrowDown') { e.preventDefault(); pick(etcSel + 1); btns[etcSel].focus({ preventScroll: true }); }
-    else if (k === 'ArrowLeft' || k === 'a' || k === 'A' || k === 'ArrowUp') { e.preventDefault(); pick(etcSel - 1); btns[etcSel].focus({ preventScroll: true }); }
-    else if (k === 'Enter' || k === ' ' || k === 'f' || k === 'F') { e.preventDefault(); board(etcSel); }
-    else if (k === 'Escape') location.hash = '#/';
-  };
-  pick(etcSel, true);
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  let last = 0, nextBump = 1.5;
-  (function tick(now) {
-    if (!document.body.contains(stage)) return;
-    const dt = last ? Math.min((now - last) / 1000, 0.05) : 0; last = now; const t = now / 1000;
-    nextBump -= dt; if (nextBump <= 0) { nextBump = 2.5 + Math.random() * 4; shove((Math.random() - .5) * 26, 1.5 + Math.random() * 2); }
-    const sway = Math.sin(t * 0.9) * 1.6 + Math.sin(t * 2.3 + 1) * 0.6;
-    straps.forEach(st => { st.v += (-st.k * st.a - st.c * st.v + sway) * dt; st.a += st.v * dt; st.el.setAttribute('transform', `rotate(${st.a.toFixed(2)} ${st.x} 140)`); });
-    car.v += (-60 * car.y - 9 * car.v) * dt; car.y += car.v * dt;
-    stage.style.translate = `0 ${(car.y + Math.sin(t * 7.1) * 0.35).toFixed(2)}px`;
-    requestAnimationFrame(tick);
-  })(0);
+  document.documentElement.classList.add('psi-etc');
+  main.innerHTML = '<section class="etc" aria-label="기타 칸"><p class="etc-load">열차가 들어오는 중…</p></section>';
+  const sec = $('.etc', main);
+  etcJs = etcJs || new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'etc-train.js?v=1'; sc.onload = ok; sc.onerror = () => { etcJs = null; no(); }; document.head.append(sc); });
+  etcJs.then(() => { if (document.body.contains(sec)) window.etcTrain(sec); }).catch(() => { if (document.body.contains(sec)) sec.innerHTML = '<p class="etc-load">열차를 불러오지 못했어요. 새로고침해 주세요.</p>'; });
 }
 
 /* ---------- 라우터 ---------- */
