@@ -240,8 +240,8 @@
         x.save(); x.translate(cx, cy); x.scale(sc, sc); x.globalAlpha = night ? .8 : 1; x.fillStyle = over && !night ? '#c3cddd' : P.cloud; x.fill(G.cloud); x.globalAlpha *= .9; x.fillStyle = over && !night ? '#98a6bd' : P.cloudSh; x.fill(G.cloudSh); x.restore(); }
       x.globalAlpha = 1;
       const hz = 420, oS = OFF * .45;
-      for (let i = Math.floor((oS - 400) / 36); i < (oS + 2000) / 36; i++) { const sx = i * 36 - oS, wf = wAt('forest', sx + OFF); if (wf > 0 && H(i + 1) < wf * 1.05) { x.fillStyle = H(i) > .5 ? '#0e3027' : '#11372c'; x.fillRect(sx, -100 + (1 - Math.min(1, wf * 1.4)) * 360, 37, 700); if (H(i) > .6) { x.globalAlpha = .6; x.fillStyle = '#2f6655'; x.fillRect(sx + 12, -100, 8, 700); x.globalAlpha = 1; } } }
-      for (let i = Math.floor((oS - 400) / 28); i < (oS + 2000) / 28; i++) { const sx = i * 28 - oS, X = sx + OFF, h = H(i), h2 = H(i + 300), w = 12 + h2 * 22;
+      for (let i = Math.floor((oS - 400) / 36); i < (oS + 2000) / 36; i++) { const sx = i * 36 - oS, wf = wAt('forest', (i * 36 - 800) / .45 + 800); if (wf > 0 && H(i + 1) < wf * 1.05) { x.fillStyle = H(i) > .5 ? '#0e3027' : '#11372c'; x.fillRect(sx, -100 + (1 - Math.min(1, wf * 1.4)) * 360, 37, 700); if (H(i) > .6) { x.globalAlpha = .6; x.fillStyle = '#2f6655'; x.fillRect(sx + 12, -100, 8, 700); x.globalAlpha = 1; } } }
+      for (let i = Math.floor((oS - 400) / 28); i < (oS + 2000) / 28; i++) { const sx = i * 28 - oS, X = (i * 28 - 800) / .45 + 800, h = H(i), h2 = H(i + 300), w = 12 + h2 * 22;
         const bh = wAt('city', X) * (8 + h * (H(Math.floor(i / 9)) > .4 ? 115 : 40) + 14) + wAt('bridge', X) * (6 + h * 26) + wAt('suburb', X) * (h > .62 ? 5 + h2 * 22 : 0);
         if (bh < 3) continue; x.fillStyle = h2 > .5 ? P.city : P.city2; x.fillRect(sx, hz - bh, w, bh);
         if (P.lights) { x.fillStyle = '#ffe2a0'; x.globalAlpha = P.lights; for (let k = 0; k < bh / 12; k++) if (H(i * 13 + k) > (night ? .3 : .45)) x.fillRect(sx + 3 + H(i * 7 + k) * (w - 7), hz - bh + 4 + H(i * 5 + k) * (bh - 8), 4, 4); x.globalAlpha = 1; } }
