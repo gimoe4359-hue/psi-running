@@ -1774,6 +1774,7 @@ $('#miniW').addEventListener('click', () => { E.SFX.pop(); const L = ['싸이 �
 const API_URL = 'https://script.google.com/macros/s/AKfycbwiqBmXVY2nDlmyokpaDUxBxEezhbPRvYtKBA-kjVrHK0VU4pktS77wgRv9aN_ZWeTj/exec';
 const dev = (() => { let d = null; try { d = JSON.parse(localStorage.getItem('psi.dev')); } catch (e) {} if (!d || !/^[A-Za-z0-9_-]{6,40}$/.test(d)) { d = 'd' + Math.random().toString(36).slice(2, 10); try { localStorage.setItem('psi.dev', JSON.stringify(d)); } catch (e) {} } return d; })();
 async function api(action, params = {}) { const u = new URL(API_URL); u.searchParams.set('action', action); Object.entries(params).forEach(([k, v]) => v !== undefined && u.searchParams.set(k, v)); const c = new AbortController(), to = setTimeout(() => c.abort(), 20000); try { const r = await fetch(u.toString(), { signal: c.signal }); return await r.json(); } finally { clearTimeout(to); } }
+const tokTxt = s => String(s || '').replace(/\[\[st:[\w-]+\]\]/g, '(스티커)').replace(/\[\[img:[^\]]+\]\]/g, '(사진)');
 async function apiPost(body) { const c = new AbortController(), to = setTimeout(() => c.abort(), 25000); try { const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({}, body, { dev })), signal: c.signal }); return await r.json(); } catch (e) { return { ok: false, error: 'network' }; } finally { clearTimeout(to); } }
 const PPL = [
   ['유모자 팀장', '#8d74c9', ['공유 씨 ssun busday 아니십니까?', 'oh my ong! 오늘 회식 nine o\'clock입니다.'], ['yeah. good job입니다!', 'Today도 great한 하루!', '그건 team meeting에서 talk합시다.', 'oh my ong!']],
@@ -1863,7 +1864,7 @@ function renderBoard() {
   B.cats.forEach(c => { const b = el('button', c.id === B.cat ? 'on' : '', c.name); b.type = 'button'; b.onclick = () => { B.cat = c.id; renderBoard(); }; cats.append(b); });
   const list = B.posts.filter(p => p.cat === B.cat).slice().sort((a, b) => (b.pin ? 1 : 0) - (a.pin ? 1 : 0) || b.t - a.t).slice(0, 40);
   if (!list.length) body.append(el('p', 'm-note', '아직 글이 없어요. 첫 글을 남겨 보세요.'));
-  list.forEach(p => { const b = el('button', 'bd-post' + (p.pin ? ' pin' : '')); b.type = 'button'; b.append(el('b', '', p.title)); if (p.body && p.body !== p.title) b.append(el('p', 'cl', p.body)); b.append(el('small', '', `${p.mine ? '나' : '익명'} · ${ago(p.t)} · 댓글 ${p.comments} · 좋아요 ${p.likes}`)); b.onclick = () => openThread(p.id); body.append(b); });
+  list.forEach(p => { const b = el('button', 'bd-post' + (p.pin ? ' pin' : '')); b.type = 'button'; b.append(el('b', '', p.title)); if (p.body && p.body !== p.title) b.append(el('p', 'cl', tokTxt(p.body))); b.append(el('small', '', `${p.mine ? '나' : '익명'} · ${ago(p.t)} · 댓글 ${p.comments} · 좋아요 ${p.likes}`)); b.onclick = () => openThread(p.id); body.append(b); });
 }
 async function openThread(id) {
   B.post = id; const body = $('#bdBody'); $('#bdCats').innerHTML = ''; $('#bdWrite').hidden = true; $('#bdForm').hidden = true; $('#bdReply').hidden = true; body.innerHTML = '';
@@ -1871,9 +1872,9 @@ async function openThread(id) {
   let r = null; try { r = await api('post', { id, dev }); } catch (e) {}
   if (B.post !== id) return; body.innerHTML = ''; body.append(back);
   if (!r || !r.ok) { body.append(el('p', 'm-note', '글을 불러오지 못했어요.')); return; }
-  const p = r.post; const head = el('div', 'bd-post'); head.append(el('b', '', p.title), el('p', '', p.body), el('small', '', `${ago(p.t)} · 조회 ${p.views || 0}`));
+  const p = r.post; const head = el('div', 'bd-post'); head.append(el('b', '', p.title), el('p', '', tokTxt(p.body)), el('small', '', `${ago(p.t)} · 조회 ${p.views || 0}`));
   const like = el('button', 'bd-btn', `좋아요 ${p.likes || 0}`); like.type = 'button'; like.style.marginTop = '8px'; like.onclick = async () => { like.disabled = true; await apiPost({ action: 'like', post: id }); E.SFX.pop(); await loadBoard(true); openThread(id); }; head.append(like); body.append(head);
-  (p.comments || []).forEach(c => { const d = el('div', 'cmt'); d.append(el('small', '', (c.who === 'op' ? '글쓴이' : c.who || '익명') + ' · ' + ago(c.t)), document.createTextNode(c.body)); body.append(d); });
+  (p.comments || []).forEach(c => { const d = el('div', 'cmt'); d.append(el('small', '', (c.who === 'op' ? '글쓴이' : c.who || '익명') + ' · ' + ago(c.t)), document.createTextNode(tokTxt(c.body))); body.append(d); });
   if (!(p.comments || []).length) body.append(el('p', 'm-note', '첫 댓글을 남겨 보세요.'));
   $('#bdReply').hidden = false;
 }

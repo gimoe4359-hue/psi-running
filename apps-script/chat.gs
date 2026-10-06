@@ -4,7 +4,7 @@
  * 설치 (한 번만)
  * 1) 기존 게시판 Apps Script 프로젝트에 이 파일 내용을 새 파일(chat.gs)로 추가
  * 2) 프로젝트 설정 > 스크립트 속성에 ANTHROPIC_KEY 추가 (Anthropic API 키)
- * 3) 기존 doPost(e) 안에서 body를 파싱한 직후 아래 한 줄 추가
+ * 3) board-plus.gs를 설치했다면 이 단계는 건너뛰세요(자동으로 연결돼요). 아니면 기존 doPost(e) 안에서 body를 파싱한 직후 아래 한 줄 추가
  *      if (body.action === 'chat') return ContentService.createTextOutput(JSON.stringify(handleChat_(body))).setMimeType(ContentService.MimeType.JSON);
  * 4) 배포 > 배포 관리 > 새 버전으로 업데이트
  * API 키는 서버(스크립트 속성)에만 있고 사이트 코드에는 들어가지 않아요.
