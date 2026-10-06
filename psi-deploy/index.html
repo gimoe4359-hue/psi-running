@@ -1598,7 +1598,7 @@ function viewEtc() {
   document.documentElement.classList.add('psi-etc');
   main.innerHTML = '<section class="etc" aria-label="기타 칸"><p class="etc-load">열차가 들어오는 중…</p></section>';
   const sec = $('.etc', main);
-  etcJs = etcJs || new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'etc-train.js?v=2'; sc.onload = ok; sc.onerror = () => { etcJs = null; no(); }; document.head.append(sc); });
+  etcJs = etcJs || new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'etc-train.js?v=3'; sc.onload = ok; sc.onerror = () => { etcJs = null; no(); }; document.head.append(sc); });
   etcJs.then(() => { if (document.body.contains(sec)) window.etcTrain(sec); }).catch(() => { if (document.body.contains(sec)) sec.innerHTML = '<p class="etc-load">열차를 불러오지 못했어요. 새로고침해 주세요.</p>'; });
 }
 
