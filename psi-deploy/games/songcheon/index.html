@@ -2260,8 +2260,8 @@ function paintForest(ctx, preset, tx, sc) {
     ctx.save(); ctx.globalCompositeOperation = 'screen'; glow(300, -60, 900, hx('#9ec4ff'), .26);
     for (const [x0, w0] of [[160, 120], [700, 80], [1300, 140], [1900, 100]]) { if (!vis(x0 + 200, 500)) continue; const gr = ctx.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(170,200,255,.16)'); gr.addColorStop(1, 'rgba(170,200,255,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0 + w0, 0); ctx.lineTo(x0 + w0 + 300, H); ctx.lineTo(x0 + 300 - w0 * .4, H); ctx.fill(); }
     fog(560, 720, .12, hx('#7aa8e0'));
-    for (const [x, y, dp, col] of LAMPS) if (vis(x, 80)) { glow(x, y, 70, hx('#ffb860'), .55 * (1 - dp * .4)); glow(x, y, 16, hx('#fff0c0'), .7); }
-    for (const [x, y, sc2, dp] of WINS) if (vis(x, 80)) { glow(x, y, 46 * sc2, hx('#ffc070'), .7 * (1 - dp * .5)); glow(x, y + 30 * sc2, 50 * sc2, hx('#ff9a50'), .25 * (1 - dp)); }
+    for (const [x, y, dp, col] of LAMPS) if (vis(x, 80)) { glow(x, y, 46, hx('#ffb860'), .32 * (1 - dp * .4)); glow(x, y, 10, hx('#fff0c0'), .5); }
+    for (const [x, y, sc2, dp] of WINS) if (vis(x, 80)) { glow(x, y, 30 * sc2, hx('#ffc070'), .5 * (1 - dp * .5)); glow(x, y + 30 * sc2, 40 * sc2, hx('#ff9a50'), .15 * (1 - dp)); }
     ctx.restore();
   } else if (preset === 'dusk') {
     ctx.save(); ctx.globalCompositeOperation = 'multiply'; cg = ctx.createLinearGradient(0, 0, 0, H); cg.addColorStop(0, 'rgb(255,200,160)'); cg.addColorStop(1, 'rgb(170,118,150)'); ctx.fillStyle = cg; ctx.fillRect(0, 0, W, H); ctx.restore();
@@ -2274,7 +2274,7 @@ function paintForest(ctx, preset, tx, sc) {
   // 블룸 · 비네트 · 결 (타일 단위)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const cw = ctx.canvas.width, ch = ctx.canvas.height;
-  { const b2 = document.createElement('canvas'); b2.width = Math.ceil(cw / 12); b2.height = Math.ceil(ch / 12); const bx = b2.getContext('2d'); bx.imageSmoothingQuality = 'high'; bx.drawImage(ctx.canvas, 0, 0, b2.width, b2.height); ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = preset === 'night' ? .35 : .25; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(b2, 0, 0, cw, ch); ctx.restore(); }
+  { const b2 = document.createElement('canvas'); b2.width = Math.ceil(cw / 12); b2.height = Math.ceil(ch / 12); const bx = b2.getContext('2d'); bx.imageSmoothingQuality = 'high'; bx.drawImage(ctx.canvas, 0, 0, b2.width, b2.height); ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = preset === 'night' ? .18 : .22; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(b2, 0, 0, cw, ch); ctx.restore(); }
   ctx.setTransform(sc, 0, 0, sc, -tx * sc, 0);
   g = ctx.createRadialGradient(W * .6, H * .35, H * .3, W * .5, H * .5, W * .6); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, preset === 'night' ? 'rgba(4,10,24,.6)' : 'rgba(10,30,20,.45)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2506,7 +2506,7 @@ function mixHex(a, b, k) { return css(mix(hx(a), hx(b), k)); }
 const inv = () => { const v = LSF.get('inv', null) || {}; v.c = v.c || {}; v.f = v.f || {}; v.d = v.d || {}; return v; };
 const saveInv = v => LSF.set('inv', v);
 function silhouette(f, w, h, L) {
-  const o = document.createElement('canvas'); o.width = w; o.height = h; const x = o.getContext('2d'); x.translate(w / 2, h / 2); drawFish(x, f, 0, 0, L, 1);
+  const o = document.createElement('canvas'); o.width = w; o.height = h; const x = o.getContext('2d'); x.translate(w / 2, h / 2); drawFish(x, Object.assign({}, f, { glow: null }), 0, 0, L, 1);
   x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = 'rgba(52,58,70,.55)'; x.fillRect(0, 0, w, h); return o;
 }
 function fishBook(host, onClose) {
@@ -2924,7 +2924,7 @@ function fxScreen(g, t) {
   // 2) 빛 번짐 (해 · 달 · 등불)
   if (!night) { const x = sx(1460), y = (70 - cam.y) * cam.s * k, gr = g.createRadialGradient(x, y, 0, x, y, H * .9); gr.addColorStop(0, dusk ? 'rgba(255,170,110,.5)' : 'rgba(255,252,220,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   else { const x = sx(300), y = (-60 - cam.y) * cam.s * k, gr = g.createRadialGradient(x, y, 0, x, y, H * 1.1); gr.addColorStop(0, 'rgba(150,190,255,.35)'); gr.addColorStop(1, 'rgba(150,190,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
-    for (const [wx, wy] of LAMPS) { const x2 = sx(wx), y2 = (wy - cam.y) * cam.s * k; if (x2 < -200 || x2 > W + 200) continue; const r = 70 * cam.s * k * (1 + .08 * Math.sin(t * 3 + wx)), g2 = g.createRadialGradient(x2, y2, 0, x2, y2, r); g2.addColorStop(0, 'rgba(255,190,110,.32)'); g2.addColorStop(1, 'rgba(255,190,110,0)'); g.fillStyle = g2; g.beginPath(); g.arc(x2, y2, r, 0, 6.3); g.fill(); } }
+    for (const [wx, wy] of LAMPS) { const x2 = sx(wx), y2 = (wy - cam.y) * cam.s * k; if (x2 < -200 || x2 > W + 200) continue; const r = 44 * cam.s * k * (1 + .08 * Math.sin(t * 3 + wx)), g2 = g.createRadialGradient(x2, y2, 0, x2, y2, r); g2.addColorStop(0, 'rgba(255,190,110,.12)'); g2.addColorStop(1, 'rgba(255,190,110,0)'); g.fillStyle = g2; g.beginPath(); g.arc(x2, y2, r, 0, 6.3); g.fill(); } }
   // 3) 떠다니는 빛 번짐 (라이트 릭)
   { const x = W * (.5 + .45 * Math.sin(t * .07)), y = H * (.3 + .2 * Math.cos(t * .05)), gr = g.createRadialGradient(x, y, 0, x, y, W * .5); gr.addColorStop(0, night ? 'rgba(90,150,200,.14)' : dusk ? 'rgba(255,120,90,.16)' : 'rgba(255,220,150,.12)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   // 4) 바닥 안개 (밤엔 푸르게 빛남)
@@ -2973,7 +2973,7 @@ css2.textContent = `
 .fz-bookv .it canvas{width:100%;height:auto}
 .fz-bookv .it b{display:block;font-size:14px}.fz-bookv .it small{display:block;font-size:11px;color:#8a8098;margin-top:2px}
 .fz-bookv .it.no b{color:#a8a0b0}
-.fz-warn{position:absolute;left:50%;top:max(80px,calc(env(safe-area-inset-top) + 70px));transform:translateX(-50%);padding:10px 18px;border-radius:999px;background:#c8323c;color:#fff;font:800 15px "Noto Sans KR",sans-serif;z-index:3;animation:fzBlink .5s ease-in-out infinite alternate;pointer-events:none}
+.fz-warn{position:absolute;left:50%;top:max(170px,calc(env(safe-area-inset-top) + 160px));transform:translateX(-50%);padding:10px 18px;border-radius:999px;background:#c8323c;color:#fff;font:800 15px "Noto Sans KR",sans-serif;z-index:3;animation:fzBlink .5s ease-in-out infinite alternate;pointer-events:none}
 .fz-warn[hidden]{display:none}
 @keyframes fzBlink{to{transform:translateX(-50%) scale(1.06);background:#ff4a4a}}
 .fz-bookv button.it{border:0;font:inherit;color:inherit;cursor:pointer}
@@ -3013,6 +3013,7 @@ css2.textContent = `
 .fz-pantry li canvas{width:50px;height:39px;flex:none}.fz-pantry li span{flex:1;text-align:left}.fz-pantry li.no{grid-column:1/-1;color:#a098a8;padding:10px;font-size:14px}
 .fz-pantry .r{display:flex;gap:6px}.fz-pantry .r button{flex:1;background:#eee8f6}.fz-pantry .r .go{background:#2a2238;color:#fff}
 .fz-ov.cook .fz-hint{bottom:auto;top:max(70px,calc(env(safe-area-inset-top) + 64px))}
+.fz-card p.re b{display:inline;font-size:14px;margin:0 6px 0 0}
 .fz-card p.re{background:#f4f0e6;border-radius:10px;padding:8px 10px;font-size:14px}
 .fz-wipe{position:fixed;inset:0;z-index:90;pointer-events:none;background:radial-gradient(circle at 50% 55%,#fffdf0 0%,#fff6c8 30%,rgba(255,246,200,.0) 60%);background-size:10% 10%;background-position:center;background-repeat:no-repeat;opacity:0;transition:opacity .5s,background-size 1.2s cubic-bezier(.6,0,.3,1)}
 .fz-wipe.on{opacity:1;background-size:400% 400%}
