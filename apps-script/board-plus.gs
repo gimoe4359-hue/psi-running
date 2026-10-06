@@ -1,5 +1,5 @@
 /**
- * 싸이뛰어 게시판 확장 — 사진 올리기 · 글/댓글 수정 · 덕질칸 · 빠른 응답(캐시)
+ * 싸이뛰어 게시판 확장 — 사진 올리기 · 글/댓글 수정 · 덕질칸/정보칸 · 빠른 응답(캐시)
  *
  * 설치 (한 번만, 5분)
  * 1) 게시판 Apps Script 편집기를 열고, 기존 코드에서 함수 이름 두 개만 바꿔요.
@@ -11,7 +11,7 @@
  *
  * - 사진은 드라이브 'psi-board-images' 폴더에 저장되고, 링크가 있는 사람만 볼 수 있게 공유돼요.
  * - 글/댓글 수정은 같은 스프레드시트의 'edits' 탭에 저장돼요. (원래 글 데이터는 건드리지 않아요)
- * - 덕질칸은 'cats' 탭에 자동으로 한 줄 추가돼요. 안 되면 cats 탭에 id=fandom, name=덕질칸 줄을 직접 넣어 주세요.
+ * - cats 탭에 덕질칸이 자동으로 추가되고, '쓸데없는 능력 자랑'은 '정보칸'으로 이름이 바뀌어요. (안 되면 cats 탭에서 직접 고쳐 주세요)
  * - chat.gs(송천동 AI 대화)가 있으면 그것도 여기서 같이 처리해요.
  */
 const PLUS = { folder: 'psi-board-images', maxBytes: 5 * 1024 * 1024, cacheSec: 25 };
@@ -111,16 +111,19 @@ function plusApplyEdits_(out) {
   if (out.post) { fix(out.post); (out.post.comments || []).forEach(cm => { const e = map['c:' + out.post.id + ':' + cm.id]; if (e) { cm.body = e[1]; cm.edited = e[2]; } }); }
 }
 
-/* 덕질칸: cats 탭에 한 번만 자동 추가 */
+/* 덕질칸 추가 · '쓸데없는 능력 자랑' → 정보칸 이름 변경: cats 탭에 한 번만 자동 반영 */
 function plusEnsureFandom_() {
-  const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('PLUS_FANDOM')) return;
+  const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('PLUS_CATS_V3')) return;
   let ss = null; try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) {} if (!ss) return;
   const sh = ss.getSheetByName('cats'); if (!sh) return;
   const v = sh.getDataRange().getValues(), head = v[0].map(x => String(x).trim().toLowerCase());
   const iId = head.indexOf('id'), iName = head.indexOf('name'), iOrd = head.indexOf('order'); if (iId < 0 || iName < 0) return;
+  let changed = false;
+  for (let k = 1; k < v.length; k++) if (String(v[k][iId]) === 'power' || String(v[k][iName]) === '쓸데없는 능력 자랑') { sh.getRange(k + 1, iName + 1).setValue('정보칸'); changed = true; }
   if (!v.some((r, k) => k && (String(r[iId]) === 'fandom' || String(r[iName]) === '덕질칸'))) {
     const row = head.map(() => ''); row[iId] = 'fandom'; row[iName] = '덕질칸'; if (iOrd >= 0) row[iOrd] = Math.max(0, ...v.slice(1).map(r => Number(r[iOrd]) || 0)) + 1;
-    sh.appendRow(row); plusBump_();
+    sh.appendRow(row); changed = true;
   }
-  pr.setProperty('PLUS_FANDOM', '1');
+  if (changed) plusBump_();
+  pr.setProperty('PLUS_CATS_V3', '1');
 }

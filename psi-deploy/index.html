@@ -1406,7 +1406,7 @@ async function viewGames(sel) {
 const CAT_KEY = 'psi.cats.v1', BOARD_KEY = 'psi.board.v2', PAGE = 15;
 const DEF_CATS = [
   { id: 'notice', name: '공지사항' }, { id: 'free', name: '자유게시판' }, { id: 'anomaly', name: '이상현상 제보' },
-  { id: 'ot', name: '야근 푸념' }, { id: 'power', name: '쓸데없는 능력 자랑' }, { id: 'fandom', name: '덕질칸' }, { id: 'qna', name: '질문 · 건의' }
+  { id: 'ot', name: '야근 푸념' }, { id: 'power', name: '정보칸' }, { id: 'fandom', name: '덕질칸' }, { id: 'qna', name: '질문 · 건의' }
 ];
 const Cats = {
   all() { if (REMOTE) return mem.rcats || DEF_CATS; let l = LS.get(CAT_KEY, null); if (!Array.isArray(l) || !l.length) l = mem.cats || DEF_CATS.map(c => ({ ...c })); mem.cats = l; return l; },
