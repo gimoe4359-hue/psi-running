@@ -1406,10 +1406,10 @@ async function viewGames(sel) {
 const CAT_KEY = 'psi.cats.v1', BOARD_KEY = 'psi.board.v2', PAGE = 15;
 const DEF_CATS = [
   { id: 'notice', name: '공지사항' }, { id: 'free', name: '자유게시판' }, { id: 'anomaly', name: '이상현상 제보' },
-  { id: 'ot', name: '야근 푸념' }, { id: 'power', name: '정보칸' }, { id: 'fandom', name: '덕질칸' }, { id: 'qna', name: '질문 · 건의' }
+  { id: 'ot', name: '야근 푸념' }, { id: 'power', name: '정보' }, { id: 'fandom', name: '덕질' }, { id: 'qna', name: '질문 · 건의' }
 ];
 const Cats = {
-  all() { if (REMOTE) { const l = mem.rcats || DEF_CATS; l.forEach(c => { if (c.id === 'power' || c.name === '쓸데없는 능력 자랑') c.name = '정보칸'; }); return l; } let l = LS.get(CAT_KEY, null); if (!Array.isArray(l) || !l.length) l = mem.cats || DEF_CATS.map(c => ({ ...c })); mem.cats = l; return l; },
+  all() { if (REMOTE) { const l = mem.rcats || DEF_CATS; l.forEach(c => { if (c.name === '쓸데없는 능력 자랑') c.name = '정보'; }); return l; } let l = LS.get(CAT_KEY, null); if (!Array.isArray(l) || !l.length) l = mem.cats || DEF_CATS.map(c => ({ ...c })); mem.cats = l; return l; },
   save(l) { mem.cats = l; LS.set(CAT_KEY, l); },
   name(id) { const c = this.all().find(x => x.id === id); return c ? c.name : '게시판'; },
   add(name) { const l = this.all(); l.push({ id: 'c' + uid().slice(1), name }); this.save(l); },
