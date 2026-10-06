@@ -360,6 +360,14 @@ table.ct{width:100%;border-collapse:collapse;font-size:14px}
 .ed-pick button:hover{background:var(--soft)}
 .ed-pick img{width:56px;height:56px}
 .ccf .ed{border:0}
+.ccm li.rep{padding-left:30px;background:var(--soft);border-bottom-color:transparent;margin-top:-1px}
+.ccm li.rep + li:not(.rep){border-top:1px solid var(--cl)}
+.ccm .ra{font-style:normal;color:var(--ink-2);margin-left:-18px;width:14px;display:inline-block}
+.ccm .ca{margin-left:auto;display:flex;gap:2px}
+.ccm .ca .ce{margin-left:0}
+.ccm li.re-f{padding:10px 4px 12px 30px;background:var(--soft);display:grid;gap:6px}
+.ccm li.re-f .r{display:flex;justify-content:flex-end;gap:6px}
+.ccm li.re-f .cbtn{padding:5px 14px;font-size:13px}
 .ccm li.pend{opacity:.55}
 .ccm li.none{color:var(--ink-2);font-size:14px}
 .ccm .ce{margin-left:auto;background:none;border:0;color:var(--ink-2);font-size:12px;padding:0 4px}
@@ -1515,6 +1523,8 @@ function rich(s) {
   s.replace(TOK, (m, k, id, w, h, at) => { out += esc(s.slice(i, at)); i = at + m.length; out += k === 'st' ? stkTag(id) : imgTag(id, w, h); return m; });
   return out + esc(s.slice(i));
 }
+const reOf = b => { const m = /^\[\[re:([^\]]+)\]\]/.exec(b || ''); return m ? m[1] : null; };
+const noRe = b => String(b || '').replace(/^\[\[re:[^\]]+\]\]/, '');
 const plain = s => String(s || '').replace(TOK, '').replace(/\s+/g, ' ').trim();
 const hasPic = s => /\[\[img:/.test(s || '');
 document.addEventListener('error', e => {
@@ -1762,7 +1772,12 @@ function viewPost(id) {
   const here = () => location.hash === h0 && document.body.contains($('#pv'));
   const nickOf = p => { const order = []; p.comments.forEach(c => { if (c.author !== p.author && c.author !== 'me' && !order.includes(c.author)) order.push(c.author); });
     return a => a === p.author ? '<b class="op">글쓴이</b>' : a === 'me' ? '<b>나</b>' : `<b>익명${order.indexOf(a) + 1}</b>`; };
-  const cmHTML = p => { const nick = nickOf(p); return p.comments.map(c => `<li data-cid="${esc(c.id)}"${c.pend ? ' class="pend"' : ''}><div class="m">${nick(c.author)}<span>${cdate(c.t)}${c.edited ? ' · 수정됨' : ''}${c.pend ? ' · 올리는 중…' : ''}</span>${(c.mine || (!REMOTE && c.author === dev)) && !c.pend && canEdit() ? '<button type="button" class="ce" data-ce>수정</button>' : ''}</div><p class="cb">${rich(c.body)}</p></li>`).join('') || '<li class="none">첫 댓글을 남겨 보세요.</li>'; };
+  const cmHTML = p => {
+    const nick = nickOf(p), ids = new Set(p.comments.map(c => String(c.id))), rootOf = c => { const r = reOf(c.body); return r && ids.has(r) ? r : null; }, kids = {};
+    p.comments.forEach(c => { const r = rootOf(c); if (r) (kids[r] = kids[r] || []).push(c); });
+    const one = (c, sub) => `<li data-cid="${esc(c.id)}" data-root="${esc(rootOf(c) || c.id)}" class="${sub ? 'rep' : ''}${c.pend ? ' pend' : ''}"><div class="m">${sub ? '<i class="ra" aria-hidden="true">↳</i>' : ''}${nick(c.author)}<span>${cdate(c.t)}${c.edited ? ' · 수정됨' : ''}${c.pend ? ' · 올리는 중…' : ''}</span><span class="ca">${c.pend ? '' : '<button type="button" class="ce" data-re>답글</button>'}${(c.mine || (!REMOTE && c.author === dev)) && !c.pend && canEdit() ? '<button type="button" class="ce" data-ce>수정</button>' : ''}</span></div><p class="cb">${rich(noRe(c.body))}</p></li>`;
+    return p.comments.filter(c => !rootOf(c)).map(c => one(c) + (kids[String(c.id)] || []).map(k => one(k, true)).join('')).join('') || '<li class="none">첫 댓글을 남겨 보세요.</li>';
+  };
   const patch = p => {
     const mine = p.author === dev, liked = p.likedBy.includes(dev);
     const fxp = fixedNotice(), isFx = fxp && fxp.id === p.id; if (isFx && full) fixSeen(p);
@@ -1787,6 +1802,15 @@ function viewPost(id) {
         <form class="ccf" id="cf">${edHTML('ced', '익명으로 댓글을 남겨 보세요.', 300, true)}<div class="r"><span>익명으로 등록됩니다 · Ctrl+Enter</span><button class="cbtn" type="submit">등록</button></div></form></div></div>`, p.cat);
     bindShell(); patch(p); bind();
   };
+  const sendComment = async (t, restore) => {
+    if (!REMOTE) { await Board.comment(id, t); cur = Board.get(id); cur.comments = dedupC(cur.comments); patch(cur); return; }
+    const tmp = { id: 'tmp' + uid(), body: t, t: Date.now(), author: cur.author === dev ? dev : 'me', mine: true, pend: true };
+    cur.comments.push(tmp); patch(cur);
+    const ok = await Board.comment(id, t);
+    if (!ok) { cur.comments = cur.comments.filter(x => x !== tmp); if (here()) { patch(cur); if (restore) restore(t); } return; }
+    tmp.pend = false; if (here()) patch(cur);
+    const np = await Board.loadPost(id); if (np && here()) { cur = np; full = true; draw(np); Board.persist(); }
+  };
   const bind = () => {
     const ed = mkEditor($('#ced'), 300, () => $('#cf').requestSubmit());
     $('#plike').addEventListener('click', async () => {
@@ -1802,16 +1826,32 @@ function viewPost(id) {
       else { await Board.del(id); toast('글을 삭제했어요.'); location.hash = '#/board'; }
     });
     $('#pcl').addEventListener('click', async e => {
+      const rb = e.target.closest('[data-re]');
+      if (rb) {
+        const li = rb.closest('li'), root = li.dataset.root, open = $('#pcl .re-f'); if (open) { const same = open.dataset.root === root; open.remove(); if (same) return; }
+        let last = li; while (last.nextElementSibling && last.nextElementSibling.classList.contains('rep') && last.nextElementSibling.dataset.root === root) last = last.nextElementSibling;
+        const f = document.createElement('li'); f.className = 're-f'; f.dataset.root = root;
+        f.innerHTML = edHTML('rde', '답글을 남겨 보세요.', 280, true) + '<div class="r"><button type="button" class="cbtn ln" data-x>취소</button> <button type="button" class="cbtn" data-ok>등록</button></div>';
+        last.after(f); const re = mkEditor($('#rde', f), 280, () => $('[data-ok]', f).click()); re.focus();
+        f.addEventListener('click', async ev => {
+          if (ev.target.closest('[data-x]')) { f.remove(); return; }
+          if (!ev.target.closest('[data-ok]') || f.dataset.busy) return;
+          if (re.up()) { toast('사진을 올리는 중이에요…'); f.dataset.busy = '1'; await re.wait(); delete f.dataset.busy; }
+          const v = re.val(); if (!v) { toast('답글 내용을 입력해 주세요.'); return; } if (v.length > 280) { toast('답글은 280자까지 쓸 수 있어요.'); return; }
+          f.remove(); sendComment(`[[re:${root}]]` + v, () => toast('답글을 등록하지 못했어요.'));
+        });
+        return;
+      }
       const b = e.target.closest('[data-ce]'); if (!b) return;
       const li = b.closest('li'), c = cur.comments.find(x => String(x.id) === li.dataset.cid); if (!c) return;
       const p = $('.cb', li); p.hidden = true; b.hidden = true;
       const box = document.createElement('div'); box.className = 'ce-f'; box.innerHTML = edHTML('cee', '댓글 고치기', 300, true) + '<div class="r"><button type="button" class="cbtn ln" data-x>취소</button> <button type="button" class="cbtn" data-ok>저장</button></div>';
-      li.append(box); const ee = mkEditor($('#cee', box), 300, () => $('[data-ok]', box).click()); ee.set(c.body); ee.focus();
+      li.append(box); const ee = mkEditor($('#cee', box), 300, () => $('[data-ok]', box).click()); ee.set(noRe(c.body)); ee.focus();
       box.addEventListener('click', async ev => {
         if (ev.target.closest('[data-x]')) { box.remove(); p.hidden = false; b.hidden = false; return; }
         if (!ev.target.closest('[data-ok]')) return;
         if (ee.up()) { toast('사진을 올리는 중이에요…'); await ee.wait(); }
-        const v = ee.val(); if (!v) { toast('댓글 내용을 입력해 주세요.'); return; } if (v.length > 300) { toast('댓글은 300자까지 쓸 수 있어요.'); return; }
+        const reT = reOf(c.body) ? `[[re:${reOf(c.body)}]]` : '', v0 = ee.val(); if (!v0) { toast('댓글 내용을 입력해 주세요.'); return; } const v = reT + v0; if (v.length > 300) { toast('댓글이 너무 길어요.'); return; }
         const cc = cur.comments.find(x => String(x.id) === String(c.id)) || c, old = [cc.body, cc.edited]; cc.body = v; cc.edited = Date.now(); localEd[cc.id] = { body: v, edited: cc.edited }; box.remove(); patch(cur);
         const r = await Board.editComment(id, c.id, v);
         if (r !== true) { delete localEd[cc.id]; const c2 = cur.comments.find(x => String(x.id) === String(cc.id)) || cc; c2.body = old[0]; c2.edited = old[1]; if (here()) patch(cur); toast(r === 'owner' ? '내 댓글만 고칠 수 있어요.' : r === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 고치지 못했어요.'); }
@@ -1822,14 +1862,7 @@ function viewPost(id) {
       e.preventDefault(); const f = e.target; if (f.dataset.busy) return;
       if (ed.up()) { toast('사진을 올리는 중이에요…'); f.dataset.busy = '1'; await ed.wait(); delete f.dataset.busy; }
       const t = ed.val(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; } if (t.length > 300) { toast('댓글은 300자까지 쓸 수 있어요.'); return; }
-      f.dataset.busy = '1';
-      if (!REMOTE) { await Board.comment(id, t); delete f.dataset.busy; ed.clear(); cur = Board.get(id); cur.comments = dedupC(cur.comments); patch(cur); return; }
-      const tmp = { id: 'tmp' + uid(), body: t, t: Date.now(), author: cur.author === dev ? dev : 'me', mine: true, pend: true };
-      cur.comments.push(tmp); ed.clear(); patch(cur);
-      const ok = await Board.comment(id, t); delete f.dataset.busy;
-      if (!ok) { cur.comments = cur.comments.filter(x => x !== tmp); if (here()) { patch(cur); if (!ed.val()) ed.set(t); } return; }
-      tmp.pend = false; if (here()) patch(cur);
-      const np = await Board.loadPost(id); if (np && here()) { cur = np; full = true; draw(np); Board.persist(); }
+      f.dataset.busy = '1'; ed.clear(); await sendComment(t, x => { if (!ed.val()) ed.set(x); }); delete f.dataset.busy;
     });
   };
   if (cur) draw(cur);

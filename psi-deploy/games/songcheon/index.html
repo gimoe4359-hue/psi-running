@@ -1774,7 +1774,7 @@ $('#miniW').addEventListener('click', () => { E.SFX.pop(); const L = ['싸이 �
 const API_URL = 'https://script.google.com/macros/s/AKfycbwiqBmXVY2nDlmyokpaDUxBxEezhbPRvYtKBA-kjVrHK0VU4pktS77wgRv9aN_ZWeTj/exec';
 const dev = (() => { let d = null; try { d = JSON.parse(localStorage.getItem('psi.dev')); } catch (e) {} if (!d || !/^[A-Za-z0-9_-]{6,40}$/.test(d)) { d = 'd' + Math.random().toString(36).slice(2, 10); try { localStorage.setItem('psi.dev', JSON.stringify(d)); } catch (e) {} } return d; })();
 async function api(action, params = {}) { const u = new URL(API_URL); u.searchParams.set('action', action); Object.entries(params).forEach(([k, v]) => v !== undefined && u.searchParams.set(k, v)); const c = new AbortController(), to = setTimeout(() => c.abort(), 20000); try { const r = await fetch(u.toString(), { signal: c.signal }); return await r.json(); } finally { clearTimeout(to); } }
-const tokTxt = s => String(s || '').replace(/\[\[st:[\w-]+\]\]/g, '(스티커)').replace(/\[\[img:[^\]]+\]\]/g, '(사진)');
+const tokTxt = s => String(s || '').replace(/^\[\[re:[^\]]+\]\]/, '↳ ').replace(/\[\[st:[\w-]+\]\]/g, '(스티커)').replace(/\[\[img:[^\]]+\]\]/g, '(사진)');
 async function apiPost(body) { const c = new AbortController(), to = setTimeout(() => c.abort(), 25000); try { const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({}, body, { dev })), signal: c.signal }); return await r.json(); } catch (e) { return { ok: false, error: 'network' }; } finally { clearTimeout(to); } }
 const PPL = [
   ['유모자 팀장', '#8d74c9', ['공유 씨 ssun busday 아니십니까?', 'oh my ong! 오늘 회식 nine o\'clock입니다.'], ['yeah. good job입니다!', 'Today도 great한 하루!', '그건 team meeting에서 talk합시다.', 'oh my ong!']],
