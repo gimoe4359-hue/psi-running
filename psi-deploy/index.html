@@ -1190,6 +1190,9 @@ function viewNovel(id) {
   <div class="wrap"><div class="eplist-h"><b>회차 ${n.chapters.length}</b><button type="button" id="epSort">${epAsc ? '오래된 순' : '최신 순'}</button></div>
     <ul class="eps">${idx.map(i => { const c = n.chapters[i - 1]; return `<li class="${rd.has(i) ? 'read' : ''}"><a href="#/novels/${id}/${i}"><span class="th" style="background:${coverBg(n)} center/cover"></span><span><span class="t">${esc(c.title)}</span><br><span class="d">${c.free ? '<span class="fr">무료</span>' : ''}${esc(c.date || '')}</span></span><span class="go">${rd.has(i) ? '읽음' : ''}</span></a></li>`; }).join('')}</ul></div>`;
   $('#epSort').addEventListener('click', () => { epAsc = !epAsc; viewNovel(id); });
+  setTimeout(() => prefetchChapter(n, last && last <= n.chapters.length ? last : 1), 300);
+  const eps = $('.eps'); if (eps) eps.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); const m = a && /\/(\d+)$/.exec(a.getAttribute('href')); if (m) prefetchChapter(n, +m[1]); }, { passive: true });
+  const na = $('.nact'); if (na) na.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); const m = a && /\/(\d+)$/.exec(a.getAttribute('href')); if (m) prefetchChapter(n, +m[1]); }, { passive: true });
 }
 
 const VDEF = { size: 19, lh: 1.95, font: 'serif', theme: 'white', mode: 'scroll', orig: true };
@@ -1296,8 +1299,17 @@ function novelComments(id, num, relayout) {
     if (e.target.closest('[data-d]') && confirm('이 댓글을 지울까요?')) { list = list.filter(x => x !== r); draw(); keep(); await GRV.del(key, r.id); }
   });
 }
+/* 회차를 미리 받아 두기 (본문 + 그림) — 누르기 전에 준비해서 바로 열리게 */
+function prefetchChapter(n, i) {
+  const c = n && n.chapters[i - 1]; if (!c || !REMOTE) return;
+  const imgs = bl => (bl || []).forEach(b => { if (b.img) imgSrc(b.img); });
+  if (c.body != null || c.blocks) { imgs(c.blocks); return; }
+  if (c._pp) return c._pp;
+  return (c._pp = apiC('chapter', { novel: n.id, i }, { onlyMissing: true }).then(x => { if (x && x.ok && c.body == null && !c.blocks) { if (x.blocks) { c.blocks = x.blocks; c.bg = x.bg || ''; } else if (x.body) c.body = x.body; } imgs(c.blocks); }).catch(() => {}).finally(() => { c._pp = null; }));
+}
 async function viewRead(id, num) {
   const n = NOVELS.find(x => x.id === id), c = n && n.chapters[num - 1]; if (!c) return notFound();
+  if (c._pp && c.body == null && !c.blocks) { const h1 = location.hash, t1 = setTimeout(() => { if (location.hash === h1) main.innerHTML = LOADING; }, 120); await c._pp; clearTimeout(t1); if (location.hash !== h1) return; }
   if ((c.body === null || c.body === undefined) && !c.blocks) {
     const h0 = location.hash, t = setTimeout(() => { if (location.hash === h0) main.innerHTML = LOADING; }, 120);
     let r = null; try { r = await apiC('chapter', { novel: id, i: num }, { onFresh: f => { if (f.blocks) { c.blocks = f.blocks; c.bg = f.bg || ''; } else if (f.body) c.body = f.body; } }); } catch (e) {}
@@ -1306,10 +1318,7 @@ async function viewRead(id, num) {
     if (location.hash !== h0) return;
     if (c.body == null && !c.blocks) { main.innerHTML = '<div class="wrap"><div class="empty" style="margin:40px 0">본문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</div></div>'; return; }
   }
-  if (num < n.chapters.length) setTimeout(() => {   // 다음 화를 미리 받아 둬요
-    const nc = n.chapters[num]; if (!nc || nc.body != null || nc.blocks) return;
-    apiC('chapter', { novel: id, i: num + 1 }, { onlyMissing: true }).then(x => { if (x && x.ok && nc.body == null && !nc.blocks) { if (x.blocks) { nc.blocks = x.blocks; nc.bg = x.bg || ''; } else if (x.body) nc.body = x.body; } }).catch(() => {});
-  }, 1500);
+  if (num < n.chapters.length) setTimeout(() => prefetchChapter(n, num + 1), 1500);   // 다음 화를 미리 받아 둬요
   document.body.classList.add('viewer');
   LS.set('psi.last.' + id, num);
   const rs = readSet(id); rs.add(num); LS.set('psi.read.' + id, [...rs]);

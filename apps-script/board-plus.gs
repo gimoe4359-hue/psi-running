@@ -15,6 +15,7 @@ function plusUnzip_(z) { return Utilities.ungzip(Utilities.newBlob(Utilities.bas
 function doGet(e) {
   const p = (e && e.parameter) || {}, a = p.action;
   if (a === 'plus') return plusJson_({ ok: true, plus: 2 });
+  if (typeof novelCache_ === 'function') { const r = novelCache_(e); if (r) return r; }
   if (a === 'posts' || a === 'post') {
     try {
       const cache = CacheService.getScriptCache(), key = ['g', plusVer_(), a, p.id || '', p.dev || ''].join(':');
