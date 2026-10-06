@@ -368,6 +368,7 @@ table.ct{width:100%;border-collapse:collapse;font-size:14px}
 .ccm li.re-f{padding:10px 4px 12px 30px;background:var(--soft);display:grid;gap:6px}
 .ccm li.re-f .r{display:flex;justify-content:flex-end;gap:6px}
 .ccm li.re-f .cbtn{padding:5px 14px;font-size:13px}
+.upd.pendc{background:var(--cg);animation:none;vertical-align:middle;font-size:12px}
 .ccm li.pend{opacity:.55}
 .ccm li.none{color:var(--ink-2);font-size:14px}
 .ccm .ce{margin-left:auto;background:none;border:0;color:var(--ink-2);font-size:12px;padding:0 4px}
@@ -1560,9 +1561,9 @@ async function shrink(file) {
   let bmp; try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { bmp = await createImageBitmap(file); }
   const W = bmp.width, H = bmp.height;
   if (file.type === 'image/gif' && file.size <= 4.5e6) { bmp.close && bmp.close(); return { blob: file, mime: 'image/gif', w: W, h: H }; }
-  const k = Math.min(1, 1600 / Math.max(W, H)), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+  const k = Math.min(1, 1440 / Math.max(W, H)), w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
   const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(bmp, 0, 0, w, h); bmp.close && bmp.close();
-  let blob = await new Promise(r => c.toBlob(r, 'image/webp', .82));
+  let blob = await new Promise(r => c.toBlob(r, 'image/webp', .8));
   if (!blob || blob.type !== 'image/webp') blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .86));
   return { blob, mime: blob.type, w, h };
 }
@@ -1634,6 +1635,14 @@ const seenPosts = new Set(), BC_KEY = 'psi.bc.v1';
 const normPost = p => ({ id: p.id, cat: p.cat, title: p.title, body: p.body, t: p.t, likes: p.likes, views: p.views, pin: !!p.pin, edited: p.edited || 0,
   comments: Array.isArray(p.comments) ? p.comments : new Array(p.comments || 0).fill({}), likedBy: p.liked ? [dev] : [], author: p.mine ? dev : 'x' });
 mem.pd = {};
+const PD_KEY = 'psi.pd.v1';
+if (REMOTE) { const c = LS.get(PD_KEY, null); if (c && typeof c === 'object') Object.keys(c).forEach(k => { const p = c[k]; if (p && p.id) mem.pd[k] = { ...p, at: 1 }; }); }
+let pdT; const pdSave = () => { clearTimeout(pdT); pdT = setTimeout(() => {
+  const ks = Object.keys(mem.pd).filter(k => !/^tmp/.test(k) && mem.pd[k].at > 1).sort((a, b) => mem.pd[b].at - mem.pd[a].at).slice(0, 40), keep = LS.get(PD_KEY, {}) || {}, out = {};
+  ks.forEach(k => { const p = mem.pd[k]; out[k] = { ...p, comments: p.comments.filter(c => !c.pend) }; });
+  Object.keys(keep).forEach(k => { if (!out[k] && Object.keys(out).length < 40 && mem.pd[k]) out[k] = keep[k]; });
+  if (!LS.set(PD_KEY, out)) { try { localStorage.removeItem(PD_KEY); } catch (e) {} }
+}, 600); };
 if (REMOTE) { const c = LS.get(BC_KEY, null); if (c && Array.isArray(c.posts) && Array.isArray(c.cats)) { mem.rcats = c.cats; mem.rposts = c.posts.map(normPost); mem.plus = !!c.plus; mem.bsig = c.sig; } }
 const listItem = id => (mem.rposts || []).find(p => p.id === id);
 const Board = {
@@ -1662,7 +1671,7 @@ const Board = {
         if (r.plus) mem.plus = true;
         const p = normPost({ ...r.post, comments: 0 });
         p.comments = r.post.comments.map(c => ({ id: c.id, body: c.body, t: c.t, mine: c.mine, edited: c.edited || 0, author: c.who === 'op' ? p.author : 'a' + c.who }));
-        p.at = Date.now(); mem.pd[id] = p;
+        p.at = Date.now(); mem.pd[id] = p; pdSave();
         const li = listItem(id); if (li) Object.assign(li, { title: p.title, body: p.body, likes: p.likes, views: p.views, edited: p.edited, likedBy: p.likedBy.slice(), author: p.author, comments: new Array(p.comments.length).fill({}) });
         return p;
       } catch (e) { return null; }
@@ -1781,7 +1790,7 @@ function viewPost(id) {
   const patch = p => {
     const mine = p.author === dev, liked = p.likedBy.includes(dev);
     const fxp = fixedNotice(), isFx = fxp && fxp.id === p.id; if (isFx && full) fixSeen(p);
-    $('#pt').innerHTML = `${isFx || isNotice(p) ? `<span class="pn" style="font-size:12px;vertical-align:middle;margin-right:6px">${isFx ? '고정 공지' : '공지'}</span>` : ''}${esc(p.title)}${p.sample ? ' <span class="chip">예시</span>' : ''}`;
+    $('#pt').innerHTML = `${isFx || isNotice(p) ? `<span class="pn" style="font-size:12px;vertical-align:middle;margin-right:6px">${isFx ? '고정 공지' : '공지'}</span>` : ''}${esc(p.title)}${p.sample ? ' <span class="chip">예시</span>' : ''}${p.pend ? ' <span class="upd pendc">올리는 중…</span>' : ''}`;
     $('#pm').innerHTML = `<span>익명</span><span>${fdate(p.t)} ${cdate(p.t).includes(':') ? cdate(p.t) : ''}</span>${p.edited ? (isFx ? `<span class="upd">수정됨 · ${cdate(p.edited)}</span>` : '<span>수정됨</span>') : ''}<span>조회 ${p.views || 0}</span><span>댓글 ${p.comments.length}</span>`;
     const pb = $('#pb'), nb = rich(p.body); if (pb.dataset.src !== p.body) { pb.innerHTML = nb; pb.dataset.src = p.body; }
     const lk = $('#plike'); lk.textContent = `좋아요 ${p.likes}`; lk.setAttribute('aria-pressed', liked);
@@ -1814,7 +1823,7 @@ function viewPost(id) {
   const bind = () => {
     const ed = mkEditor($('#ced'), 300, () => $('#cf').requestSubmit());
     $('#plike').addEventListener('click', async () => {
-      if (liking) return; liking = true; const p = cur, on = !p.likedBy.includes(dev);
+      if (liking || cur.pend) return; liking = true; const p = cur, on = !p.likedBy.includes(dev);
       const flip = v => { if (v) { p.likedBy.push(dev); p.likes++; } else { p.likedBy = p.likedBy.filter(x => x !== dev); p.likes--; } const li = listItem(id); if (li && li !== p) { li.likes = p.likes; li.likedBy = p.likedBy.slice(); } };
       if (REMOTE) { flip(on); patch(p); const ok = await Board.like(id); if (!ok) { flip(!on); if (here()) patch(p); toast('좋아요를 누르지 못했어요.'); } else Board.persist(); }
       else { await Board.like(id); cur = Board.get(id); patch(cur); }
@@ -1860,6 +1869,7 @@ function viewPost(id) {
     });
     $('#cf').addEventListener('submit', async e => {
       e.preventDefault(); const f = e.target; if (f.dataset.busy) return;
+      if (cur.pend) { toast('글을 올리는 중이에요. 잠깐만 기다려 주세요.'); return; }
       if (ed.up()) { toast('사진을 올리는 중이에요…'); f.dataset.busy = '1'; await ed.wait(); delete f.dataset.busy; }
       const t = ed.val(); if (!t) { toast('댓글 내용을 입력해 주세요.'); return; } if (t.length > 300) { toast('댓글은 300자까지 쓸 수 있어요.'); return; }
       f.dataset.busy = '1'; ed.clear(); await sendComment(t, x => { if (!ed.val()) ed.set(x); }); delete f.dataset.busy;
@@ -1868,6 +1878,7 @@ function viewPost(id) {
   if (cur) draw(cur);
   else main.innerHTML = cafeShell(`<div class="cart-h"><h1>${SKEL(1)}</h1></div>${SKEL(6)}`, bcur);
   if (!REMOTE) { if (!cur) notFound(); return; }
+  if (/^tmp/.test(id)) { if (!cur) location.hash = '#/board'; return; }
   if (!mem.rcats) Board.sync();
   if (full && Date.now() - mem.pd[id].at < 4000) return;
   Board.loadPost(id).then(p => {
@@ -1920,12 +1931,28 @@ async function viewWrite(eid) {
       return;
     }
     if (Date.now() - lastPost < 8000) { toast('잠시 후 다시 등록해 주세요.'); return; }
-    lastPost = Date.now(); f.dataset.busy = '1'; btn.disabled = true; btn.textContent = '올리는 중…';
-    const id = await Board.add({ cat: $('#wc').value, title: t.slice(0, 60), body: b, pin: !!($('#wp') && $('#wp').checked) });
-    delete f.dataset.busy; btn.disabled = false; btn.textContent = lab;
-    if (!id) { toast('글을 올리지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
-    clearTimeout(dT); try { localStorage.removeItem(DRAFT_KEY); } catch (x) {}
-    toast('글이 등록되었습니다.'); location.hash = '#/board/' + id;
+    lastPost = Date.now(); f.dataset.busy = '1';
+    const np0 = { cat: $('#wc').value, title: t.slice(0, 60), body: b, pin: !!($('#wp') && $('#wp').checked) };
+    if (!REMOTE) {
+      const id = await Board.add(np0); delete f.dataset.busy;
+      clearTimeout(dT); try { localStorage.removeItem(DRAFT_KEY); } catch (x) {}
+      toast('글이 등록되었습니다.'); location.hash = '#/board/' + id; return;
+    }
+    /* 바로 보여 주고(올리는 중) 뒤에서 서버에 저장해요 */
+    clearTimeout(dT);
+    const tid = 'tmp' + uid(), tp = normPost({ id: tid, cat: np0.cat, title: np0.title, body: b, t: Date.now(), likes: 0, views: 0, comments: 0, mine: true }); tp.pend = true;
+    mem.rposts = [tp].concat(mem.rposts || []); mem.pd[tid] = { ...tp, comments: [], at: Date.now() };
+    location.hash = '#/board/' + tid;
+    const r = await apiPost({ action: 'post', cat: np0.cat, title: np0.title, body: b });
+    if (!r.ok || !r.id) {
+      mem.rposts = (mem.rposts || []).filter(x => x.id !== tid); delete mem.pd[tid];
+      toast(r.error === 'rate' ? '잠시 후 다시 등록해 주세요.' : '글을 올리지 못했어요. 쓰던 글은 저장돼 있어요.');
+      if (location.hash === '#/board/' + tid) location.hash = '#/board/new'; return;
+    }
+    try { localStorage.removeItem(DRAFT_KEY); } catch (x) {}
+    tp.id = r.id; tp.pend = false; mem.pd[r.id] = { ...mem.pd[tid], id: r.id, pend: false, at: Date.now() }; delete mem.pd[tid]; mem.bsig = ''; Board.persist(); pdSave();
+    toast('글이 등록되었습니다.');
+    if (location.hash === '#/board/' + tid) { history.replaceState(null, '', '#/board/' + r.id); viewPost(r.id); }
   });
 }
 
