@@ -1638,12 +1638,21 @@ mem.pd = {};
 const PD_KEY = 'psi.pd.v1';
 if (REMOTE) { const c = LS.get(PD_KEY, null); if (c && typeof c === 'object') Object.keys(c).forEach(k => { const p = c[k]; if (p && p.id) mem.pd[k] = { ...p, at: 1 }; }); }
 let pdT; const pdSave = () => { clearTimeout(pdT); pdT = setTimeout(() => {
-  const ks = Object.keys(mem.pd).filter(k => !/^tmp/.test(k) && mem.pd[k].at > 1).sort((a, b) => mem.pd[b].at - mem.pd[a].at).slice(0, 40), keep = LS.get(PD_KEY, {}) || {}, out = {};
+  const ks = Object.keys(mem.pd).filter(k => !/^tmp/.test(k) && mem.pd[k].at > 1).sort((a, b) => mem.pd[b].at - mem.pd[a].at).slice(0, 80), keep = LS.get(PD_KEY, {}) || {}, out = {};
   ks.forEach(k => { const p = mem.pd[k]; out[k] = { ...p, comments: p.comments.filter(c => !c.pend) }; });
-  Object.keys(keep).forEach(k => { if (!out[k] && Object.keys(out).length < 40 && mem.pd[k]) out[k] = keep[k]; });
+  Object.keys(keep).forEach(k => { if (!out[k] && Object.keys(out).length < 80 && mem.pd[k]) out[k] = keep[k]; });
   if (!LS.set(PD_KEY, out)) { try { localStorage.removeItem(PD_KEY); } catch (e) {} }
 }, 600); };
 if (REMOTE) { const c = LS.get(BC_KEY, null); if (c && Array.isArray(c.posts) && Array.isArray(c.cats)) { mem.rcats = c.cats; mem.rposts = c.posts.map(normPost); mem.plus = !!c.plus; mem.bsig = c.sig; } }
+/* 서버가 목록에 댓글까지 묶어 보내면(v2), 글을 열 때 기다리지 않아요 */
+function pdFromRaw(raws, at) {
+  (raws || []).forEach(r => {
+    if (!Array.isArray(r.cm)) return; const old = mem.pd[r.id]; if (old && old.at > at) return;
+    const p = normPost({ ...r, comments: 0 });
+    p.comments = r.cm.map(c => ({ id: c.id, body: c.body, t: c.t, mine: c.mine, edited: c.edited || 0, author: c.who === 'op' ? p.author : 'a' + c.who }));
+    p.at = at; mem.pd[r.id] = p;
+  });
+}
 const listItem = id => (mem.rposts || []).find(p => p.id === id);
 const Board = {
   all() { if (REMOTE) return mem.rposts || []; let l = LS.get(BOARD_KEY, null); if (!l) { l = mem.board || seedPosts(); LS.set(BOARD_KEY, l); } mem.board = l; return l; },
@@ -1657,7 +1666,7 @@ const Board = {
       try {
         const r = await api('posts', { dev }); if (!r.ok) { if (!mem.rposts) toast('게시판을 불러오지 못했어요.'); return false; }
         mem.syncAt = Date.now(); const sig = JSON.stringify([r.cats, r.posts, r.plus]); if (sig === mem.bsig && mem.rposts) return false;
-        mem.bsig = sig; mem.rcats = r.cats; mem.plus = !!r.plus; mem.rposts = r.posts.map(normPost); this.persist(r.posts); return true;
+        mem.bsig = sig; mem.rcats = r.cats; mem.plus = !!r.plus; mem.rposts = r.posts.map(normPost); pdFromRaw(r.posts, Date.now()); this.persist(r.posts.map(x => { const y = { ...x }; delete y.cm; return y; })); pdSave(); return true;
       } catch (e) { if (!mem.rposts) toast('게시판을 불러오지 못했어요.'); return false; }
       finally { this._s = null; }
     })());
