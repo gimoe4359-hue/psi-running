@@ -1332,7 +1332,7 @@ async function viewRead(id, num) {
       <div id="vtext">${c.blocks ? blocksHTML(c.blocks, P.orig !== false) : paras(c.body || '')}</div>
       <div class="vend">${hasNext ? `<a class="btn" href="#/novels/${id}/${num + 1}">다음 화 보기</a>` : '<p class="cm" style="margin:0 0 6px">마지막 화입니다. 다음 이야기를 기다려 주세요.</p>'}<br><a class="btn ghost" href="#/novels/${id}">목록으로</a></div>
       <section class="ncm" id="ncm" aria-label="이 화 댓글"><h2>댓글 <b id="ncn"></b></h2>
-        <form id="ncf">${edHTML('nced', '이 화를 읽은 소감을 남겨 주세요. (익명)', 480, true)}<div class="r"><span>익명으로 등록돼요</span><button class="btn" type="submit">등록</button></div></form>
+        <form id="ncf">${edHTML('nced', '이 화를 읽은 소감을 남겨 주세요. (익명)', 480, true, true)}<div class="r"><span>익명으로 등록돼요</span><button class="btn" type="submit">등록</button></div></form>
         <ul id="ncl"><li class="none">댓글을 불러오는 중…</li></ul></section>
     </div></div>
     <div class="vpg" id="vpg"></div>
@@ -1610,9 +1610,9 @@ main.addEventListener('click', e => {
 /* ---------- 에디터 (스티커 · 사진을 글 사이에 바로 넣기) ---------- */
 const canUp = () => REMOTE && !!mem.plus;
 const canEdit = () => !REMOTE || !!mem.plus;
-const edHTML = (id, ph, max, mini) => `<div class="ed${mini ? ' mini' : ''}" id="${id}"><div class="ed-box e" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${esc(ph)}" data-ph="${esc(ph)}"></div>
+const edHTML = (id, ph, max, mini, noImg) => `<div class="ed${mini ? ' mini' : ''}" id="${id}"${noImg ? ' data-noimg' : ''}><div class="ed-box e" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${esc(ph)}" data-ph="${esc(ph)}"></div>
   <div class="ed-pick" hidden>${Object.keys(STK).map(n => `<button type="button" data-st="${n}" aria-label="${esc(STK[n].t || '기밀')} 스티커"><img src="${stkUrl(n)}" alt="" width="56" height="56" loading="lazy"></button>`).join('')}</div>
-  <div class="ed-bar"><button type="button" data-ed="st" aria-expanded="false">☺ 스티커</button>${canUp() ? '<button type="button" data-ed="img">▣ 사진</button><input type="file" accept="image/*" multiple hidden>' : ''}<span class="ed-n">0/${max}</span></div></div>`;
+  <div class="ed-bar"><button type="button" data-ed="st" aria-expanded="false">☺ 스티커</button>${canUp() && !noImg ? '<button type="button" data-ed="img">▣ 사진</button><input type="file" accept="image/*" multiple hidden>' : ''}<span class="ed-n">0/${max}</span></div></div>`;
 function serEd(root) {
   let out = '';
   const walk = n => { for (const c of n.childNodes) {
@@ -1650,6 +1650,7 @@ function mkEditor(wrap, max, onSubmit) {
   };
   const addFiles = list => {
     const fs = [...list].filter(f => /^image\//.test(f.type)); if (!fs.length) return;
+    if (wrap.hasAttribute('data-noimg')) { toast('여기에는 사진을 넣을 수 없어요.'); return; }
     if (!canUp()) { toast('사진 올리기는 아직 준비 중이에요.'); return; }
     if (box.querySelectorAll('.bimg').length + fs.length > 10) { toast('사진은 한 번에 10장까지 넣을 수 있어요.'); return; }
     fs.forEach(f => {
@@ -2110,7 +2111,7 @@ function viewEtc() {
   document.documentElement.classList.add('psi-etc');
   main.innerHTML = '<section class="etc" aria-label="기타 칸"><p class="etc-load">열차가 들어오는 중…</p></section>';
   const sec = $('.etc', main);
-  etcJs = etcJs || new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'etc-train.js?v=4'; sc.onload = ok; sc.onerror = () => { etcJs = null; no(); }; document.head.append(sc); });
+  etcJs = etcJs || new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'etc-train.js?v=5'; sc.onload = ok; sc.onerror = () => { etcJs = null; no(); }; document.head.append(sc); });
   etcJs.then(() => { if (document.body.contains(sec)) window.etcTrain(sec); }).catch(() => { if (document.body.contains(sec)) sec.innerHTML = '<p class="etc-load">열차를 불러오지 못했어요. 새로고침해 주세요.</p>'; });
 }
 

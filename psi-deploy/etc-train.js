@@ -49,6 +49,7 @@
   const ITEMS = [
     { id: 'songcheon', name: '송천동', en: 'SONGCHEON', station: '송천동', desc: '막차가 닿는 동네를 천천히 구경해요. 가게에 들어가 보고, 사내 PC도 켜 보세요.', go: 'games/songcheon/index.html' },
     { id: 'music', name: '플레이리스트', en: 'PLAYLIST', station: '사내방송실', desc: '정보구출반 사내 방송. 뮤직비디오를 틀어 두고 일해요.', go: '#/music' },
+    { id: 'staff', name: '임직원소개', en: 'STAFF', station: '인사팀', desc: '정보구출반 사람들을 소개해요. 친구가 정리 중인 인물 위키로 이어져요. (새 창)', go: 'https://zerosquare.me/whakii/103238-%EA%B3%B5%EC%9C%A0?accessToken=xy5q6HBnN9eSJDRgdKeyYeXZ&view=reader', ext: true },
     { id: 'next', name: '???', en: 'NEXT STOP', station: '미정', desc: '아직 공사 중인 역이에요. 곧 문이 열립니다.', go: null }
   ];
   const PAL = {
@@ -348,6 +349,7 @@
     function board(i) {
       const it = ITEMS[i]; if (leaving) return;
       if (!it.go) { if (window.toast) window.toast('아직 공사 중인 역이에요. 곧 열려요.'); kickLetters(i, 420, .02); bump(1.3); return; }
+      if (it.ext) { window.open(it.go, '_blank', 'noopener'); led.textContent = `${it.station} 역 · 새 창에서 문이 열렸어요`; SND.chime(); kickLetters(i, 420, .02); bump(1.2); return; }
       leaving = true; led.textContent = `${it.station} 역에 도착합니다 · 문이 열립니다`; SND.chime(); bump(1.6); root.classList.add('go');
       setTimeout(() => { if (it.go.startsWith('#')) location.hash = it.go; else location.href = it.go; }, 900);
     }
