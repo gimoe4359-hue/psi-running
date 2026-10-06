@@ -16,6 +16,10 @@
  */
 const PLUS = { folder: 'psi-board-images', maxBytes: 5 * 1024 * 1024, cacheSec: 25 };
 
+function plusSS_() {
+  if (typeof getSS === 'function') { try { const x = getSS(); if (x) return x; } catch (e) {} }
+  try { return SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { return null; }
+}
 function plusText_(s) { return ContentService.createTextOutput(s).setMimeType(ContentService.MimeType.JSON); }
 function plusJson_(o) { return plusText_(JSON.stringify(o)); }
 function plusVer_() { const c = CacheService.getScriptCache(); let v = c.get('plusVer'); if (!v) { v = String(Date.now()); c.put('plusVer', v, 21600); } return v; }
@@ -98,7 +102,7 @@ function plusEdit_(b, kind) {
   sh.appendRow([key, title, text, now]); return { ok: true, t: now };
 }
 function plusSheet_() {
-  let ss = null; try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) {}
+  let ss = plusSS_();
   if (!ss) { const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('PLUS_SS'); if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) {} } if (!ss) { ss = SpreadsheetApp.create('psi-board-plus'); pr.setProperty('PLUS_SS', ss.getId()); } }
   let sh = ss.getSheetByName('edits'); if (!sh) { sh = ss.insertSheet('edits'); sh.appendRow(['key', 'title', 'body', 't']); }
   return sh;
@@ -114,7 +118,7 @@ function plusApplyEdits_(out) {
 /* 덕질칸 추가 · '쓸데없는 능력 자랑' → 정보칸 이름 변경: cats 탭에 한 번만 자동 반영 */
 function plusEnsureFandom_() {
   const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('PLUS_CATS_V3')) return;
-  let ss = null; try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) {} if (!ss) return;
+  const ss = plusSS_(); if (!ss) return;
   const sh = ss.getSheetByName('cats'); if (!sh) return;
   const v = sh.getDataRange().getValues(), head = v[0].map(x => String(x).trim().toLowerCase());
   const iId = head.indexOf('id'), iName = head.indexOf('name'), iOrd = head.indexOf('order'); if (iId < 0 || iName < 0) return;
