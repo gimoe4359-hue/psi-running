@@ -1538,7 +1538,7 @@ function mkEditor(wrap, max, onSubmit) {
           const r = await apiPost({ action: 'upload', mime: s.mime, data: await b64(s.blob) });
           if (!r.ok || !r.id) throw new Error(r.error || 'up');
           ph.dataset.id = r.id; ph.dataset.tok = `[[img:${r.id}:${s.w}x${s.h}]]`; ph.width = s.w; ph.height = s.h; ph.alt = '첨부 사진'; ph.classList.remove('up');
-        } catch (e) { ph.remove(); toast(e.message === 'size' ? '사진이 너무 커요.' : e.message === 'rate' ? '사진을 너무 많이 올렸어요. 잠시 후 다시 해 주세요.' : '사진 한 장을 올리지 못했어요.'); }
+        } catch (e) { ph.remove(); toast(e.message === 'size' ? '사진이 너무 커요.' : e.message === 'rate' ? '사진을 너무 많이 올렸어요. 잠시 후 다시 해 주세요.' : e.message === 'server' ? '사진 저장 권한이 아직 없어요. (서버 권한 허용 필요)' : `사진을 올리지 못했어요. (${e.message})`); }
         finally { upDone(); upd(); }
       })();
       pend.add(job); job.finally(() => pend.delete(job));
