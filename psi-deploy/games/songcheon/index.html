@@ -2260,8 +2260,9 @@ function paintForest(ctx, preset, tx, sc) {
     ctx.save(); ctx.globalCompositeOperation = 'screen'; glow(300, -60, 900, hx('#9ec4ff'), .26);
     for (const [x0, w0] of [[160, 120], [700, 80], [1300, 140], [1900, 100]]) { if (!vis(x0 + 200, 500)) continue; const gr = ctx.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(170,200,255,.16)'); gr.addColorStop(1, 'rgba(170,200,255,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(x0, 0); ctx.lineTo(x0 + w0, 0); ctx.lineTo(x0 + w0 + 300, H); ctx.lineTo(x0 + 300 - w0 * .4, H); ctx.fill(); }
     fog(560, 720, .12, hx('#7aa8e0'));
-    for (const [x, y, dp, col] of LAMPS) if (vis(x, 80)) { glow(x, y, 46, hx('#ffb860'), .32 * (1 - dp * .4)); glow(x, y, 10, hx('#fff0c0'), .5); }
-    for (const [x, y, sc2, dp] of WINS) if (vis(x, 80)) { glow(x, y, 30 * sc2, hx('#ffc070'), .5 * (1 - dp * .5)); glow(x, y + 30 * sc2, 40 * sc2, hx('#ff9a50'), .15 * (1 - dp)); }
+    // 등불이 주변을 비추는 따뜻한 빛 웅덩이 (등불 자체는 움직이는 레이어에서)
+    for (const [x, y, dp] of LAMPS) if (vis(x, 80)) glow(x, y + 16, 40, hx('#ff8a3a'), .16 * (1 - dp * .6));
+    for (const [x, y, sc2, dp] of WINS) if (vis(x, 80)) { ctx.save(); ctx.translate(x, y + 26 * sc2); ctx.scale(1.8, .55); glow(0, 0, 30 * sc2, hx('#ff8a3a'), .2 * (1 - dp * .7)); ctx.restore(); }
     ctx.restore();
   } else if (preset === 'dusk') {
     ctx.save(); ctx.globalCompositeOperation = 'multiply'; cg = ctx.createLinearGradient(0, 0, 0, H); cg.addColorStop(0, 'rgb(255,200,160)'); cg.addColorStop(1, 'rgb(170,118,150)'); ctx.fillStyle = cg; ctx.fillRect(0, 0, W, H); ctx.restore();
@@ -2274,7 +2275,7 @@ function paintForest(ctx, preset, tx, sc) {
   // 블룸 · 비네트 · 결 (타일 단위)
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const cw = ctx.canvas.width, ch = ctx.canvas.height;
-  { const b2 = document.createElement('canvas'); b2.width = Math.ceil(cw / 12); b2.height = Math.ceil(ch / 12); const bx = b2.getContext('2d'); bx.imageSmoothingQuality = 'high'; bx.drawImage(ctx.canvas, 0, 0, b2.width, b2.height); ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = preset === 'night' ? .18 : .22; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(b2, 0, 0, cw, ch); ctx.restore(); }
+  { const b2 = document.createElement('canvas'); b2.width = Math.ceil(cw / 12); b2.height = Math.ceil(ch / 12); const bx = b2.getContext('2d'); bx.imageSmoothingQuality = 'high'; bx.drawImage(ctx.canvas, 0, 0, b2.width, b2.height); ctx.save(); ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = preset === 'night' ? .06 : .22; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(b2, 0, 0, cw, ch); ctx.restore(); }
   ctx.setTransform(sc, 0, 0, sc, -tx * sc, 0);
   g = ctx.createRadialGradient(W * .6, H * .35, H * .3, W * .5, H * .5, W * .6); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, preset === 'night' ? 'rgba(4,10,24,.6)' : 'rgba(10,30,20,.45)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2319,7 +2320,7 @@ function drawForest(g, t) {
     const sw = Math.sin(t * 1.1 + i * 2) * .03 + st.lampSwing[i] * Math.sin(t * 7) * .2; st.lampSwing[i] *= .985;
     g.save(); g.translate(x, y); g.rotate(sw); g.strokeStyle = 'rgba(50,40,28,.85)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, len); g.stroke();
     const on = st.winOff['c' + i] ? .25 : 1, flick = .9 + .1 * Math.sin(t * 9 + i * 3);
-    gl(g, 0, len + 14 * sc2, (night ? 90 : 52) * sc2, '#ffc46a', (night ? .55 : .4) * on * flick);
+    if (night || dusk) { g.save(); g.globalCompositeOperation = 'lighter'; gl(g, 0, len + 14 * sc2, 46 * sc2, '#ff7a1a', .42 * on * flick); gl(g, 0, len + 14 * sc2, 16 * sc2, '#ffcf6a', .6 * on * flick); g.restore(); } else gl(g, 0, len + 14 * sc2, 52 * sc2, '#ffc46a', .4 * on * flick);
     g.strokeStyle = 'rgba(70,55,35,.95)'; g.lineWidth = 1.4; g.beginPath(); g.ellipse(0, len + 14 * sc2, 11 * sc2, 15 * sc2, 0, 0, 6.3); g.stroke();
     for (let k = -1; k <= 1; k++) { g.beginPath(); g.moveTo(k * 6 * sc2, len); g.quadraticCurveTo(k * 12 * sc2, len + 14 * sc2, k * 6 * sc2, len + 28 * sc2); g.stroke(); }
     g.fillStyle = on < 1 ? 'rgba(200,190,160,.8)' : '#fff1b8'; g.beginPath(); g.arc(0, len + 15 * sc2, 4.5 * sc2, 0, 6.3); g.fill(); g.restore();
@@ -2379,6 +2380,13 @@ function drawForest(g, t) {
     g.strokeStyle = '#3a2a1e'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x - 14, y + 2); g.lineTo(x, y - 30); g.lineTo(x + 14, y + 2); g.stroke();
     g.fillStyle = '#2a2830'; g.beginPath(); g.ellipse(x, y - 14, 10, 3, 0, 0, 6.3); g.fill(); g.beginPath(); g.moveTo(x - 10, y - 14); g.quadraticCurveTo(x - 9, y - 4, x, y - 4); g.quadraticCurveTo(x + 9, y - 4, x + 10, y - 14); g.fill();
     for (let i = 0; i < 3; i++) { const k = (t * .5 + i / 3) % 1; gl(g, x + Math.sin(k * 5 + i) * 4, y - 18 - k * 30, 5 + k * 8, '#ffffff', .25 * (1 - k)); } }
+  // 밤 · 노을 등불 (따뜻한 빛만 또렷하게, 더하기 합성)
+  if (night || dusk) { const K = night ? 1 : .55; g.save(); g.globalCompositeOperation = 'lighter';
+    LAMPS.forEach(([x, y, dp], i) => { const fl = .85 + .15 * Math.sin(t * 7 + i * 1.7) * Math.sin(t * 3.1 + i), a = K * (1 - dp * .5) * fl; gl(g, x, y, 24, '#ff7a1a', .42 * a); gl(g, x, y, 8, '#ffc65a', .7 * a); g.fillStyle = `rgba(255,236,190,${.9 * a})`; g.beginPath(); g.ellipse(x, y, 2.6, 3.6, 0, 0, 6.3); g.fill();
+      if (x > 1180 && x < 1640) { for (let k = 0; k < 4; k++) { const ry = 652 + k * 9, w2 = 10 - k * 2 + Math.sin(t * 2 + k + i) * 3; g.fillStyle = `rgba(255,150,60,${.22 * a * (1 - k * .2)})`; g.fillRect(x - w2 / 2 + Math.sin(t * 1.5 + k * 2 + i) * 2, ry, w2, 1.6); } } });
+    WINS.forEach(([x, y, sc2, dp], i) => { if (st.winOff['w' + i]) return; const a = K * (1 - dp * .6) * (.92 + .08 * Math.sin(t * 2 + i)); g.fillStyle = `rgba(255,170,70,${.55 * a})`; g.fillRect(x - 4 * sc2, y - 3.5 * sc2, 8 * sc2, 7 * sc2); gl(g, x, y, 18 * sc2, '#ff8a2a', .32 * a); });
+    { const x = 1250, y = 708, fl = .85 + .15 * Math.sin(t * 11); gl(g, x, y, 60, '#ff6a1a', .32 * K * fl); }
+    g.restore(); }
   // 돌아가는 개구멍 표시
   { const k = .5 + .5 * Math.sin(t * 2); gl(g, 1086, 662, 22, '#6a8aff', .12 + .1 * k); }
 }
@@ -2584,7 +2592,7 @@ function openFishing() {
     w1.save(); w1.globalCompositeOperation = 'screen'; if (!night) gl(w1, PW * .62, HZ + 30, 300, dusk ? '#ffb070' : '#fffbe0', .35); else gl(w1, PW * .3 * .9, HZ + 40, 220, '#9ec4ff', .25); w1.restore();
     gr = w1.createLinearGradient(0, HZ, 0, HZ + 60); gr.addColorStop(0, night ? 'rgba(140,180,230,.35)' : 'rgba(255,255,240,.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); w1.fillStyle = gr; w1.fillRect(0, HZ, PW, 60); }
   const book = LSF.get('book', {});
-  let vx = (PW - W) / 2, vv = 0, state = 'ready', power = 0, T = 0, bob = null, fish = null, biteT = 0, waitT = 0, nib = 0, prog = 0, ten = 0, pull = 0, pullDir = 1, msg = '', msgT = 0, rodBend = 0, splash = [], lastReel = 0, shake = 0, shark = null, leap = null, depth = 0, pd = null;
+  let vx = (PW - W) / 2, vv = 0, state = 'ready', power = 0, T = 0, bob = null, fish = null, biteT = 0, waitT = 0, nib = 0, prog = 0, ten = 0, pull = 0, pullDir = 1, msg = '', msgT = 0, rodBend = 0, splash = [], lastReel = 0, shake = 0, shark = null, leap = null, depth = 0, pd = null, sharkSeen = 0;
   const pads = Array.from({ length: 22 }, () => ({ x: R() * PW, y: HZ + 30 + R() * (H - HZ - 140), r: 14 + R() * 26, a: R() * 6.3, fl: R() < .3, dr: (R() - .5) * 4 }));
   const shadows = Array.from({ length: 7 }, () => ({ x: R() * PW, y: HZ + 40 + R() * (H - HZ - 120), vx: (R() - .5) * 30, L: 30 + R() * 50, ph: R() * 9 }));
   const bugs = Array.from({ length: night ? 34 : 5 }, () => ({ x: R() * PW, y: HZ - 40 + R() * (H - HZ), ph: R() * 9 }));
@@ -2596,7 +2604,7 @@ function openFishing() {
   const persp = y => clamp((y - HZ) / (H - HZ), .05, 1);
   const depthAt = y => 1 - clamp((y - HZ) / (H - HZ - 60), 0, 1);
   function cast() { const p = clamp(power, .12, 1), sy = H - (H - HZ) * (.2 + p * .72), sx = W * .5 + rnd(-40, 40); bob = { x0: vx + tip()[0], y0: tip()[1], x1: vx + sx, y1: sy, t: 0, x: vx + tip()[0], y: tip()[1] }; state = 'cast'; setHint(''); snd.reel(); E.noise(.25, .15, 2400, 'highpass'); }
-  function startWait() { state = 'wait'; depth = depthAt(bob.y); fish = rollFishD(depth); waitT = rnd(2, 6) - depth; const s = shadows[Math.floor(R() * shadows.length)]; s.hunt = 1; s.L = fish.r >= 4 ? 90 : fish.r >= 3 ? 64 : 42; setHint('찌를 지켜보세요… 그림자가 다가와요'); }
+  function startWait() { sharkSeen = 0; state = 'wait'; depth = depthAt(bob.y); fish = rollFishD(depth); waitT = rnd(2, 6) - depth; const s = shadows[Math.floor(R() * shadows.length)]; s.hunt = 1; s.L = fish.r >= 4 ? 90 : fish.r >= 3 ? 64 : 42; setHint('찌를 지켜보세요… 그림자가 다가와요'); }
   function lost(s) { state = 'ready'; bob = null; shark = null; $q(d, '.fz-warn').hidden = true; shadows.forEach(x => x.hunt = 0); say2(s || pick(['놓쳤다… 괜찮아요, 다음에!', '물고기가 인사만 하고 갔어요.', '줄이 풀렸어요. 다시 던져 봐요.'])); setHint(READY); }
   function caught() {
     state = 'caught'; $q(d, '.fz-warn').hidden = true; const cm = Math.round(rnd(fish.cm[0], fish.cm[1]) * (1 + depth * .25) * 10) / 10, b = book[fish.i] || { n: 0, best: 0, first: Date.now() }, first = !b.n; b.n++; b.best = Math.max(b.best, cm); book[fish.i] = b; LSF.set('book', book);
@@ -2647,7 +2655,7 @@ function openFishing() {
       if (pull > .45 && Math.random() < dt * 5) splash.push({ x: bob.x + rnd(-20, 20), y: bob.y, t: 0 });
       bob.x += pullDir * pull * 70 * dt + (vx + W * .55 - bob.x) * dt * prog * .5; bob.y = clamp(bob.y + (H * .78 - bob.y) * dt * prog * .45 - pull * 8 * dt, HZ + 20, H - 40);
       // 상어
-      if (!shark && fish.shape !== 'shark' && !leap && Math.random() < dt * (.03 + depth * .16 + (fish.r >= 3 ? .07 : 0))) { const side = Math.random() < .5 ? -1 : 1; shark = { x: bob.x + side * W * .7, y: bob.y + rnd(-10, 20), dir: -side, sp: 55 + depth * 70 }; $q(d, '.fz-warn').hidden = false; E.tone(110, 1.2, 'sawtooth', .025); E.tone(116, 1.2, 'sawtooth', .02, .6); }
+      if (!shark && !sharkSeen && depth > .4 && fish.shape !== 'shark' && !leap && Math.random() < dt * (.006 + depth * .035 + (fish.r >= 3 ? .02 : 0))) { sharkSeen = 1; const side = Math.random() < .5 ? -1 : 1; shark = { x: bob.x + side * W * .95, y: bob.y + rnd(-10, 20), dir: -side, sp: 32 + depth * 38 }; $q(d, '.fz-warn').hidden = false; E.tone(110, 1.2, 'sawtooth', .025); E.tone(116, 1.2, 'sawtooth', .02, .6); }
       if (shark) { const dx = bob.x - shark.x; shark.dir = Math.sign(dx) || 1; shark.x += shark.dir * shark.sp * dt; shark.y += (bob.y + 6 - shark.y) * dt; if (Math.abs(dx) < 28) sharkBite(); }
       if (state === 'reel') { if (ten >= 1) { E.tone(200, .3, 'sawtooth', .04, 0, 80); lost('줄이 너무 팽팽해서 끊어졌어요… 괜찮아요, 다음에!'); } else if (prog >= 1) caught(); }
     }
@@ -2917,24 +2925,24 @@ function fxScreen(g, t) {
   g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
   // 1) 움직이는 빛줄기 (낮 · 노을) / 달빛 기둥 (밤)
   g.globalCompositeOperation = 'screen';
-  const rays = night ? [[300, 160, .1], [820, 120, .08], [1500, 200, .09], [2100, 140, .07]] : [[1380, 140, .16], [1020, 90, .12], [1700, 180, .13], [440, 130, .12], [2150, 120, .1]];
+  const rays = night ? [[300, 160, .06], [820, 120, .05], [1500, 200, .055], [2100, 140, .045]] : [[1380, 140, .16], [1020, 90, .12], [1700, 180, .13], [440, 130, .12], [2150, 120, .1]];
   for (const [wx, ww, a] of rays) { const x = sx(wx + Math.sin(t * .15 + wx) * 30), w = ww * cam.s * k, sk = (night ? -1 : 1) * H * .45, aa = a * (.75 + .25 * Math.sin(t * .6 + wx * .01));
     const gr = g.createLinearGradient(0, 0, 0, H); const col = night ? '170,200,255' : dusk ? '255,190,140' : '255,248,210'; gr.addColorStop(0, `rgba(${col},${aa})`); gr.addColorStop(.7, `rgba(${col},${aa * .35})`); gr.addColorStop(1, `rgba(${col},0)`);
     g.fillStyle = gr; g.beginPath(); g.moveTo(x, 0); g.lineTo(x + w, 0); g.lineTo(x + w - sk, H); g.lineTo(x - sk - w * .6, H); g.fill(); }
   // 2) 빛 번짐 (해 · 달 · 등불)
   if (!night) { const x = sx(1460), y = (70 - cam.y) * cam.s * k, gr = g.createRadialGradient(x, y, 0, x, y, H * .9); gr.addColorStop(0, dusk ? 'rgba(255,170,110,.5)' : 'rgba(255,252,220,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
-  else { const x = sx(300), y = (-60 - cam.y) * cam.s * k, gr = g.createRadialGradient(x, y, 0, x, y, H * 1.1); gr.addColorStop(0, 'rgba(150,190,255,.35)'); gr.addColorStop(1, 'rgba(150,190,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
-    for (const [wx, wy] of LAMPS) { const x2 = sx(wx), y2 = (wy - cam.y) * cam.s * k; if (x2 < -200 || x2 > W + 200) continue; const r = 44 * cam.s * k * (1 + .08 * Math.sin(t * 3 + wx)), g2 = g.createRadialGradient(x2, y2, 0, x2, y2, r); g2.addColorStop(0, 'rgba(255,190,110,.12)'); g2.addColorStop(1, 'rgba(255,190,110,0)'); g.fillStyle = g2; g.beginPath(); g.arc(x2, y2, r, 0, 6.3); g.fill(); } }
+  else { const x = sx(300), y = (-60 - cam.y) * cam.s * k, gr = g.createRadialGradient(x, y, 0, x, y, H * 1.1); gr.addColorStop(0, 'rgba(150,190,255,.2)'); gr.addColorStop(1, 'rgba(150,190,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    if (0) for (const [wx, wy] of LAMPS) { const x2 = sx(wx), y2 = (wy - cam.y) * cam.s * k; if (x2 < -200 || x2 > W + 200) continue; const r = 44 * cam.s * k * (1 + .08 * Math.sin(t * 3 + wx)), g2 = g.createRadialGradient(x2, y2, 0, x2, y2, r); g2.addColorStop(0, 'rgba(255,190,110,.12)'); g2.addColorStop(1, 'rgba(255,190,110,0)'); g.fillStyle = g2; g.beginPath(); g.arc(x2, y2, r, 0, 6.3); g.fill(); } }
   // 3) 떠다니는 빛 번짐 (라이트 릭)
-  { const x = W * (.5 + .45 * Math.sin(t * .07)), y = H * (.3 + .2 * Math.cos(t * .05)), gr = g.createRadialGradient(x, y, 0, x, y, W * .5); gr.addColorStop(0, night ? 'rgba(90,150,200,.14)' : dusk ? 'rgba(255,120,90,.16)' : 'rgba(255,220,150,.12)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  if (!night) { const x = W * (.5 + .45 * Math.sin(t * .07)), y = H * (.3 + .2 * Math.cos(t * .05)), gr = g.createRadialGradient(x, y, 0, x, y, W * .5); gr.addColorStop(0, night ? 'rgba(90,150,200,.14)' : dusk ? 'rgba(255,120,90,.16)' : 'rgba(255,220,150,.12)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   // 4) 바닥 안개 (밤엔 푸르게 빛남)
   { const y0 = (600 - cam.y) * cam.s * k, gr = g.createLinearGradient(0, y0 - 80 * cam.s * k, 0, y0 + 140 * cam.s * k); const col = night ? '120,170,230' : dusk ? '255,190,170' : '240,250,220'; gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(.5, `rgba(${col},${night ? .16 : .12})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(0, y0 - 80 * cam.s * k, W, 220 * cam.s * k); }
   // 5) 색보정
   g.globalCompositeOperation = 'soft-light';
-  { const gr = g.createLinearGradient(W, 0, 0, H); if (night) { gr.addColorStop(0, 'rgba(120,160,255,.55)'); gr.addColorStop(1, 'rgba(0,50,70,.7)'); } else if (dusk) { gr.addColorStop(0, 'rgba(255,170,90,.7)'); gr.addColorStop(1, 'rgba(90,40,120,.6)'); } else { gr.addColorStop(0, 'rgba(255,240,170,.5)'); gr.addColorStop(1, 'rgba(40,120,110,.25)'); } g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  if (!night) { const gr = g.createLinearGradient(W, 0, 0, H); if (night) { gr.addColorStop(0, 'rgba(120,160,255,.55)'); gr.addColorStop(1, 'rgba(0,50,70,.7)'); } else if (dusk) { gr.addColorStop(0, 'rgba(255,170,90,.7)'); gr.addColorStop(1, 'rgba(90,40,120,.6)'); } else { gr.addColorStop(0, 'rgba(255,240,170,.5)'); gr.addColorStop(1, 'rgba(40,120,110,.25)'); } g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   // 6) 비네트
   g.globalCompositeOperation = 'multiply';
-  { const gr = g.createRadialGradient(W / 2, H * .45, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, night ? 'rgba(40,50,90,1)' : dusk ? 'rgba(150,100,120,1)' : 'rgba(205,215,190,1)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  { const gr = g.createRadialGradient(W / 2, H * .45, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(1, night ? 'rgba(70,82,124,1)' : dusk ? 'rgba(150,100,120,1)' : 'rgba(205,215,190,1)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
   // 7) 필름 결
   g.globalCompositeOperation = 'overlay'; g.globalAlpha = night ? .09 : .05; const gc = grain(); const ox = (t * 977 | 0) % 160, oy = (t * 613 | 0) % 160; g.fillStyle = g.createPattern(gc, 'repeat'); g.translate(-ox, -oy); g.fillRect(0, 0, W + 160, H + 160);
   g.restore();
