@@ -1495,7 +1495,7 @@ function serEd(root) {
   const walk = n => { for (const c of n.childNodes) {
     if (c.nodeType === 3) out += c.nodeValue;
     else if (c.nodeName === 'BR') out += '\n';
-    else if (c.nodeName === 'IMG') out += c.dataset.tok || '';
+    else if (c.nodeName === 'IMG') { const t = c.dataset.tok || ''; if (t && c.classList.contains('bimg')) { if (out && !out.endsWith('\n')) out += '\n'; out += t + '\n'; } else out += t; }
     else if (c.nodeType === 1) { const blk = /^(DIV|P|LI|H\d|BLOCKQUOTE)$/.test(c.nodeName); if (blk && out && !out.endsWith('\n')) out += '\n'; walk(c); if (blk && !out.endsWith('\n')) out += '\n'; }
   } };
   walk(root); return out.replace(/ /g, ' ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
@@ -1530,7 +1530,7 @@ function mkEditor(wrap, max, onSubmit) {
     if (!canUp()) { toast('사진 올리기는 아직 준비 중이에요.'); return; }
     if (box.querySelectorAll('.bimg').length + fs.length > 10) { toast('사진은 한 번에 10장까지 넣을 수 있어요.'); return; }
     fs.forEach(f => {
-      const ph = document.createElement('img'); ph.className = 'bimg up'; ph.alt = '올리는 중'; ph.src = URL.createObjectURL(f); put(ph); put(document.createTextNode('\n'));
+      const ph = document.createElement('img'); ph.className = 'bimg up'; ph.alt = '올리는 중'; ph.src = URL.createObjectURL(f); put(ph);
       const job = (async () => {
         await upSlot();
         try {
