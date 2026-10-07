@@ -1,4 +1,4 @@
-// 싸이뛰어 게시판 확장 — 사진 올리기 · 글/댓글 수정 · 빠른 응답 (v2: 목록에 댓글 묶어 보내기 + 압축 캐시)
+// 싸이뛰어 게시판 확장 — 사진 올리기 · 글/댓글 수정 · 빠른 응답 (v3: 긴 글 수정 2만 자 + 수정 전 내용 보관 + 잘린 글 자동 복구)
 const PLUS = { folder: 'psi-board-images', maxBytes: 5 * 1024 * 1024, cacheSec: 60, bundle: 80 };
 
 function plusSS_() {
@@ -14,14 +14,14 @@ function plusUnzip_(z) { return Utilities.ungzip(Utilities.newBlob(Utilities.bas
 
 function doGet(e) {
   const p = (e && e.parameter) || {}, a = p.action;
-  if (a === 'plus') return plusJson_({ ok: true, plus: 2 });
+  if (a === 'plus') return plusJson_({ ok: true, plus: 3 });
   if (typeof novelCache_ === 'function') { const r = novelCache_(e); if (r) return r; }
   if (a === 'posts' || a === 'post') {
     try {
       const cache = CacheService.getScriptCache(), key = ['g', plusVer_(), a, p.id || '', p.dev || ''].join(':');
       if (a === 'posts') { const hit = cache.get(key); if (hit) return plusText_(plusUnzip_(hit)); }
       const out = JSON.parse(doGetOrig_(e).getContent());
-      if (out && out.ok) { const map = plusEditsMap_(); plusApplyEdits_(out, map); if (a === 'posts') plusBundle_(out, String(p.dev || ''), map); out.plus = 2; }
+      if (out && out.ok) { const map = plusEditsMap_(); plusApplyEdits_(out, map); if (a === 'posts') plusBundle_(out, String(p.dev || ''), map); out.plus = 3; }
       const s = JSON.stringify(out);
       if (a === 'posts') { try { const z = plusZip_(s); if (z.length < 95000) cache.put(key, z, PLUS.cacheSec); } catch (x) {} }
       return plusText_(s);
@@ -92,7 +92,7 @@ function plusEdit_(b, kind) {
   let key, title = '', text = String(b.body || '').trim();
   if (kind === 'post') {
     if (!orig.post.mine) return { ok: false, error: 'owner' };
-    title = String(b.title || '').trim().slice(0, 60); text = text.slice(0, 2000);
+    title = String(b.title || '').trim().slice(0, 60); text = text.slice(0, 20000);
     if (title.length < 1 || text.length < 1) return { ok: false, error: 'empty' };
     key = 'p:' + pid;
   } else {
@@ -102,8 +102,9 @@ function plusEdit_(b, kind) {
     key = 'c:' + pid + ':' + cid;
   }
   const sh = plusSheet_(), v = sh.getDataRange().getValues(), now = Date.now();
-  for (let i = 1; i < v.length; i++) if (String(v[i][0]) === key) { sh.getRange(i + 1, 2, 1, 3).setValues([[title, text, now]]); return { ok: true, t: now }; }
-  sh.appendRow([key, title, text, now]); return { ok: true, t: now };
+  for (let i = 1; i < v.length; i++) if (String(v[i][0]) === key) { plusHist_(key, v[i][1], v[i][2], v[i][3]); sh.getRange(i + 1, 2, 1, 3).setValues([[title, text, now]]); return { ok: true, t: now, n: text.length }; }
+  if (kind === 'post') plusHist_(key, orig.post.title, orig.post.body, orig.post.t || 0);
+  sh.appendRow([key, title, text, now]); return { ok: true, t: now, n: text.length };
 }
 function plusSheet_() {
   let ss = plusSS_();
@@ -114,6 +115,7 @@ function plusSheet_() {
 function plusEditsMap_() {
   const c = CacheService.getScriptCache(), ck = 'edits:' + plusVer_(), hit = c.get(ck);
   if (hit) return JSON.parse(hit);
+  plusFixOnce_();
   const map = {}, v = plusSheet_().getDataRange().getValues(); for (let i = 1; i < v.length; i++) map[v[i][0]] = [v[i][1], v[i][2], v[i][3]];
   const s = JSON.stringify(map); if (s.length < 95000) c.put(ck, s, 600);
   return map;
@@ -123,3 +125,43 @@ function plusApplyEdits_(out, map) {
   if (Array.isArray(out.posts)) out.posts.forEach(fix);
   if (out.post) { fix(out.post); (out.post.comments || []).forEach(cm => { const e = map['c:' + out.post.id + ':' + cm.id]; if (e) { cm.body = e[1]; cm.edited = e[2]; } }); }
 }
+
+/* 수정하기 전 내용을 'edits_hist' 시트에 남겨 둬요 (실수로 지워도 되살릴 수 있게) */
+function plusHist_(key, title, body, t) {
+  try {
+    const ss = plusSheet_().getParent(); let h = ss.getSheetByName('edits_hist');
+    if (!h) { h = ss.insertSheet('edits_hist'); h.appendRow(['key', 'title', 'body', 't', 'saved']); }
+    h.appendRow([key, String(title || ''), String(body || ''), t || '', Date.now()]);
+  } catch (e) {}
+}
+
+/* 예전 2000자 제한 때문에 수정하다 뒷부분이 잘린 글을 되살려요.
+   고친 앞부분은 그대로 두고, 잘려 나간 뒷부분을 원래 글에서 찾아 이어 붙여요. 한 번만 자동으로 돌아요. */
+function plusFixOnce_() {
+  const pr = PropertiesService.getScriptProperties(); if (pr.getProperty('FIX_TRUNC_1')) return;
+  pr.setProperty('FIX_TRUNC_1', String(Date.now()));
+  try { plusFixTrunc_(); } catch (e) {}
+}
+function plusFixTrunc_() {
+  if (typeof rows !== 'function') return 0;
+  const ob = {}; rows('posts').forEach(r => { ob[String(r.id)] = String(r.body || ''); });
+  const sh = plusSheet_(), v = sh.getDataRange().getValues(); let n = 0;
+  for (let i = 1; i < v.length; i++) {
+    const key = String(v[i][0]); if (key.indexOf('p:') !== 0) continue;
+    const o = ob[key.slice(2)], e = String(v[i][2] || ''); if (o == null) continue;
+    if (o.length <= e.length + 20) continue;
+    const cut = e.length >= 1500 && e.length <= 2000;
+    let nb = '';
+    for (const L of [60, 40, 24, 12]) { const tail = e.slice(-L), at = plusNear_(o, tail, e.length - L); if (tail.trim().length >= 6 && at >= 0) { const rest = o.slice(at + tail.length); if (cut || rest.trim().length > 200) nb = e + rest; break; } }
+    if (!nb && cut) nb = o;
+    if (!nb) continue;
+    if (nb.length <= e.length) continue;
+    plusHist_(key, v[i][1], e, v[i][3]);
+    sh.getRange(i + 1, 3).setValue(nb); n++;
+  }
+  if (n) plusBump_();
+  return n;
+}
+function plusNear_(o, tail, want) { let best = -1, i = o.indexOf(tail); while (i >= 0) { if (best < 0 || Math.abs(i - want) < Math.abs(best - want)) best = i; i = o.indexOf(tail, i + 1); } return best; }
+/* 직접 돌려도 돼요: 편집기 위쪽에서 이 함수를 고르고 실행 → 되살린 글 개수가 로그에 나와요 */
+function 잘린글복구() { const n = plusFixTrunc_(); Logger.log('되살린 글: ' + n + '개'); return n; }

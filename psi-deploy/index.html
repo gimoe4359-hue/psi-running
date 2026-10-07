@@ -1571,6 +1571,18 @@ const STK = {
   ot: { t: '야근중…', c: '#c3bcef', tc: '#5f3dc4', f: `<path d="M41 71h11M68 71h11" stroke="${STK_O}" stroke-width="3.2"/><path d="M42 76q5 3 10 0M68 76q5 3 10 0" fill="none" stroke="#7a6fb0" stroke-width="2.2"/><path d="M55 87h10" stroke="${STK_O}" stroke-width="3"/><rect x="88" y="78" width="16" height="18" rx="3" fill="#fff" stroke="${STK_O}" stroke-width="2.6"/><path d="M104 82q6 0 6 5t-6 5" fill="none" stroke="${STK_O}" stroke-width="2.4"/><path d="M93 74q-2-4 0-7M99 74q-2-4 0-7" stroke="#9c92c9" stroke-width="2"/><text x="92" y="58" font-size="14" font-weight="900" fill="#5f3dc4" font-family="sans-serif">z</text>` },
   off: { t: '퇴근!', c: '#ffe3a3', tc: '#12a150', f: SF.happy + SF.cheek + SF.open + `<path d="M21 70q-10-8-8-22M99 70q10-8 8-22" fill="none" stroke="${STK_O}" stroke-width="3.2"/><circle cx="13" cy="45" r="5.5" fill="#ffe3a3" stroke="${STK_O}" stroke-width="2.6"/><circle cx="107" cy="45" r="5.5" fill="#ffe3a3" stroke="${STK_O}" stroke-width="2.6"/>` },
   weird: { t: '이상현상?!', c: '#d9c2ff', tc: '#7048e8', f: `<path d="M47 71m-6.5 0a6.5 6.5 0 1 0 6.5-6.5a4.5 4.5 0 1 1-4.5 4.5a2.2 2.2 0 1 0 2.2-2.2M73 71m-6.5 0a6.5 6.5 0 1 0 6.5-6.5a4.5 4.5 0 1 1-4.5 4.5a2.2 2.2 0 1 0 2.2-2.2" fill="none" stroke="${STK_O}" stroke-width="2.4"/><path d="M52 88q4-5 8 0t8 0" fill="none" stroke="${STK_O}" stroke-width="3"/><path d="M96 56l4-8M102 62l8-3" stroke="#7048e8" stroke-width="3"/>` },
+  baraj: { t: '바라줴줴', c: '#ffc2d4', tc: '#e64980', f: `<circle cx="47" cy="70" r="7.5" fill="${STK_O}"/><circle cx="73" cy="70" r="7.5" fill="${STK_O}"/><circle cx="49.5" cy="67" r="2.8" fill="#fff"/><circle cx="75.5" cy="67" r="2.8" fill="#fff"/><circle cx="45" cy="73" r="1.3" fill="#fff"/><circle cx="71" cy="73" r="1.3" fill="#fff"/>` + SF.cheek + `<path d="M56 82q4 3 8 0" fill="none" stroke="${STK_O}" stroke-width="2.8"/><path d="M52 104q2-14 8-16q6 2 8 16z" fill="#ffc2d4" stroke="${STK_O}" stroke-width="2.8"/><path d="M60 89v14" stroke="${STK_O}" stroke-width="2"/><path d="M15 52l4 4M19 52l-4 4M101 46l5 5M106 46l-5 5M106 62l3 3M109 62l-3 3" stroke="#f783ac" stroke-width="2.4"/>` },
+  kk: { t: 'ㅋㅋ', c: '#fff3bf', tc: '#f59f00', f: `<path d="M40 66l10 5-10 5M80 66l-10 5 10 5" fill="none" stroke="${STK_O}" stroke-width="3.4"/><path d="M48 80h24q-2 16-12 16t-12-16z" fill="#d6455f" stroke="${STK_O}" stroke-width="2.8"/><path d="M53 89q7-4 14 0" fill="none" stroke="#ff8fa3" stroke-width="3"/><path d="M33 72q-5 6-1 11t5-5zM87 72q5 6 1 11t-5-5z" fill="#74c0fc" stroke="${STK_O}" stroke-width="1.6"/>` },
+  yes: { t: '네!', c: '#b2f2bb', tc: '#2b8a3e', f: SF.happy + SF.cheek + SF.smile + `<circle cx="100" cy="58" r="11" fill="none" stroke="#2b8a3e" stroke-width="5"/><circle cx="100" cy="58" r="11" fill="none" stroke="#fff" stroke-width="1.6" opacity=".7"/>` },
+  no: { t: '아니요', c: '#ffc9c9', tc: '#e03131', f: `<path d="M41 71h11M68 71h11" stroke="${STK_O}" stroke-width="3.4"/><path d="M54 84h12" stroke="${STK_O}" stroke-width="3"/><path d="M38 104l44-18M82 104l-44-18" stroke="#fff" stroke-width="12"/><path d="M38 104l44-18M82 104l-44-18" stroke="#e03131" stroke-width="7"/>` },
+  heol: { t: '헐', c: '#d0ebff', tc: '#1971c2', f: `<circle cx="46" cy="69" r="9" fill="#fff" stroke="${STK_O}" stroke-width="2.8"/><circle cx="74" cy="69" r="9" fill="#fff" stroke="${STK_O}" stroke-width="2.8"/><circle cx="46" cy="70" r="2.6" fill="${STK_O}"/><circle cx="74" cy="70" r="2.6" fill="${STK_O}"/><ellipse cx="60" cy="90" rx="5" ry="6.5" fill="#d6455f" stroke="${STK_O}" stroke-width="2.6"/><path d="M95 50q-5 8 0 11t5-5q-1-3-5-6z" fill="#74c0fc" stroke="${STK_O}" stroke-width="2"/><path d="M38 56l12 3M82 56l-12 3" stroke="${STK_O}" stroke-width="2.6"/>` },
+  sorry: { t: '미안해요', c: '#e5dbff', tc: '#7048e8', f: `<path d="M40 63l11 4M80 63l-11 4" stroke="${STK_O}" stroke-width="2.8"/>` + SF.dot.replace(/cy="71"/g, 'cy="73"') + SF.cheek + `<path d="M54 87q6-5 12 0" fill="none" stroke="${STK_O}" stroke-width="3"/><path d="M90 52q-5 8 0 11t5-5q-1-3-5-6z" fill="#74c0fc" stroke="${STK_O}" stroke-width="2"/>` },
+  night: { t: '굿밤', c: '#bac8ff', tc: '#364fc7', f: `<path d="M41 72q5 4 10 0M69 72q5 4 10 0" fill="none" stroke="${STK_O}" stroke-width="3.2"/>` + SF.cheek + `<path d="M56 84q4 3 8 0" fill="none" stroke="${STK_O}" stroke-width="2.6"/><path d="M90 46h9l-9 10h9M101 34h6l-6 7h6" fill="none" stroke="#364fc7" stroke-width="2.6"/><path d="M22 44a10 10 0 1 0 9 14a8 8 0 0 1-9-14z" fill="#ffe066" stroke="${STK_O}" stroke-width="2.2"/>` },
+  hungry: { t: '배고파', c: '#ffe8cc', tc: '#d9480f', f: SF.dot + SF.cheek + `<path d="M50 82q10 8 20 0" fill="none" stroke="${STK_O}" stroke-width="3"/><path d="M66 85q2 8 0 12q-3-4 0-12z" fill="#74c0fc" stroke="${STK_O}" stroke-width="1.6"/><ellipse cx="101" cy="58" rx="6" ry="8" fill="#dee2e6" stroke="${STK_O}" stroke-width="2.4"/><path d="M101 66v28" stroke="${STK_O}" stroke-width="3.4"/>` },
+  yay: { t: '축하해!', c: '#d3f9d8', tc: '#e64980', f: SF.happy + SF.cheek + SF.open + `<g transform="rotate(28 92 46)"><path d="M82 52l10-24 10 24z" fill="#ffd43b" stroke="${STK_O}" stroke-width="2.6"/><circle cx="92" cy="27" r="3.6" fill="#ff6b6b" stroke="${STK_O}" stroke-width="1.8"/><path d="M86 44h12" stroke="#e64980" stroke-width="3"/></g><rect x="12" y="50" width="5" height="9" rx="1" fill="#4dabf7" transform="rotate(-20 14 54)"/><rect x="102" y="46" width="5" height="9" rx="1" fill="#ff6b6b" transform="rotate(25 104 50)"/><circle cx="20" cy="70" r="3" fill="#fab005"/><circle cx="104" cy="66" r="3" fill="#12b886"/>` },
+  hmph: { t: '흥!', c: '#ffa8a8', tc: '#c92a2a', f: `<path d="M39 63l13 5M81 63l-13 5" stroke="${STK_O}" stroke-width="3.2"/>` + SF.dot.replace(/cy="71"/g, 'cy="74"') + `<path d="M54 88q6-4 12 0" fill="none" stroke="${STK_O}" stroke-width="3"/><circle cx="34" cy="84" r="8" fill="#ff8787" opacity=".7"/><circle cx="86" cy="84" r="8" fill="#ff8787" opacity=".7"/><path d="M96 46l6 6M104 44l-2 9M96 56l9-2" stroke="#c92a2a" stroke-width="3"/>` },
+  shy: { t: '부끄…', c: '#ffdeeb', tc: '#d6336c', f: SF.happy + `<ellipse cx="37" cy="81" rx="9" ry="5" fill="#ff6f91" opacity=".75"/><ellipse cx="83" cy="81" rx="9" ry="5" fill="#ff6f91" opacity=".75"/><path d="M33 79l3-3M38 79l3-3M79 79l3-3M84 79l3-3" stroke="#fff" stroke-width="1.4"/><path d="M56 85q4 2 8 0" fill="none" stroke="${STK_O}" stroke-width="2.6"/>` },
+  ok: { t: '오케이~', c: '#c5f6fa', tc: '#0c8599', f: `<path d="M41 70q5-6 10 0" fill="none" stroke="${STK_O}" stroke-width="3.2"/><path d="M68 67l10 4-10 4" fill="none" stroke="${STK_O}" stroke-width="3.2"/>` + SF.cheek + SF.smile + `<path d="M100 48l2.5 6.5 6.5 2.5-6.5 2.5-2.5 6.5-2.5-6.5-6.5-2.5 6.5-2.5z" fill="#ffd43b" stroke="${STK_O}" stroke-width="1.8"/>` },
   secret: { t: '', raw: `<g transform="rotate(-12 60 66)"><rect x="12" y="38" width="96" height="56" rx="8" fill="#fff" stroke="#fff" stroke-width="10"/><rect x="14" y="40" width="92" height="52" rx="7" fill="#fff5f5" stroke="#e03131" stroke-width="4"/><rect x="20" y="46" width="80" height="40" rx="4" fill="none" stroke="#e03131" stroke-width="1.8"/><text x="60" y="68" text-anchor="middle" font-size="21" font-weight="900" fill="#e03131" font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif">Ⅰ급 비밀</text><text x="60" y="81" text-anchor="middle" font-size="9" font-weight="700" fill="#e03131" letter-spacing="1.5" font-family="sans-serif">PSY · CLASSIFIED</text></g>` }
 };
 const stkUrls = {};
@@ -1610,6 +1622,8 @@ main.addEventListener('click', e => {
 /* ---------- 에디터 (스티커 · 사진을 글 사이에 바로 넣기) ---------- */
 const canUp = () => REMOTE && !!mem.plus;
 const canEdit = () => !REMOTE || !!mem.plus;
+/* 서버 v3부터 긴 글(2만 자) — 예전 서버는 2000자에서 잘려서 막아 둬요 */
+const maxBody = () => !REMOTE || +mem.plus >= 3 ? 20000 : 2000;
 const edHTML = (id, ph, max, mini, noImg) => `<div class="ed${mini ? ' mini' : ''}" id="${id}"${noImg ? ' data-noimg' : ''}><div class="ed-box e" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${esc(ph)}" data-ph="${esc(ph)}"></div>
   <div class="ed-pick" hidden>${Object.keys(STK).map(n => `<button type="button" data-st="${n}" aria-label="${esc(STK[n].t || '기밀')} 스티커"><img src="${stkUrl(n)}" alt="" width="56" height="56" loading="lazy"></button>`).join('')}</div>
   <div class="ed-bar"><button type="button" data-ed="st" aria-expanded="false">☺ 스티커</button>${canUp() && !noImg ? '<button type="button" data-ed="img">▣ 사진</button><input type="file" accept="image/*" multiple hidden>' : ''}<span class="ed-n">0/${max}</span></div></div>`;
@@ -1710,7 +1724,7 @@ let pdT; const pdSave = () => { clearTimeout(pdT); pdT = setTimeout(() => {
   Object.keys(keep).forEach(k => { if (!out[k] && Object.keys(out).length < 80 && mem.pd[k]) out[k] = keep[k]; });
   if (!LS.set(PD_KEY, out)) { try { localStorage.removeItem(PD_KEY); } catch (e) {} }
 }, 600); };
-if (REMOTE) { const c = LS.get(BC_KEY, null); if (c && Array.isArray(c.posts) && Array.isArray(c.cats)) { mem.rcats = c.cats; mem.rposts = c.posts.map(normPost); mem.plus = !!c.plus; mem.bsig = c.sig; } }
+if (REMOTE) { const c = LS.get(BC_KEY, null); if (c && Array.isArray(c.posts) && Array.isArray(c.cats)) { mem.rcats = c.cats; mem.rposts = c.posts.map(normPost); mem.plus = +c.plus || 0; mem.bsig = c.sig; } }
 /* 서버가 목록에 댓글까지 묶어 보내면(v2), 글을 열 때 기다리지 않아요 */
 function pdFromRaw(raws, at) {
   (raws || []).forEach(r => {
@@ -1725,7 +1739,7 @@ const Board = {
   all() { if (REMOTE) return mem.rposts || []; let l = LS.get(BOARD_KEY, null); if (!l) { l = mem.board || seedPosts(); LS.set(BOARD_KEY, l); } mem.board = l; return l; },
   save(l) { mem.board = l; LS.set(BOARD_KEY, l); },
   get(id) { return this.all().find(p => p.id === id); },
-  persist(raw) { if (!REMOTE || !mem.rposts) return; const posts = raw || mem.rposts.map(p => ({ ...p, comments: p.comments.length, liked: p.likedBy.includes(dev), mine: p.author === dev })); LS.set(BC_KEY, { cats: mem.rcats, posts, plus: mem.plus ? 1 : 0, sig: mem.bsig }); },
+  persist(raw) { if (!REMOTE || !mem.rposts) return; const posts = raw || mem.rposts.map(p => ({ ...p, comments: p.comments.length, liked: p.likedBy.includes(dev), mine: p.author === dev })); LS.set(BC_KEY, { cats: mem.rcats, posts, plus: +mem.plus || 0, sig: mem.bsig }); },
   sync() {
     if (!REMOTE) return Promise.resolve(false);
     if (this._s) return this._s;
@@ -1733,7 +1747,7 @@ const Board = {
       try {
         const r = await api('posts', { dev }); if (!r.ok) { if (!mem.rposts) toast('게시판을 불러오지 못했어요.'); return false; }
         mem.syncAt = Date.now(); const sig = JSON.stringify([r.cats, r.posts, r.plus]); if (sig === mem.bsig && mem.rposts) return false;
-        mem.bsig = sig; mem.rcats = r.cats; mem.plus = !!r.plus; mem.rposts = r.posts.map(normPost); pdFromRaw(r.posts, Date.now()); this.persist(r.posts.map(x => { const y = { ...x }; delete y.cm; return y; })); pdSave(); return true;
+        mem.bsig = sig; mem.rcats = r.cats; mem.plus = +r.plus || 0; mem.rposts = r.posts.map(normPost); pdFromRaw(r.posts, Date.now()); this.persist(r.posts.map(x => { const y = { ...x }; delete y.cm; return y; })); pdSave(); return true;
       } catch (e) { if (!mem.rposts) toast('게시판을 불러오지 못했어요.'); return false; }
       finally { this._s = null; }
     })());
@@ -1744,7 +1758,7 @@ const Board = {
     return (this._p[id] = (async () => {
       try {
         const r = await api('post', { id, dev }); if (!r.ok) return null;
-        if (r.plus) mem.plus = true;
+        if (r.plus) mem.plus = +r.plus || 1;
         const p = normPost({ ...r.post, comments: 0 });
         p.comments = r.post.comments.map(c => ({ id: c.id, body: c.body, t: c.t, mine: c.mine, edited: c.edited || 0, author: c.who === 'op' ? p.author : 'a' + c.who }));
         p.at = Date.now(); mem.pd[id] = p; pdSave();
@@ -1972,7 +1986,8 @@ async function viewWrite(eid) {
   let src = null;
   if (eid) {
     src = REMOTE ? (mem.pd[eid] || listItem(eid)) : Board.get(eid);
-    if (REMOTE && (!src || !mem.pd[eid])) { if (!src) main.innerHTML = cafeShell(SKEL(5), 'write'); const p = await Board.loadPost(eid); if (location.hash !== h0) return; src = p || src; }
+    /* 고치기 전에 항상 서버에서 원문 전체를 새로 받아 와요 (저장본이 짧거나 오래됐을 수 있어서) */
+    if (REMOTE) { main.innerHTML = cafeShell(SKEL(5), 'write'); if (Board._p) delete Board._p[eid]; const p = await Board.loadPost(eid); if (location.hash !== h0) return; if (!p) { toast('글을 불러오지 못했어요. 잠시 후 다시 해 주세요.'); location.hash = '#/board/' + eid; return; } src = p; }
     if (!src || src.author !== dev) { toast('내가 쓴 글만 고칠 수 있어요.'); location.hash = '#/board/' + eid; return; }
     if (!canEdit()) { toast('글 수정은 아직 준비 중이에요.'); location.hash = '#/board/' + eid; return; }
   }
@@ -1981,10 +1996,10 @@ async function viewWrite(eid) {
     <div class="ctb"><h1>${src ? '글 수정' : '글쓰기'}</h1><span>익명으로 등록됩니다</span></div>
     <form class="cwf" id="wf" novalidate style="margin-top:14px"><div><label for="wc">게시판</label><select id="wc" ${src ? 'disabled' : ''}>${cats.map(c => `<option value="${c.id}" ${c.id === def ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
       <div><label for="wt">제목</label><input id="wt" type="text" maxlength="60" placeholder="제목을 입력하세요"></div>
-      <div><label>내용</label>${edHTML('wed', '익명으로 자유롭게 적어 주세요. 스티커와 사진을 글 사이에 넣을 수 있어요. 다른 사람이 상처받을 글은 삼가 주세요.', 2000)}</div>
+      <div><label>내용</label>${edHTML('wed', '익명으로 자유롭게 적어 주세요. 스티커와 사진을 글 사이에 넣을 수 있어요. 다른 사람이 상처받을 글은 삼가 주세요.', maxBody())}</div>
       <div class="r">${REMOTE || src ? '<span class="wd"></span>' : '<label class="chk"><input type="checkbox" id="wp"> 공지로 등록</label>'}<span><a class="cbtn ln" href="${src ? '#/board/' + src.id : '#/board'}">취소</a> <button class="cbtn" type="submit">${src ? '수정 완료' : '등록'}</button></span></div></form>`, 'write');
   bindShell();
-  const ed = mkEditor($('#wed'), 2000, () => $('#wf').requestSubmit());
+  const ed = mkEditor($('#wed'), maxBody(), () => $('#wf').requestSubmit());
   if (src) { $('#wt').value = src.title; ed.set(src.body); }
   else { const d = LS.get(DRAFT_KEY, null); if (d && (d.t || d.b)) { $('#wt').value = d.t || ''; ed.set(d.b || ''); if (d.c && cats.some(c => c.id === d.c)) $('#wc').value = d.c; const w = $('.wd'); if (w) w.textContent = '쓰던 글을 불러왔어요.'; } }
   let dT; const keep = () => { if (src) return; clearTimeout(dT); dT = setTimeout(() => LS.set(DRAFT_KEY, { t: $('#wt').value, b: ed.val(), c: $('#wc').value }), 400); };
@@ -1996,7 +2011,7 @@ async function viewWrite(eid) {
     const t = $('#wt').value.trim(), b = ed.val();
     if (t.length < 2) { toast('제목을 두 글자 이상 적어 주세요.'); $('#wt').focus(); return; }
     if (b.length < 2) { toast('내용을 입력해 주세요.'); ed.focus(); return; }
-    if (b.length > 2000) { toast('내용은 2000자까지 쓸 수 있어요.'); return; }
+    if (b.length > maxBody()) { toast(`내용은 ${maxBody()}자까지 쓸 수 있어요.`); return; }
     if (src) {
       const keepV = { title: src.title, body: src.body, edited: src.edited }, targets = [src, mem.pd[src.id], listItem(src.id)].filter(Boolean);
       targets.forEach(x => Object.assign(x, { title: t.slice(0, 60), body: b, edited: Date.now() })); if (mem.pd[src.id]) mem.pd[src.id].at = Date.now();
@@ -2019,7 +2034,8 @@ async function viewWrite(eid) {
     const tid = 'tmp' + uid(), tp = normPost({ id: tid, cat: np0.cat, title: np0.title, body: b, t: Date.now(), likes: 0, views: 0, comments: 0, mine: true }); tp.pend = true;
     mem.rposts = [tp].concat(mem.rposts || []); mem.pd[tid] = { ...tp, comments: [], at: Date.now() };
     location.hash = '#/board/' + tid;
-    const r = await apiPost({ action: 'post', cat: np0.cat, title: np0.title, body: b });
+    const r = await apiPost({ action: 'post', cat: np0.cat, title: np0.title, body: b.length > 2000 ? b.slice(0, 2000) : b });
+    if (r.ok && r.id && b.length > 2000) { const e2 = await Board.edit(r.id, np0.title, b); if (e2 !== true) toast('글이 길어서 뒷부분을 저장하지 못했어요. 글 수정으로 다시 붙여 주세요.'); }
     if (!r.ok || !r.id) {
       mem.rposts = (mem.rposts || []).filter(x => x.id !== tid); delete mem.pd[tid];
       toast(r.error === 'rate' ? '잠시 후 다시 등록해 주세요.' : '글을 올리지 못했어요. 쓰던 글은 저장돼 있어요.');
