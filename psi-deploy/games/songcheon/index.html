@@ -2782,14 +2782,16 @@ const DISHES = [
 ];
 const SACRED = [12, 13, 14, 15];
 const REACT = { f_cha: ['짜장면만큼 맛있다^^', '이거 짜장 소스 뿌리면 완벽하겠다^^'], f_miri: ['…근거 있는 맛이네요.', '보고서보다 낫네요.'], f_jang: ['내 얼굴만큼 완벽한 맛~', '플레이팅이 좀 아쉽네~'], f_yu: ['delicious입니다!', 'team dinner 메뉴로 결정!'], f_gongyu: ['회사 밥보다 백 배 맛있어요…', '이거 먹고 칼퇴하고 싶다.'], f_esk: ['…따뜻하다.', '…한 그릇 더.'], f_ahn: ['한 그릇 더!', '힘이 난다!'], f_ahnk: ['허허, 좋구먼.', '이 맛에 낚시하지.'], f_hayoung: ['펩시 제로랑 먹으면 딱이에요.', '…맛있네요.'] };
-function bagView(host) {
-  const v = inv(), m = document.createElement('div'); m.className = 'fz-detail bag'; host.append(m);
+function bagView(host, onEat) {
+  const v = inv(), m = document.createElement('div'); m.className = 'fz-detail bag'; host.append(m); v.dm = v.dm || {};
   const crops = CROPS.filter(c => v.c[c.id]).map(c => `<li><canvas data-c="${c.id}" width="64" height="52"></canvas><span>${c.name}</span><b>${v.c[c.id]}</b></li>`).join('');
   const fishes = FISH.filter(f => v.f[f.i]).map(f => `<li><canvas data-f="${f.i}" width="64" height="52"></canvas><span>${f.name}</span><b>${v.f[f.i]}</b></li>`).join('');
-  const ds = DISHES.filter(x => v.d[x.id]).map(x => `<li><canvas data-d="${x.id}" width="64" height="52"></canvas><span>${x.name}</span><b>${v.d[x.id]}</b></li>`).join('');
-  m.innerHTML = `<div class="in wide"><b>가방</b><h4>작물</h4><ul>${crops || '<li class="no">텃밭에서 수확해 보세요</li>'}</ul><h4>물고기</h4><ul>${fishes || '<li class="no">선착장에서 낚아 보세요</li>'}</ul><h4>만든 요리 (${DISHES.filter(x => v.d[x.id]).length} / ${DISHES.length})</h4><ul>${ds || '<li class="no">모닥불 냄비에서 요리해 보세요</li>'}</ul><button type="button">닫기</button></div>`;
-  m.querySelectorAll('canvas').forEach(cv => { const x = cv.getContext('2d'); if (cv.dataset.c) drawCrop(x, CROPS[CROPI[cv.dataset.c]], 32, 46, 52, 1, 1); else if (cv.dataset.f) { x.translate(32, 26); drawFish(x, FISH[+cv.dataset.f], 0, 0, 44, 1); } else drawDish(x, DISHES.find(q => q.id === cv.dataset.d), 32, 30, 28, 1); });
-  $q(m, 'button').onclick = () => m.remove(); m.addEventListener('click', e => { if (e.target === m) m.remove(); });
+  const ids = Object.keys(v.d).filter(id => v.d[id] > 0 && v.dm[id]);
+  const ds = ids.map(id => `<li class="dish"><canvas data-d="${id}" width="64" height="52"></canvas><span>${v.dm[id].name}</span><b>${v.d[id]}</b>${onEat ? `<button type="button" class="eat" data-eat="${id}">같이 먹기</button>` : ''}</li>`).join('');
+  m.innerHTML = `<div class="in wide"><b>가방</b><h4>작물</h4><ul>${crops || '<li class="no">텃밭에서 수확해 보세요</li>'}</ul><h4>물고기</h4><ul>${fishes || '<li class="no">선착장에서 낚아 보세요</li>'}</ul><h4>만든 요리 · 지금까지 ${Object.keys(v.dm).length}가지</h4><ul class="dishes">${ds || '<li class="no">모닥불 냄비에서 요리해 보세요</li>'}</ul>${onEat ? '' : '<p style="font-size:13px;color:#8a8098;margin:8px 2px 0">요리는 모닥불 냄비에서 가방을 열면 싸이 사람들과 같이 먹을 수 있어요.</p>'}<button type="button" class="cl">닫기</button></div>`;
+  m.querySelectorAll('canvas').forEach(cv => { const x = cv.getContext('2d'); if (cv.dataset.c) drawCrop(x, CROPS[CROPI[cv.dataset.c]], 32, 46, 52, 1, 1); else if (cv.dataset.f) { x.translate(32, 26); drawFish(x, FISH[+cv.dataset.f], 0, 0, 44, 1); } else drawMeal(x, v.dm[cv.dataset.d], 32, 30, 26, 1); });
+  m.querySelectorAll('[data-eat]').forEach(b => b.onclick = () => { m.remove(); onEat(Object.assign({ id: b.dataset.eat }, v.dm[b.dataset.eat])); });
+  $q(m, '.cl').onclick = () => m.remove(); m.addEventListener('click', e => { if (e.target === m) m.remove(); });
 }
 function drawDish(g, ds, x, y, r, t, extra) {
   g.save(); g.translate(x, y);
@@ -3092,14 +3094,182 @@ function prepSteps(k) {
   const id = k.slice(2);
   return { lettuce: [MG.wash('lettuce'), MG.tear()], carrot: [MG.wash('carrot'), MG.peel('carrot'), MG.chop('carrot', 4)], potato: [MG.wash('potato'), MG.peel('potato'), MG.chop('potato', 3)], tomato: [MG.wash('tomato'), MG.chop('tomato', 3)], corn: [MG.shuck(), MG.chop('corn', 3)], pumpkin: [MG.chop('pumpkin', 5)] }[id] || [];
 }
+/* =========================================================
+   요리 2: 같은 재료도 조리 도구 · 방식에 따라 다른 음식
+   ========================================================= */
+const METHODS = [
+  { id: 'soup', name: '끓이기', tool: '냄비', suf: n => n > 1 ? '스튜' : '국', desc: '뜨끈한 국물이 몸을 사르르 녹여요.' },
+  { id: 'saute', name: '볶기', tool: '프라이팬', suf: () => '볶음', desc: '센 불에 휘리릭 볶아 윤기가 자르르 흘러요.' },
+  { id: 'fry', name: '튀기기', tool: '튀김 솥', suf: () => '튀김', desc: '겉은 바삭바삭, 속은 촉촉해요.' },
+  { id: 'steam', name: '찌기', tool: '찜기', suf: () => '찜', desc: '김이 모락모락, 부드럽게 쪄졌어요.' },
+  { id: 'grill', name: '굽기', tool: '석쇠', suf: () => '구이', desc: '불맛이 살짝 배어 고소해요.' },
+  { id: 'salad', name: '무치기', tool: '큰 그릇', suf: () => '무침', desc: '새콤달콤 산뜻하게 버무렸어요.' }
+];
+const MI = Object.fromEntries(METHODS.map(m => [m.id, m]));
+const SHORT = { lettuce: '상추', carrot: '당근', potato: '감자', tomato: '토마토', corn: '옥수수', pumpkin: '호박' };
+const NOTE = { carrot: '한 입 먹으면 입안이 반짝반짝해요.', pumpkin: '접시 위에서 은은하게 빛나요.', corn: '톡톡 터지는 단맛이 있어요.', potato: '구름처럼 포슬포슬해요.', tomato: '노을빛 새콤함이 살아 있어요.', lettuce: '이슬처럼 시원해요.' };
+const SPECIAL = [
+  { m: 'saute', has: ['c:carrot', 'c:potato', 'c:corn'], name: '숲속 짜장면', desc: '당근, 감자, 옥수수를 볶아 만든 짜장면. 차강면 차장이 감동했다.', col: '#3a2418' },
+  { m: 'soup', has: ['f:11', 'c:tomato'], name: '반려 매운탕', desc: '결재서류붕어로 끓인 매운탕. 먹고 나면 왠지 보고서를 다시 써야 할 것 같다.', col: '#e0402a' },
+  { m: 'steam', has: ['f:8', 'c:pumpkin'], name: '달빛잉어 호박찜', desc: '달빛이 은은하게 도는 찜. 한 입 먹으면 잠이 솔솔.', col: '#d8e0ff' },
+  { m: 'fry', has: ['f:0'], name: '반딧불 튀김', desc: '바삭한 튀김옷 사이로 불빛이 새어 나온다.', col: '#f0d070' },
+  { m: 'soup', has: ['f:4'], name: '버섯메기 국밥', desc: '비 온 다음 날 먹으면 최고.', col: '#c8a878' },
+  { m: 'salad', has: ['c:lettuce', 'c:tomato'], name: '이슬 노을 샐러드', desc: '이슬 상추에 노을 토마토를 얹은 산뜻한 샐러드.', col: '#9ad870' },
+  { m: 'steam', has: ['f:10'], name: '수정 해파리 푸딩', desc: '말랑말랑 반짝반짝. 숟가락으로 떠도 계속 흔들린다.', col: '#e0d0ff' },
+  { m: 'fry', has: ['c:potato'], only: 1, name: '구름 감자튀김', desc: '구름처럼 포슬포슬한 감자를 바삭하게 튀겼어요. 소금 톡톡.', col: '#f0c860' },
+  { m: 'grill', has: ['c:corn'], only: 1, name: '별사탕 군옥수수', desc: '알알이 톡톡, 별사탕 맛이 나는 군옥수수.', col: '#ffc83a' }
+];
+const nameOf = k => k[0] === 'c' ? CROPS[CROPI[k.slice(2)]].name : FISH[+k.slice(2)].name;
+const shortOf = k => k[0] === 'c' ? SHORT[k.slice(2)] : FISH[+k.slice(2)].name;
+const colOfK = k => k[0] === 'c' ? CROPS[CROPI[k.slice(2)]].col : FISH[+k.slice(2)].c1;
+function makeDish(keys, mid) {
+  const m = MI[mid], ks = keys.slice().sort((a, b) => (a[0] === 'f' ? -1 : 1) - (b[0] === 'f' ? -1 : 1)), uniq = [...new Set(ks)];
+  const sp = SPECIAL.find(s => s.m === mid && s.has.every(h => ks.includes(h)) && (!s.only || uniq.length === 1));
+  const id = mid + ':' + uniq.slice().sort().join('+');
+  if (sp) return { id, m: mid, name: sp.name, desc: sp.desc, cols: uniq.map(colOfK), col: sp.col, sp: 1 };
+  const name = uniq.length === 1 ? nameOf(uniq[0]) + ' ' + m.suf(1) : uniq.map(shortOf).join('·') + ' ' + m.suf(uniq.length);
+  const crop = uniq.find(k => k[0] === 'c'), note = crop ? NOTE[crop.slice(2)] : (uniq[0][0] === 'f' ? FISH[+uniq[0].slice(2)].name + '의 맛이 살아 있어요.' : '');
+  return { id, m: mid, name, desc: m.desc + ' ' + note, cols: uniq.map(colOfK), col: colOfK(uniq[0]) };
+}
+/* 접시 모양도 조리 방식마다 달라요 */
+function drawMeal(g, ds, x, y, r, t, left = 1) {
+  const m = ds.m || 'soup', cols = ds.cols && ds.cols.length ? ds.cols : [ds.col || '#c88a4a'], R1 = () => 0;
+  g.save(); g.translate(x, y);
+  const steam = (n, h) => { for (let i = 0; i < n; i++) { const k = (t * .5 + i / n) % 1; g.fillStyle = `rgba(255,255,255,${.32 * (1 - k)})`; g.beginPath(); g.ellipse(Math.sin(k * 6 + i) * r * .25 + (i - n / 2) * r * .2, -r * h - k * r * .9, r * (.08 + k * .12), r * (.12 + k * .16), 0, 0, 6.3); g.fill(); } };
+  const plate = () => { g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(4, r * .12, r * 1.05, r * .36, 0, 0, 6.3); g.fill(); g.fillStyle = '#f8f2e6'; g.beginPath(); g.ellipse(0, 0, r * 1.05, r * .36, 0, 0, 6.3); g.fill(); g.strokeStyle = '#d8c8a8'; g.lineWidth = Math.max(1, r * .03); g.beginPath(); g.ellipse(0, 0, r * .78, r * .26, 0, 0, 6.3); g.stroke(); };
+  const n = Math.max(1, Math.round(6 * left));
+  if (m === 'soup' || m === 'salad') { if (m === 'soup') steam(3, .4); g.fillStyle = m === 'salad' ? '#eef4e4' : '#f4ece0'; g.beginPath(); g.ellipse(0, 0, r, r * .32, 0, 0, 6.3); g.fill(); g.beginPath(); g.moveTo(-r, 0); g.quadraticCurveTo(-r * .9, r * .75, 0, r * .78); g.quadraticCurveTo(r * .9, r * .75, r, 0); g.fill(); g.strokeStyle = m === 'salad' ? '#8ab878' : '#c8a878'; g.lineWidth = Math.max(1, r * .05); g.beginPath(); g.moveTo(-r * .8, r * .38); g.quadraticCurveTo(0, r * .5, r * .8, r * .38); g.stroke();
+    if (left > 0) { g.fillStyle = m === 'salad' ? '#a8d880' : (ds.col || cols[0]); g.beginPath(); g.ellipse(0, r * .08 * (1 - left), r * .86 * (.5 + left * .5), r * .25 * (.5 + left * .5), 0, 0, 6.3); g.fill(); for (let i = 0; i < n * 2; i++) { g.fillStyle = cols[i % cols.length]; g.beginPath(); g.ellipse(Math.cos(i * 2.4) * r * .5 * left, Math.sin(i * 2.4) * r * .12 * left - (m === 'salad' ? r * .08 : 0), r * .09, r * .06, i, 0, 6.3); g.fill(); } if (m === 'salad') for (let i = 0; i < n; i++) { g.fillStyle = i % 2 ? '#8fd46a' : '#b8e890'; g.beginPath(); g.ellipse(Math.cos(i * 1.7) * r * .45 * left, -r * .12 + Math.sin(i) * r * .06, r * .18, r * .08, i, 0, 6.3); g.fill(); } }
+    if (ds.name === '숲속 짜장면') { g.strokeStyle = '#f0d8a0'; g.lineWidth = Math.max(1, r * .04); for (let i = 0; i < 4; i++) { g.beginPath(); g.ellipse(0, 0, r * (.2 + i * .14), r * (.06 + i * .04), 0, .3, 2.6); g.stroke(); } } }
+  else if (m === 'fry') { plate(); g.fillStyle = '#fffbe8'; g.beginPath(); g.moveTo(-r * .6, -r * .05); g.lineTo(r * .5, -r * .2); g.lineTo(r * .65, r * .12); g.lineTo(-r * .45, r * .2); g.fill(); for (let i = 0; i < n; i++) { const px = (i - (n - 1) / 2) * r * .28, py = -r * .06 + (i % 2) * r * .1; g.fillStyle = '#d89a3a'; g.beginPath(); g.ellipse(px, py, r * .2, r * .11, (i - 2) * .3, 0, 6.3); g.fill(); g.fillStyle = '#f4c860'; g.beginPath(); g.ellipse(px - r * .03, py - r * .03, r * .14, r * .06, (i - 2) * .3, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,240,180,.8)'; for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(px + Math.cos(k * 2) * r * .12, py + Math.sin(k * 2) * r * .05, r * .02, 0, 6.3); g.fill(); } } if (ds.name === '반딧불 튀김') gl(g, 0, 0, r, '#eaff9a', .35 + .1 * Math.sin(t * 3)); g.fillStyle = '#ffe870'; g.beginPath(); g.moveTo(r * .7, -r * .05); g.arc(r * .7, -r * .05, r * .12, 0, 3.14); g.fill(); }
+  else if (m === 'steam') { steam(4, .5); g.fillStyle = '#c8a060'; g.beginPath(); g.ellipse(0, r * .1, r, r * .34, 0, 0, 6.3); g.fill(); g.fillRect(-r, -r * .08, r * 2, r * .2); g.fillStyle = '#e0c080'; g.beginPath(); g.ellipse(0, -r * .08, r, r * .34, 0, 0, 6.3); g.fill(); g.strokeStyle = '#a07838'; g.lineWidth = Math.max(1, r * .025); for (let i = -4; i <= 4; i++) { g.beginPath(); g.moveTo(i * r * .2, -r * .3); g.lineTo(i * r * .2, r * .2); g.stroke(); } g.fillStyle = '#f4f0e0'; g.beginPath(); g.ellipse(0, -r * .1, r * .85, r * .26, 0, 0, 6.3); g.fill(); for (let i = 0; i < n; i++) { g.fillStyle = cols[i % cols.length]; g.beginPath(); g.ellipse((i - (n - 1) / 2) * r * .26, -r * .12 + (i % 2) * r * .06, r * .15, r * .12, 0, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,255,255,.35)'; g.beginPath(); g.ellipse((i - (n - 1) / 2) * r * .26 - r * .04, -r * .16, r * .06, r * .03, 0, 0, 6.3); g.fill(); } if (ds.name.includes('달빛') || ds.name.includes('해파리')) gl(g, 0, -r * .1, r, '#e0d8ff', .35); }
+  else if (m === 'grill') { plate(); for (let i = 0; i < Math.min(n, 4); i++) { const px = (i - 1.5) * r * .34, py = (i % 2) * r * .08 - r * .04; g.fillStyle = css(mix(hx(cols[i % cols.length]), [110, 60, 20], .35)); g.beginPath(); g.ellipse(px, py, r * .2, r * .13, .2, 0, 6.3); g.fill(); g.strokeStyle = 'rgba(40,20,10,.7)'; g.lineWidth = Math.max(1, r * .03); for (let k = -1; k <= 1; k++) { g.beginPath(); g.moveTo(px - r * .12 + k * r * .07, py - r * .1); g.lineTo(px - r * .04 + k * r * .07, py + r * .1); g.stroke(); } } g.fillStyle = '#6ab84a'; g.beginPath(); g.ellipse(r * .6, -r * .1, r * .1, r * .05, .6, 0, 6.3); g.fill(); steam(2, .2); }
+  else if (m === 'saute') { plate(); if (left > 0) { g.fillStyle = ds.name === '숲속 짜장면' ? '#3a2418' : 'rgba(180,110,50,.5)'; g.beginPath(); g.ellipse(0, -r * .02, r * .7 * (.5 + left * .5), r * .2 * (.5 + left * .5), 0, 0, 6.3); g.fill(); for (let i = 0; i < n * 3; i++) { g.fillStyle = cols[i % cols.length]; g.save(); g.translate(Math.cos(i * 2.39) * r * .5 * Math.sqrt((i + 1) / (n * 3)) * left, Math.sin(i * 2.39) * r * .14 * left - r * .05); g.rotate(i); g.fillRect(-r * .06, -r * .03, r * .12, r * .06); g.restore(); } g.fillStyle = 'rgba(255,255,255,.4)'; for (let i = 0; i < 5; i++) { g.beginPath(); g.arc(Math.cos(i * 1.3) * r * .4, -r * .08 + Math.sin(i) * r * .06, r * .02, 0, 6.3); g.fill(); } } steam(2, .25); }
+  g.restore();
+}
+
+/* ---- 조리 방식별 미니게임 ---- */
+const MG2 = {
+  saute: cols => ({ title: '볶기', hint: '프라이팬을 위로 휙! 튕겨서 재료를 뒤집어요 (6번)',
+    init(S) { S.n = 0; S.it = Array.from({ length: 12 }, (_, k) => ({ x: rnd(-.5, .5), y: 0, vy: 0, r: rnd(0, 6), c: cols[k % cols.length] })); S.kick = 0; },
+    move(S, x, y, dx, dy) { if (dy < -14 && S.kick <= 0) { S.kick = .35; S.n++; S.it.forEach(q => { q.vy = -rnd(260, 480); q.vr = rnd(-8, 8); }); E.noise(.15, .25, 1200, 'bandpass'); for (let k = 0; k < 6; k++) S.P(S.cx + rnd(-60, 60), S.cy, rnd(-80, 80), rnd(-200, -80), 'rgba(255,200,120,.9)', rnd(1.5, 3), .6, 600); if (S.n >= 6) { S.done = true; S.score = clamp(1.3 - S.t / 7, .5, 1); } } },
+    update(S, dt) { S.kick -= dt; S.it.forEach(q => { q.vy += 1300 * dt; q.y = Math.min(0, q.y + q.vy * dt); q.r += (q.vr || 0) * dt; if (q.y === 0) { q.vy = 0; q.vr = 0; } }); },
+    draw(g, S, t) { const tilt = S.kick > 0 ? -S.kick * .5 : 0; for (let i = 0; i < 7; i++) { const k = (t * 2 + i / 7) % 1; g.fillStyle = `rgba(255,${190 - k * 130},60,${.8 * (1 - k)})`; g.beginPath(); g.ellipse(S.cx + (i - 3) * S.sz * .14, S.cy + S.sz * .55 - k * S.sz * .3, S.sz * .06, S.sz * .14, 0, 0, 6.3); g.fill(); }
+      g.save(); g.translate(S.cx, S.cy + S.sz * .2); g.rotate(tilt); g.fillStyle = '#2a2830'; g.beginPath(); g.ellipse(0, 0, S.sz, S.sz * .38, 0, 0, 6.3); g.fill(); g.fillRect(S.sz * .95, -S.sz * .07, S.sz, S.sz * .14); g.fillStyle = '#3a3840'; g.beginPath(); g.ellipse(0, -S.sz * .04, S.sz * .86, S.sz * .3, 0, 0, 6.3); g.fill(); g.restore();
+      S.it.forEach(q => { g.save(); g.translate(S.cx + q.x * S.sz * 1.4, S.cy + S.sz * .14 + q.y); g.rotate(q.r); g.fillStyle = q.c; g.fillRect(-S.sz * .07, -S.sz * .04, S.sz * .14, S.sz * .08); g.restore(); });
+      g.font = '800 16px "Noto Sans KR",sans-serif'; g.fillStyle = '#fff'; g.textAlign = 'center'; g.fillText(`${S.n} / 6`, S.cx, S.cy + S.sz * 1.05); g.textAlign = 'left'; } }),
+  batter: cols => ({ title: '튀김옷 입히기', hint: '재료를 튀김옷 그릇에 콕 담갔다가 기름 솥으로 끌어 넣어요',
+    init(S) { S.bw = [S.cx - S.sz * .9, S.cy - S.sz * .1]; S.oil = [S.cx + S.sz * .9, S.cy - S.sz * .1]; S.it = cols.concat(cols).slice(0, 3).map((c, k) => ({ c, x: S.cx + (k - 1) * S.sz * .5, y: S.cy + S.sz * .85, hx: S.cx + (k - 1) * S.sz * .5, hy: S.cy + S.sz * .85, coat: 0, inOil: 0 })); S.drag = null; },
+    down(S, x, y) { S.drag = S.it.find(q => !q.inOil && near(x, y, q.x, q.y, 40)); },
+    move(S, x, y) { const q = S.drag; if (!q) return; q.x = x; q.y = y; if (!q.coat && near(x, y, S.bw[0], S.bw[1], S.sz * .4)) { q.coat = 1; E.noise(.1, .1, 900, 'bandpass'); S.pop(x, y - 30, '푹!'); } },
+    up(S) { const q = S.drag; S.drag = null; if (!q) return; if (q.coat && near(q.x, q.y, S.oil[0], S.oil[1], S.sz * .45)) { q.inOil = 1; q.x = S.oil[0] + rnd(-S.sz * .25, S.sz * .25); q.y = S.oil[1] + rnd(-6, 6); E.noise(.5, .25, 3000, 'highpass'); S.pop(q.x, q.y - 30, '치이익!'); for (let k = 0; k < 10; k++) S.P(q.x, q.y, rnd(-80, 80), rnd(-140, -40), 'rgba(255,240,180,.9)', rnd(1.5, 3), .6, 500); if (S.it.every(z => z.inOil)) { S.done = true; S.score = clamp(1.3 - S.t / 9, .5, 1); } } else if (!q.inOil) { if (!q.coat) S.pop(q.x, q.y - 30, '튀김옷 먼저!'); q.x = q.hx; q.y = q.hy; } },
+    draw(g, S, t) { g.fillStyle = '#e8e0d0'; g.beginPath(); g.ellipse(S.bw[0], S.bw[1], S.sz * .45, S.sz * .2, 0, 0, 6.3); g.fill(); g.fillStyle = '#fff6d8'; g.beginPath(); g.ellipse(S.bw[0], S.bw[1] - 4, S.sz * .38, S.sz * .15, 0, 0, 6.3); g.fill(); g.fillStyle = '#6a5a48'; g.font = '700 13px "Noto Sans KR",sans-serif'; g.textAlign = 'center'; g.fillText('튀김옷', S.bw[0], S.bw[1] + S.sz * .35);
+      g.fillStyle = '#2a2830'; g.beginPath(); g.ellipse(S.oil[0], S.oil[1], S.sz * .5, S.sz * .22, 0, 0, 6.3); g.fill(); g.fillStyle = '#e8b040'; g.beginPath(); g.ellipse(S.oil[0], S.oil[1] - 3, S.sz * .42, S.sz * .16, 0, 0, 6.3); g.fill(); for (let i = 0; i < 8; i++) { const k = (t * 1.5 + i / 8) % 1; g.fillStyle = `rgba(255,250,200,${.7 * (1 - k)})`; g.beginPath(); g.arc(S.oil[0] + Math.sin(i * 2.3) * S.sz * .3, S.oil[1] - 3 + Math.cos(i * 1.7) * S.sz * .08, 1.5 + k * 3, 0, 6.3); g.fill(); } g.fillStyle = '#6a5a48'; g.fillText('기름 솥', S.oil[0], S.oil[1] + S.sz * .38); g.textAlign = 'left';
+      S.it.forEach(q => { g.fillStyle = q.coat ? '#f4e0b0' : q.c; g.beginPath(); g.ellipse(q.x, q.y, S.sz * .14, S.sz * .09, .3, 0, 6.3); g.fill(); if (q.inOil) { g.fillStyle = '#e0a840'; g.beginPath(); g.ellipse(q.x, q.y, S.sz * .14, S.sz * .09, .3, 0, 6.3); g.fill(); } }); } }),
+  fryTime: () => ({ title: '튀기기', hint: '노릇노릇 황금색이 되면 하나씩 눌러 건져요',
+    init(S) { S.it = [0, 1, 2].map(k => ({ x: S.cx + (k - 1) * S.sz * .55, y: S.cy, d: -k * .25, sp: rnd(.22, .3), out: 0 })); },
+    update(S, dt) { S.it.forEach(q => { if (!q.out) { q.d += q.sp * dt; if (q.d > 1.15) { q.out = 1; q.sc = .3; S.pop(q.x, q.y - 40, '앗, 탔다!'); } } if (Math.random() < .2 && !q.out && q.d > 0) S.P(q.x + rnd(-20, 20), q.y - 10, rnd(-20, 20), rnd(-90, -40), 'rgba(255,250,210,.8)', rnd(1.5, 3), .5, -20); }); if (S.it.every(q => q.out) && !S.done) { S.done = true; S.score = S.it.reduce((a, q) => a + q.sc, 0) / 3; } },
+    down(S, x, y) { const q = S.it.find(z => !z.out && near(x, y, z.x, z.y, S.sz * .3)); if (!q || q.d < .2) return; q.out = 1; q.sc = q.d >= .65 && q.d <= .9 ? 1 : q.d > .9 ? .6 : clamp(q.d / .65, .3, .8); S.pop(q.x, q.y - 40, q.sc >= 1 ? '황금빛!' : q.sc > .6 ? '바삭' : '덜 익었어…'); SFX.pop(); },
+    draw(g, S, t) { g.fillStyle = '#2a2830'; g.beginPath(); g.ellipse(S.cx, S.cy + 10, S.sz * 1.3, S.sz * .45, 0, 0, 6.3); g.fill(); g.fillStyle = '#e8b040'; g.beginPath(); g.ellipse(S.cx, S.cy + 4, S.sz * 1.18, S.sz * .36, 0, 0, 6.3); g.fill(); for (let i = 0; i < 14; i++) { const k = (t * 1.8 + i / 14) % 1; g.fillStyle = `rgba(255,250,200,${.7 * (1 - k)})`; g.beginPath(); g.arc(S.cx + Math.sin(i * 2.3) * S.sz, S.cy + 4 + Math.cos(i * 1.7) * S.sz * .25, 2 + k * 4, 0, 6.3); g.fill(); }
+      S.it.forEach(q => { const d = clamp(q.d, 0, 1.2), col = d < .65 ? mix([244, 224, 176], [240, 190, 80], d / .65) : d < .9 ? [240, 190, 80] : mix([240, 190, 80], [90, 50, 20], (d - .9) / .3); const yy = q.out ? q.y - S.sz * .8 : q.y; g.fillStyle = css(col); g.beginPath(); g.ellipse(q.x, yy, S.sz * .2, S.sz * .12, .2, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,240,180,.7)'; for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(q.x + Math.cos(k * 1.9) * S.sz * .12, yy + Math.sin(k * 1.9) * S.sz * .06, 2, 0, 6.3); g.fill(); }
+        if (!q.out) { g.fillStyle = 'rgba(20,20,30,.45)'; rr2(g, q.x - 30, q.y + S.sz * .3, 60, 8, 4); g.fill(); g.fillStyle = 'rgba(140,230,130,.7)'; g.fillRect(q.x - 30 + 60 * .65, q.y + S.sz * .3, 60 * .25, 8); g.fillStyle = '#ff8a3a'; g.fillRect(q.x - 30 + 60 * clamp(q.d, 0, 1) - 2, q.y + S.sz * .3 - 3, 4, 14); } }); } }),
+  steam: cols => ({ title: '찌기', hint: '뚜껑을 찜기 위로 끌어 덮고, 김이 초록 칸일 때 눌러 열어요',
+    init(S) { S.lid = { x: S.cx + S.sz * 1.3, y: S.cy - S.sz * .9, on: 0 }; S.m = 0; S.drag = 0; },
+    down(S, x, y) { if (!S.lid.on && near(x, y, S.lid.x, S.lid.y, S.sz * .5)) S.drag = 1; else if (S.lid.on && S.m > .15 && near(x, y, S.cx, S.cy, S.sz * 1.1)) { S.done = true; S.score = S.m >= .7 && S.m <= .9 ? 1 : S.m > .9 ? .6 : clamp(S.m / .7, .3, .8); S.lid.on = 2; S.pop(S.cx, S.cy - S.sz, S.score >= 1 ? '딱 좋게 쪄졌어요!' : S.score > .6 ? '살짝 무르네' : '조금 덜 쪄졌어'); E.noise(.6, .2, 2000, 'highpass'); for (let k = 0; k < 20; k++) S.P(S.cx + rnd(-S.sz, S.sz) * .7, S.cy - S.sz * .3, rnd(-40, 40), rnd(-200, -80), 'rgba(255,255,255,.7)', rnd(6, 14), 1.2, -60); } },
+    move(S, x, y) { if (S.drag) { S.lid.x = x; S.lid.y = y; } },
+    up(S) { if (!S.drag) return; S.drag = 0; if (near(S.lid.x, S.lid.y, S.cx, S.cy - S.sz * .3, S.sz * .6)) { S.lid.on = 1; S.lid.x = S.cx; S.lid.y = S.cy - S.sz * .32; SFX.pop(); } },
+    update(S, dt) { if (S.lid.on === 1) { S.m += dt * .22; if (S.m > 1.1 && !S.done) { S.done = true; S.score = .45; S.pop(S.cx, S.cy - S.sz, '너무 오래 쪘어요…'); } if (Math.random() < .25 + S.m * .5) S.P(S.cx + rnd(-S.sz, S.sz) * .8, S.cy - S.sz * .45, rnd(-20, 20), rnd(-120, -60), 'rgba(255,255,255,.55)', rnd(5, 10), 1, -40); if (S.m > .7 && S.m < .9 && Math.random() < .05) E.tone(1800, .15, 'sine', .02); } },
+    draw(g, S, t) { for (let i = 0; i < 6; i++) { const k = (t * 2 + i / 6) % 1; g.fillStyle = `rgba(255,${190 - k * 130},60,${.7 * (1 - k)})`; g.beginPath(); g.ellipse(S.cx + (i - 2.5) * S.sz * .2, S.cy + S.sz * .75 - k * S.sz * .2, S.sz * .06, S.sz * .12, 0, 0, 6.3); g.fill(); }
+      g.fillStyle = '#c8a060'; g.beginPath(); g.ellipse(S.cx, S.cy + S.sz * .4, S.sz, S.sz * .32, 0, 0, 6.3); g.fill(); g.fillRect(S.cx - S.sz, S.cy - S.sz * .1, S.sz * 2, S.sz * .5); g.fillStyle = '#e0c080'; g.beginPath(); g.ellipse(S.cx, S.cy - S.sz * .1, S.sz, S.sz * .32, 0, 0, 6.3); g.fill(); g.strokeStyle = '#a07838'; g.lineWidth = 2; for (let i = -4; i <= 4; i++) { g.beginPath(); g.moveTo(S.cx + i * S.sz * .2, S.cy - S.sz * .1); g.lineTo(S.cx + i * S.sz * .2, S.cy + S.sz * .65); g.stroke(); }
+      if (S.lid.on !== 1) { cols.forEach((c, k) => { g.fillStyle = c; g.beginPath(); g.ellipse(S.cx + (k - (cols.length - 1) / 2) * S.sz * .4, S.cy - S.sz * .14, S.sz * .16, S.sz * .1, 0, 0, 6.3); g.fill(); }); }
+      if (S.lid.on !== 2) { g.save(); g.translate(S.lid.x, S.lid.y); g.fillStyle = '#d8b070'; g.beginPath(); g.ellipse(0, 0, S.sz * 1.02, S.sz * .36, 0, Math.PI, 0); g.fill(); g.fillStyle = '#c09050'; g.beginPath(); g.ellipse(0, 0, S.sz * 1.02, S.sz * .12, 0, 0, 6.3); g.fill(); g.fillStyle = '#8a6a3a'; g.beginPath(); g.ellipse(0, -S.sz * .34, S.sz * .12, S.sz * .05, 0, 0, 6.3); g.fill(); g.restore(); }
+      if (S.lid.on === 1) { const bx = S.cx + S.sz * 1.35, by = S.cy - S.sz * .7, bh = S.sz * 1.4; g.fillStyle = 'rgba(20,20,30,.45)'; rr2(g, bx - 16, by - 6, 32, bh + 12, 14); g.fill(); g.fillStyle = 'rgba(140,230,130,.6)'; g.fillRect(bx - 10, by + bh * (1 - .9), 20, bh * .2); g.fillStyle = '#7ac0ff'; g.fillRect(bx - 10, by + bh * (1 - Math.min(1, S.m)) - 3, 20, 6); g.fillStyle = '#fff'; g.font = '700 12px "Noto Sans KR",sans-serif'; g.textAlign = 'center'; g.fillText('김', bx, by + bh + 26); g.textAlign = 'left'; } } }),
+  grill: cols => { const m = MG.flip(cols[0]); const d0 = m.draw; m.title = '굽기'; m.hint = '노릇노릇 초록 칸일 때 눌러 뒤집어요 (2번)'; m.draw = (g, S, t) => { for (let i = 0; i < 9; i++) { const k = (t * 2 + i / 9) % 1; g.fillStyle = `rgba(255,${170 - k * 120},40,${.8 * (1 - k)})`; g.beginPath(); g.ellipse(S.cx + (i - 4) * S.sz * .2, S.cy + S.sz * .55 - k * S.sz * .25, S.sz * .07, S.sz * .12, 0, 0, 6.3); g.fill(); } d0(g, S, t); g.strokeStyle = '#3a3a40'; g.lineWidth = 5; for (let i = -4; i <= 4; i++) { g.beginPath(); g.moveTo(S.cx + i * S.sz * .2, S.cy - S.sz * .1); g.lineTo(S.cx + i * S.sz * .2 + S.sz * .05, S.cy + S.sz * .5); g.stroke(); } }; return m; }
+};
+const METHOD_STEPS = {
+  soup: (ds) => [MG.stir(ds.col), MG.heat(ds.col)],
+  saute: (ds) => [MG2.saute(ds.cols)],
+  fry: (ds) => [MG2.batter(ds.cols), MG2.fryTime()],
+  steam: (ds) => [MG2.steam(ds.cols)],
+  grill: (ds) => [MG2.grill(ds.cols)],
+  salad: () => [MG.toss()]
+};
+function toolIcon(g, id, x, y, s) {
+  g.save(); g.translate(x, y);
+  if (id === 'soup') { g.fillStyle = '#3a3840'; g.beginPath(); g.ellipse(0, -s * .1, s * .45, s * .14, 0, 0, 6.3); g.fill(); g.fillRect(-s * .45, -s * .1, s * .9, s * .4); g.fillRect(-s * .6, -s * .05, s * .15, s * .06); g.fillRect(s * .45, -s * .05, s * .15, s * .06); }
+  else if (id === 'saute') { g.fillStyle = '#3a3840'; g.beginPath(); g.ellipse(-s * .1, 0, s * .4, s * .14, 0, 0, 6.3); g.fill(); g.fillRect(s * .25, -s * .03, s * .4, s * .06); }
+  else if (id === 'fry') { g.fillStyle = '#3a3840'; g.fillRect(-s * .4, -s * .15, s * .8, s * .4); g.fillStyle = '#e8b040'; g.beginPath(); g.ellipse(0, -s * .15, s * .4, s * .1, 0, 0, 6.3); g.fill(); g.strokeStyle = '#9aa0ac'; g.lineWidth = 2; g.strokeRect(-s * .2, -s * .4, s * .4, s * .25); }
+  else if (id === 'steam') { g.fillStyle = '#c8a060'; g.fillRect(-s * .4, -s * .1, s * .8, s * .3); g.fillStyle = '#d8b070'; g.beginPath(); g.ellipse(0, -s * .1, s * .42, s * .2, 0, Math.PI, 0); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.ellipse(-s * .1, -s * .45, s * .08, s * .12, 0, 0, 6.3); g.ellipse(s * .12, -s * .5, s * .07, s * .1, 0, 0, 6.3); g.fill(); }
+  else if (id === 'grill') { g.strokeStyle = '#3a3840'; g.lineWidth = 3; g.strokeRect(-s * .4, -s * .25, s * .8, s * .45); for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(i * s * .15, -s * .25); g.lineTo(i * s * .15, s * .2); g.stroke(); } g.fillStyle = 'rgba(255,140,40,.7)'; g.beginPath(); g.ellipse(0, s * .3, s * .3, s * .06, 0, 0, 6.3); g.fill(); }
+  else if (id === 'salad') { g.fillStyle = '#eef4e4'; g.beginPath(); g.moveTo(-s * .45, -s * .05); g.quadraticCurveTo(0, s * .45, s * .45, -s * .05); g.fill(); g.fillStyle = '#8fd46a'; for (let i = 0; i < 4; i++) { g.beginPath(); g.ellipse((i - 1.5) * s * .2, -s * .08, s * .12, s * .07, i, 0, 6.3); g.fill(); } }
+  g.restore();
+}
+
+/* ---- 같이 먹기 ---- */
+const LIKE = { f_cha: 'saute', f_miri: 'steam', f_jang: 'salad', f_yu: 'fry', f_esk: 'soup', f_ahnk: 'grill', f_hayoung: 'fry', f_ahn: '*', f_gongyu: '*' };
+const MEAL_LINE = {
+  f_cha: { love: ['볶음은 역시 센 불이지^^', '이거 짜장 소스 조금만 넣으면 완벽하겠다^^'], ok: ['오~ 맛있네^^', '한 입만 더^^'] },
+  f_miri: { love: ['…부드럽네요. 근거 있는 맛이에요.', '찐 요리 좋아해요. …고마워요.'], ok: ['…괜찮네요.', '(조용히 한 입 더 먹는다)'] },
+  f_jang: { love: ['칼로리 걱정 없는 완벽한 맛~', '이 샐러드, 나처럼 완벽해~'], ok: ['음~ 나쁘지 않아~', '플레이팅만 조금 더 예쁘면~'] },
+  f_yu: { love: ['fried는 언제나 delicious입니다!', 'Oh my ong! 바삭바삭!'], ok: ['Good job입니다!', 'team dinner 최고!'] },
+  f_esk: { love: ['…따뜻하다. 고향 생각이 난다.', '…국물. 좋다.'], ok: ['…맛있다.', '…(고개를 끄덕인다)'] },
+  f_ahnk: { love: ['허허, 불맛이 제대로구먼.', '이 맛에 낚시하지, 허허.'], ok: ['허허, 좋구먼.', '잘 먹겠네.'] },
+  f_hayoung: { love: ['…바삭한 거 최고예요. 펩시 제로만 있으면.', '튀김은 진리예요.'], ok: ['…맛있네요.', '(오물오물)'] },
+  f_ahn: { love: ['한 그릇 더!', '힘이 솟는다!'], ok: ['한 그릇 더!', '맛있다!'] },
+  f_gongyu: { love: ['회사 밥보다 백 배 맛있어요…', '이런 게 행복이지…'], ok: ['공짜 밥 최고예요!', '칼퇴하고 이거 먹고 싶다…'] }
+};
+function openMeal(host, ds, onEnd) {
+  const d = document.createElement('div'); d.className = 'fz-meal'; host.append(d);
+  d.innerHTML = '<canvas></canvas><div class="mt"><b></b><span>같이 먹는 중</span></div><button type="button" class="go">잘 먹었습니다!</button>';
+  $q(d, '.mt b').textContent = ds.name;
+  const c = $q(d, 'canvas'); let [W, H, D] = fitCanvas(c); const g = c.getContext('2d'); let T = 0, raf = 0, tPrev = performance.now(), left = 1;
+  const pool = FP.slice().sort(() => Math.random() - .5), fav = FP.filter(p => LIKE[p.id] === ds.m);
+  const guests = [...new Set([...(fav.length ? [pick(fav)] : []), ...pool])].slice(0, 4);
+  const bond = LSF.get('bond', {});
+  const seats = guests.map((p, i) => ({ p, x: W * (.2 + i * .2), y: H * .5, bite: 0, say: '', sayT: 0, heart: 0, next: 1 + i * 1.6 + rnd(0, .6) }));
+  const bubbles = [];
+  const talk = (s, extra) => { const love = LIKE[s.p.id] === ds.m || LIKE[s.p.id] === '*' && Math.random() < .5 || ds.sp; const L = MEAL_LINE[s.p.id] || { love: ['맛있다!'], ok: ['맛있다!'] }; s.say = extra || (ds.name === '숲속 짜장면' && s.p.id === 'f_cha' ? '이게… 숲속 짜장면이라고…? (눈물)^^' : pick(love ? L.love : L.ok)); s.sayT = 3.2; if (love) s.heart = 1.2; };
+  c.addEventListener('pointerdown', e => { E.ac(); const s = seats.find(q => Math.abs(e.clientX - q.x) < 50 && Math.abs(e.clientY - (q.y - 50)) < 80); if (s) { s.bite = .6; SFX.pop(); talk(s, pick(['응? 너도 먹어^^', '같이 먹으니까 더 맛있다!', '다음엔 뭐 해 줄 거야?', '(냠냠)'])); } });
+  const end = () => { cancelAnimationFrame(raf); guests.forEach(p => bond[p.id] = (bond[p.id] || 0) + 1); LSF.set('bond', bond); d.remove(); onEnd && onEnd(guests); };
+  $q(d, '.go').onclick = end;
+  const night = E.preset === 'night', dusk = E.preset === 'dusk';
+  const loop = () => {
+    const tn = performance.now(), dt = Math.min(.05, (tn - tPrev) / 1000); tPrev = tn; T += dt;
+    g.setTransform(D, 0, 0, D, 0, 0);
+    let gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, night ? '#0e1a2e' : dusk ? '#e89a7a' : '#cfe6a8'); gr.addColorStop(.55, night ? '#1a2a24' : dusk ? '#8a5a6a' : '#7aa860'); gr.addColorStop(1, night ? '#0c140c' : '#3a5a2a'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 6; i++) { g.fillStyle = night ? 'rgba(10,20,20,.7)' : 'rgba(40,80,50,.45)'; g.fillRect(W * (i / 5) - 20 + Math.sin(i) * 30, 0, 40 + i % 2 * 30, H * .55); g.beginPath(); g.ellipse(W * (i / 5) + Math.sin(i) * 30, H * .05, 140, 90, 0, 0, 6.3); g.fill(); }
+    // 줄 등불
+    g.strokeStyle = 'rgba(40,30,20,.7)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(0, H * .12); g.quadraticCurveTo(W / 2, H * .26, W, H * .12); g.stroke();
+    for (let i = 1; i < 10; i++) { const x = W * i / 10, y = H * .12 + Math.sin(i / 10 * Math.PI) * H * .14 * .5 * 2 * (1 - Math.abs(i / 10 - .5)) ; const fl = .85 + .15 * Math.sin(T * 6 + i); g.save(); g.globalCompositeOperation = night || dusk ? 'lighter' : 'source-over'; gl(g, x, y + 10, 26, '#ff9a3a', (night ? .5 : .25) * fl); g.restore(); g.fillStyle = ['#ffd27a', '#ff9f7a', '#ffe8a0'][i % 3]; g.beginPath(); g.ellipse(x, y + 10, 6, 8, 0, 0, 6.3); g.fill(); }
+    if (night) for (let i = 0; i < 24; i++) gl(g, (i * 137 % W) + Math.sin(T + i) * 20, H * .15 + (i * 61 % (H * .5)), 9, '#e8ff9a', .5 * (.5 + .5 * Math.sin(T * 2 + i * 1.3)));
+    // 손님들 (식탁 뒤)
+    for (const s of seats) { s.next -= dt; if (s.next <= 0) { s.next = rnd(2.4, 4.2); s.bite = .6; left = Math.max(.15, left - .045); E.tone(500 + Math.random() * 200, .06, 'sine', .04); if (Math.random() < .55 || !s.said) { s.said = 1; talk(s); } }
+      s.bite = Math.max(0, s.bite - dt); s.sayT -= dt; s.heart = Math.max(0, s.heart - dt * .6);
+      g.save(); g.translate(s.x, s.y - (s.bite > 0 ? Math.sin(s.bite / .6 * Math.PI) * 8 : 0)); g.scale(2.4, 2.4); CHIBI.draw(g, Object.assign({}, s.p, { x: 0, y: 0, s: 1, pose: 'bowl', dir: s.x < W / 2 ? 1 : -1, talking: s.sayT > 0, jumpT: 0, mode: 'stay' }), T); g.restore();
+      if (s.heart > 0) { const k = 1.2 - s.heart; g.fillStyle = `rgba(255,90,120,${Math.min(1, s.heart)})`; g.save(); g.translate(s.x + 20, s.y - 120 - k * 40); g.scale(1 + k * .3, 1 + k * .3); g.beginPath(); g.moveTo(0, 6); g.bezierCurveTo(-12, -4, -6, -14, 0, -6); g.bezierCurveTo(6, -14, 12, -4, 0, 6); g.fill(); g.restore(); }
+      const b = bond[s.p.id] || 0; g.fillStyle = 'rgba(255,253,245,.85)'; g.font = '700 12px "Noto Sans KR",sans-serif'; g.textAlign = 'center'; const nm = `${s.p.name}${b ? ' · 정 ' + b : ''}`; const tw = g.measureText(nm).width; rr2(g, s.x - tw / 2 - 8, s.y + 8, tw + 16, 20, 10); g.fill(); g.fillStyle = '#2a2238'; g.fillText(nm, s.x, s.y + 22); g.textAlign = 'left'; }
+    // 식탁
+    g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(W / 2 + 8, H * .74 + 12, W * .44, H * .17, 0, 0, 6.3); g.fill();
+    g.fillStyle = '#9a6a3e'; g.beginPath(); g.ellipse(W / 2, H * .72, W * .44, H * .17, 0, 0, 6.3); g.fill(); g.fillStyle = '#b8824e'; g.beginPath(); g.ellipse(W / 2, H * .7, W * .43, H * .15, 0, 0, 6.3); g.fill(); g.strokeStyle = 'rgba(90,50,20,.3)'; g.lineWidth = 2; for (let i = 1; i < 5; i++) { g.beginPath(); g.ellipse(W / 2, H * .7, W * .43 * i / 5, H * .15 * i / 5, 0, 0, 6.3); g.stroke(); }
+    seats.forEach(s => { g.fillStyle = '#f4ece0'; g.beginPath(); g.ellipse(s.x + (W / 2 - s.x) * .12, H * .66, 28, 9, 0, 0, 6.3); g.fill(); g.fillStyle = css(hx(ds.col || ds.cols[0]), .8); g.beginPath(); g.ellipse(s.x + (W / 2 - s.x) * .12, H * .66, 14 * (1 - left * .4), 4, 0, 0, 6.3); g.fill(); g.strokeStyle = '#c8a070'; g.lineWidth = 2; g.beginPath(); g.moveTo(s.x + (W / 2 - s.x) * .12 + 26, H * .66 - 4); g.lineTo(s.x + (W / 2 - s.x) * .12 + 40, H * .66 + 2); g.stroke(); });
+    drawMeal(g, ds, W / 2, H * .7, Math.min(W * .16, 150), T, left);
+    // 말풍선
+    for (const s of seats) if (s.sayT > 0 && s.say) { g.globalAlpha = Math.min(1, s.sayT * 2); g.font = '700 14px "Noto Sans KR",sans-serif'; const tw = Math.min(W * .3, g.measureText(s.say).width); const bx = clamp(s.x - tw / 2 - 12, 8, W - tw - 32), by = s.y - 175; g.fillStyle = 'rgba(255,253,245,.97)'; rr2(g, bx, by, tw + 24, 36, 18); g.fill(); g.beginPath(); g.moveTo(s.x - 6, by + 34); g.lineTo(s.x, by + 46); g.lineTo(s.x + 8, by + 34); g.fill(); g.fillStyle = '#2a2238'; g.fillText(s.say, bx + 12, by + 23, tw); g.globalAlpha = 1; }
+    const v2 = g.createRadialGradient(W / 2, H / 2, H * .3, W / 2, H / 2, Math.max(W, H) * .8); v2.addColorStop(0, 'rgba(0,0,0,0)'); v2.addColorStop(1, night ? 'rgba(0,0,10,.5)' : 'rgba(20,20,10,.3)'); g.fillStyle = v2; g.fillRect(0, 0, W, H);
+    raf = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+/* ---- 요리 화면 ---- */
 function openCook() {
   if (ov) return; E.ac(); const d = ov = overlay('cook'), c = $q(d, 'canvas'), hint = $q(d, '.fz-hint');
-  d.insertAdjacentHTML('beforeend', '<div class="fz-pantry"><div class="slots"></div><ul></ul><div class="r"><button type="button" data-clear>비우기</button><button type="button" data-cook class="go">요리 시작!</button><button type="button" data-bag>가방</button></div></div><div class="fz-card" hidden></div>');
+  d.insertAdjacentHTML('beforeend', '<div class="fz-pantry"><div class="slots"></div><ul></ul><div class="r"><button type="button" data-clear>비우기</button><button type="button" data-cook class="go">조리 도구 고르기</button><button type="button" data-bag>가방</button></div></div><div class="fz-card" hidden></div><div class="fz-sheet" hidden></div>');
   let [W, H, D] = fitCanvas(c); const g = c.getContext('2d'); let T = 0, raf = 0, tPrev = performance.now(), busy = false;
   let pot2 = [];
-  hint.textContent = '재료를 1~3개 골라 요리 시작! 을 눌러요';
+  const H0 = '재료를 1~3개 골라 도마에 올리고, 조리 도구를 골라요';
+  hint.textContent = H0;
   const keyOf = k => k[0] === 'c' ? CROPS[CROPI[k.slice(2)]] : FISH[+k.slice(2)];
-  const colOf = k => k[0] === 'c' ? CROPS[CROPI[k.slice(2)]].col : FISH[+k.slice(2)].c1;
   const render = () => { const v = inv(), Pn = $q(d, '.fz-pantry'), used = k => pot2.filter(x => x === k).length;
     $q(Pn, '.slots').innerHTML = [0, 1, 2].map(i => pot2[i] ? `<button type="button" data-rm="${i}">${keyOf(pot2[i]).name}</button>` : '<span>빈칸</span>').join('');
     const items = [...CROPS.filter(cr => v.c[cr.id]).map(cr => ['c:' + cr.id, cr.name, v.c[cr.id]]), ...FISH.filter(f => v.f[f.i]).map(f => ['f:' + f.i, f.name, v.f[f.i]])];
@@ -3109,27 +3279,32 @@ function openCook() {
     Pn.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { if (busy) return; pot2.splice(+b.dataset.rm, 1); render(); }); };
   render();
   $q(d, '[data-clear]').onclick = () => { if (!busy) { pot2 = []; render(); } };
-  $q(d, '[data-bag]').onclick = () => bagView(d);
-  $q(d, '[data-cook]').onclick = async () => {
+  $q(d, '[data-bag]').onclick = () => bagView(d, ds => meal(ds));
+  const meal = (ds) => { busy = true; openMeal(d, ds, guests => { busy = false; const v = inv(); if (v.d[ds.id] > 0) { v.d[ds.id]--; if (!v.d[ds.id]) delete v.d[ds.id]; } saveInv(v); E.toast(guests.map(p => p.name).join(', ') + '과(와) 맛있게 먹었어요!'); render(); }); };
+  $q(d, '[data-cook]').onclick = () => {
     if (busy) return; if (!pot2.length) { E.toast('재료를 먼저 골라 주세요.'); return; }
-    busy = true; const k = { has: x => pot2.includes(x), fish: pot2.some(x => x[0] === 'f') }, ds = DISHES.find(x => x.m(k)), cols = pot2.map(colOf);
-    const steps = [].concat(...pot2.map(prepSteps));
-    const kind = DISH_KIND[ds.id] || 'stir';
-    if (kind === 'stir') steps.push(MG.stir(ds.col), MG.heat(ds.col)); else if (kind === 'heat') steps.push(MG.heat(ds.col), MG.stir(ds.col)); else if (kind === 'flip') steps.push(MG.flip(ds.col)); else if (kind === 'toss') steps.push(MG.toss());
-    steps.push(MG.plate(cols.concat(['#8fd46a', '#ffd84a']).slice(0, 3), ds));
+    const sh = $q(d, '.fz-sheet'); sh.hidden = false;
+    sh.innerHTML = `<b>어떻게 요리할까요?</b><div class="gr">${METHODS.map(m => { const ds = makeDish(pot2, m.id); return `<button type="button" data-m="${m.id}"><canvas width="90" height="70"></canvas><span>${m.name} · ${m.tool}</span><small>${ds.name}</small></button>`; }).join('')}</div><button type="button" class="cl">재료 다시 고르기</button>`;
+    sh.querySelectorAll('[data-m]').forEach(b => { const x = $q(b, 'canvas').getContext('2d'); toolIcon(x, b.dataset.m, 45, 40, 70); b.onclick = () => { sh.hidden = true; cook(b.dataset.m); }; });
+    $q(sh, '.cl').onclick = () => sh.hidden = true;
+  };
+  const cook = async mid => {
+    busy = true; const ds = makeDish(pot2, mid);
+    const steps = [].concat(...pot2.map(prepSteps), METHOD_STEPS[mid](ds));
+    steps.push(MG.plate(ds.cols.concat(['#8fd46a', '#ffd84a']).slice(0, 3), Object.assign({}, ds, { id: 'x' })));
+    const plateStep = steps[steps.length - 1]; plateStep.draw = (g2, S, t) => { drawMeal(g2, ds, S.cx, S.cy, S.sz * 1.1, t); for (const q of S.g) { if (!q.on) { const k = .5 + .5 * Math.sin(t * 5); g2.strokeStyle = `rgba(255,240,150,${.5 + k * .5})`; g2.lineWidth = 3; g2.beginPath(); g2.arc(q.tx, q.ty, 14 + k * 4, 0, 6.3); g2.stroke(); } g2.fillStyle = q.c; for (let k2 = 0; k2 < 3; k2++) { g2.beginPath(); g2.arc(q.x + (k2 - 1) * 8, q.y + Math.sin(k2) * 4, 9, 0, 6.3); g2.fill(); } } };
     $q(d, '.fz-pantry').classList.add('dim'); hint.textContent = '';
     const sc = await runStage(d, steps, { coach: true, bg: bgKitchen });
     const avg = sc.reduce((a, b) => a + b, 0) / sc.length, stars = avg >= .85 ? 3 : avg >= .6 ? 2 : 1;
     const v = inv(); pot2.forEach(x => { if (x[0] === 'c') v.c[x.slice(2)]--; else v.f[x.slice(2)]--; }); Object.keys(v.c).forEach(x => { if (v.c[x] <= 0) delete v.c[x]; }); Object.keys(v.f).forEach(x => { if (v.f[x] <= 0) delete v.f[x]; });
-    const first = !v.d[ds.id]; v.d[ds.id] = (v.d[ds.id] || 0) + 1; v.best = v.best || {}; v.best[ds.id] = Math.max(v.best[ds.id] || 0, stars); saveInv(v); SFX.chime(); setTimeout(() => SFX.sparkle(), 300);
-    const who = ds.id === 'jjajang' ? 'f_cha' : pick(Object.keys(REACT)), wp = FP.find(p => p.id === who);
-    const chef = stars === 3 ? '완벽해! 마라본색에 메뉴로 올려도 되겠어^^' : stars === 2 ? '아주 좋아~ 다음엔 별 세 개 가자^^' : '처음엔 다 그래^^ 맛은 마음이야!';
+    v.dm = v.dm || {}; const first = !v.dm[ds.id]; v.dm[ds.id] = { name: ds.name, m: ds.m, cols: ds.cols, col: ds.col, desc: ds.desc, sp: ds.sp || 0, best: Math.max((v.dm[ds.id] || {}).best || 0, stars) }; v.d[ds.id] = (v.d[ds.id] || 0) + 1; saveInv(v); SFX.chime(); setTimeout(() => SFX.sparkle(), 300);
+    const chef = stars === 3 ? '완벽해! 마라본색 메뉴로 올려도 되겠어^^' : stars === 2 ? '아주 좋아~ 다음엔 별 세 개 가자^^' : '처음엔 다 그래^^ 맛은 마음이야!';
     const card = $q(d, '.fz-card'); card.hidden = false;
-    card.innerHTML = `<canvas width="360" height="200"></canvas><div class="stars">${[1, 2, 3].map(n => `<i class="${n <= stars ? 'on' : ''}">★</i>`).join('')}</div><b>${ds.name}</b><span class="rar r${first ? 3 : 1}">${first ? '새로운 요리!' : '또 만들었어요'}</span><p>${ds.desc}</p><p class="re"><b>마라온 셰프</b>${chef}</p><p class="re"><b>${wp.name}</b>${ds.id === 'jjajang' ? '이게… 숲속 짜장면이라고…? (눈물)^^' : pick(REACT[who])}</p><div class="r"><button type="button" data-b>가방</button><button type="button" data-again>또 요리하기</button></div>`;
-    const cc = $q(card, 'canvas'), cg = cc.getContext('2d'); let t0 = 0; const anim = () => { if (card.hidden || !cc.isConnected) return; t0 += 1 / 60; cg.clearRect(0, 0, 360, 200); const gr = cg.createRadialGradient(180, 110, 10, 180, 110, 170); gr.addColorStop(0, 'rgba(255,236,190,.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cg.fillStyle = gr; cg.fillRect(0, 0, 360, 200); drawDish(cg, ds, 180, 110 + Math.sin(t0 * 2) * 3, 80, t0, cols); requestAnimationFrame(anim); }; anim();
-    const reset = () => { card.hidden = true; pot2 = []; busy = false; $q(d, '.fz-pantry').classList.remove('dim'); hint.textContent = '재료를 1~3개 골라 요리 시작! 을 눌러요'; render(); };
-    $q(card, '[data-again]').onclick = reset; $q(card, '[data-b]').onclick = () => { reset(); bagView(d); };
-    if (wp) setTimeout(() => E.say(wp, ds.id === 'jjajang' ? '숲속 짜장면…^^' : '냠냠!', 2400), 200);
+    card.innerHTML = `<canvas width="360" height="200"></canvas><div class="stars">${[1, 2, 3].map(n => `<i class="${n <= stars ? 'on' : ''}">★</i>`).join('')}</div><b>${ds.name}</b><span class="rar r${first ? 3 : 1}">${MI[mid].name}${first ? ' · 새로운 요리!' : ''}</span><p>${ds.desc}</p><p class="re"><b>마라온 셰프</b>${chef}</p><div class="r"><button type="button" data-again>또 요리하기</button><button type="button" data-eat class="eat">싸이 사람들과 같이 먹기</button></div>`;
+    const cc = $q(card, 'canvas'), cg = cc.getContext('2d'); let t0 = 0; const anim = () => { if (card.hidden || !cc.isConnected) return; t0 += 1 / 60; cg.clearRect(0, 0, 360, 200); const gr = cg.createRadialGradient(180, 110, 10, 180, 110, 170); gr.addColorStop(0, 'rgba(255,236,190,.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cg.fillStyle = gr; cg.fillRect(0, 0, 360, 200); drawMeal(cg, ds, 180, 120 + Math.sin(t0 * 2) * 3, 82, t0); requestAnimationFrame(anim); }; anim();
+    const reset = () => { card.hidden = true; pot2 = []; busy = false; $q(d, '.fz-pantry').classList.remove('dim'); hint.textContent = H0; render(); };
+    $q(card, '[data-again]').onclick = reset;
+    $q(card, '[data-eat]').onclick = () => { reset(); meal(ds); };
   };
   const close = () => { cancelAnimationFrame(raf); d.remove(); ov = null; };
   $q(d, '.fz-x').onclick = close;
@@ -3260,6 +3435,14 @@ css2.textContent = `
 .fz-stage .st-h{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);margin:0;padding:10px 18px;border-radius:999px;background:rgba(20,18,30,.6);color:#fff8e8;font:600 15px "Noto Sans KR",sans-serif;white-space:nowrap;pointer-events:none;max-width:calc(100vw - 140px);overflow:hidden;text-overflow:ellipsis}
 .fz-stage .st-skip{position:absolute;right:14px;bottom:max(18px,env(safe-area-inset-bottom));min-height:44px;padding:0 16px;border-radius:22px;border:0;background:rgba(255,253,245,.85);color:#6a6080;font:700 13px "Noto Sans KR",sans-serif}
 .fz-card .stars{font-size:30px;letter-spacing:4px;margin-top:2px}.fz-card .stars i{font-style:normal;color:#d8d0c0}.fz-card .stars i.on{color:#ffc83a;text-shadow:0 2px 0 #c89010}
+.fz-meal{position:absolute;inset:0;z-index:6;font-family:"Noto Sans KR",sans-serif}
+.fz-meal>canvas{position:absolute;inset:0;width:100%;height:100%}
+.fz-meal .mt{position:absolute;left:50%;top:max(14px,env(safe-area-inset-top));transform:translateX(-50%);background:rgba(255,253,245,.94);border-radius:999px;padding:8px 18px;text-align:center;color:#2a2238;white-space:nowrap}
+.fz-meal .mt b{font-size:16px;margin-right:8px}.fz-meal .mt span{font-size:12px;color:#8a8098}
+.fz-meal .go{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);min-height:48px;padding:0 28px;border-radius:24px;border:0;background:#e86a3a;color:#fff;font:800 16px "Noto Sans KR",sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.3);cursor:pointer}
+.fz-card button.eat{background:#e86a3a;color:#fff}
+.fz-detail ul.dishes{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}.fz-detail li.dish span{min-width:0}.fz-detail li .eat{min-height:40px;padding:0 12px;border-radius:10px;border:0;background:#e86a3a;color:#fff;font:700 13px "Noto Sans KR",sans-serif;cursor:pointer}
+.fz-detail .in>button.cl{display:block;margin:12px auto 0;min-height:44px;padding:0 26px;border-radius:12px;border:0;background:#2a2238;color:#fff;font:700 15px "Noto Sans KR",sans-serif}
 .fz-wipe{position:fixed;inset:0;z-index:90;pointer-events:none;background:radial-gradient(circle at 50% 55%,#fffdf0 0%,#fff6c8 30%,rgba(255,246,200,.0) 60%);background-size:10% 10%;background-position:center;background-repeat:no-repeat;opacity:0;transition:opacity .5s,background-size 1.2s cubic-bezier(.6,0,.3,1)}
 .fz-wipe.on{opacity:1;background-size:400% 400%}
 .fz-wipe.off{opacity:0;transition:opacity 1.4s ease}
