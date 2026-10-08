@@ -381,6 +381,7 @@ table.ct{width:100%;border-collapse:collapse;font-size:14px}
 .ed-pick img{width:56px;height:56px}
 .ccf .ed{border:0}
 .ccm li.rep{padding-left:calc(12px + var(--d,1) * 18px);background:var(--soft);border-bottom-color:transparent;margin-top:-1px}
+.ccm li.gone .m span{font-size:13px;color:var(--ink-2);font-style:italic}
 .ccm .to{font-size:12px;font-weight:700;color:#5b7cfa;margin-right:2px}
 .ccm .opb{font-style:normal;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;background:var(--soft);border:1px solid var(--cl);color:var(--ink-2);margin:0 4px 0 -2px}
 label.nk{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);margin-right:auto}
@@ -1611,6 +1612,8 @@ function rich(s) {
 const metaOf = b => { b = String(b || ''); let re = null, nm = '', m; for (let k = 0; k < 3; k++) { if ((m = /^\[\[re:([^\]]+)\]\]/.exec(b))) { re = m[1]; b = b.slice(m[0].length); } else if ((m = /^\[\[nm:([^\]\n]{1,16})\]\]/.exec(b))) { nm = m[1]; b = b.slice(m[0].length); } else break; } return { re, nm, text: b }; };
 const reOf = b => metaOf(b).re;
 const nmOf = b => metaOf(b).nm;
+const DEL_T = '[[del]]', isDelC = c => metaOf(c.body).text === DEL_T;
+const cntC = p => { const d = typeof mem !== 'undefined' && mem.pd && mem.pd[p.id]; return d && Array.isArray(d.comments) ? d.comments.filter(c => !isDelC(c)).length : p.comments.length; };
 const noRe = b => metaOf(b).text;
 const plain = s => String(s || '').replace(/\[\[(re|nm):[^\]]*\]\]/g, '').replace(TOK, '').replace(/\s+/g, ' ').trim();
 const NICK_KEY = 'psi.nick.v1';
@@ -1860,7 +1863,7 @@ function viewBoard(fresh) {
   const pins = [], rest = l.filter(p => !fx || p.id !== fx.id).sort((a, b) => b.t - a.t);
   const pages = Math.max(1, Math.ceil(rest.length / PAGE)); bpage = Math.min(bpage, pages);
   const slice = rest.slice((bpage - 1) * PAGE, bpage * PAGE), total = rest.length;
-  const row = (p, no) => `<tr class="${isNotice(p) ? 'nt' : ''}"><td class="num">${no}</td><td class="t"><a href="#/board/${p.id}" data-pid="${p.id}">${isNotice(p) ? '<span class="pn">공지</span> ' : `<small>${esc(Cats.name(p.cat))}</small>`}${esc(p.title)}${hasPic(p.body) ? PIC : ''}${p.comments.length ? `<em>[${p.comments.length}]</em>` : ''}${p.sample ? ' <span class="chip" style="font-size:11px;padding:0 6px">예시</span>' : ''}</a></td><td class="au">${esc(nmOf(p.body) || '익명')}</td><td class="dt">${cdate(p.t)}</td><td class="vc" data-l="조회 ">${p.views || 0}</td><td class="lk" data-l="좋아요 ">${p.likes}</td></tr>`;
+  const row = (p, no) => `<tr class="${isNotice(p) ? 'nt' : ''}"><td class="num">${no}</td><td class="t"><a href="#/board/${p.id}" data-pid="${p.id}">${isNotice(p) ? '<span class="pn">공지</span> ' : `<small>${esc(Cats.name(p.cat))}</small>`}${esc(p.title)}${hasPic(p.body) ? PIC : ''}${cntC(p) ? `<em>[${cntC(p)}]</em>` : ''}${p.sample ? ' <span class="chip" style="font-size:11px;padding:0 6px">예시</span>' : ''}</a></td><td class="au">${esc(nmOf(p.body) || '익명')}</td><td class="dt">${cdate(p.t)}</td><td class="vc" data-l="조회 ">${p.views || 0}</td><td class="lk" data-l="좋아요 ">${p.likes}</td></tr>`;
   const nums = []; for (let i = Math.max(1, bpage - 2); i <= Math.min(pages, bpage + 2); i++) nums.push(i);
   main.innerHTML = cafeShell(`
     <div class="ctb"><h1>${esc(title)}</h1><span>글 ${l.length}개</span></div>
@@ -1891,19 +1894,21 @@ function viewPost(id) {
     const nick = nickOf(p), byId = {}; p.comments.forEach(c => { byId[String(c.id)] = c; });
     const parOf = c => { const r = reOf(c.body); return r && byId[r] && r !== String(c.id) ? r : null; }, kids = {};
     p.comments.forEach(c => { const r = parOf(c); if (r) (kids[r] = kids[r] || []).push(c); });
-    const one = (c, d) => { const sub = d > 0, pc = sub ? byId[parOf(c)] : null; return `<li data-cid="${esc(c.id)}" class="${sub ? 'rep' : ''}${c.pend ? ' pend' : ''}" style="--d:${Math.min(d, 4)}"><div class="m">${sub ? '<i class="ra" aria-hidden="true">↳</i>' : ''}${nick(c.author, nmOf(c.body))}${d > 1 && pc ? `<span class="to">@${esc(nick.txt(pc.author, nmOf(pc.body)))}</span>` : ''}<span>${cdate(c.t)}${c.edited ? ' · 수정됨' : ''}${c.pend ? ' · 올리는 중…' : ''}</span><span class="ca">${c.pend ? '' : '<button type="button" class="ce" data-re>답글</button>'}${(c.mine || (!REMOTE && c.author === dev)) && !c.pend && canEdit() ? '<button type="button" class="ce" data-ce>수정</button>' : ''}</span></div><p class="cb">${rich(noRe(c.body))}</p></li>`; };
-    const seen = new Set(), tree = (c, d) => { if (seen.has(c)) return ''; seen.add(c); return one(c, d) + (kids[String(c.id)] || []).map(k => tree(k, d + 1)).join(''); };
+    const one = (c, d) => { const sub = d > 0, pc = sub ? byId[parOf(c)] : null; return `<li data-cid="${esc(c.id)}" class="${sub ? 'rep' : ''}${c.pend ? ' pend' : ''}" style="--d:${Math.min(d, 4)}"><div class="m">${sub ? '<i class="ra" aria-hidden="true">↳</i>' : ''}${nick(c.author, nmOf(c.body))}${d > 1 && pc ? `<span class="to">@${esc(nick.txt(pc.author, nmOf(pc.body)))}</span>` : ''}<span>${cdate(c.t)}${c.edited ? ' · 수정됨' : ''}${c.pend ? ' · 올리는 중…' : ''}</span><span class="ca">${c.pend ? '' : '<button type="button" class="ce" data-re>답글</button>'}${(c.mine || (!REMOTE && c.author === dev)) && !c.pend && canEdit() ? '<button type="button" class="ce" data-ce>수정</button><button type="button" class="ce" data-cd>삭제</button>' : ''}</span></div><p class="cb">${rich(noRe(c.body))}</p></li>`; };
+    const alive = c => !isDelC(c) || (kids[String(c.id)] || []).some(alive);
+    const gone = (c, d) => `<li data-cid="${esc(c.id)}" class="${d ? 'rep ' : ''}gone" style="--d:${Math.min(d, 4)}"><div class="m">${d ? '<i class="ra" aria-hidden="true">↳</i>' : ''}<span>삭제된 댓글이에요</span></div></li>`;
+    const seen = new Set(), tree = (c, d) => { if (seen.has(c) || !alive(c)) return ''; seen.add(c); return (isDelC(c) ? gone(c, d) : one(c, d)) + (kids[String(c.id)] || []).map(k => tree(k, d + 1)).join(''); };
     return p.comments.filter(c => !parOf(c)).map(c => tree(c, 0)).join('') || '<li class="none">첫 댓글을 남겨 보세요.</li>';
   };
   const patch = p => {
     const mine = p.author === dev, liked = p.likedBy.includes(dev);
     const fxp = fixedNotice(), isFx = fxp && fxp.id === p.id; if (isFx && full) fixSeen(p);
     $('#pt').innerHTML = `${isFx || isNotice(p) ? `<span class="pn" style="font-size:12px;vertical-align:middle;margin-right:6px">${isFx ? '고정 공지' : '공지'}</span>` : ''}${esc(p.title)}${p.sample ? ' <span class="chip">예시</span>' : ''}${p.pend ? ' <span class="upd pendc">올리는 중…</span>' : ''}`;
-    $('#pm').innerHTML = `<span>${esc(nmOf(p.body) || '익명')}</span><span>${fdate(p.t)} ${cdate(p.t).includes(':') ? cdate(p.t) : ''}</span>${p.edited ? (isFx ? `<span class="upd">수정됨 · ${cdate(p.edited)}</span>` : '<span>수정됨</span>') : ''}<span>조회 ${p.views || 0}</span><span>댓글 ${p.comments.length}</span>`;
+    $('#pm').innerHTML = `<span>${esc(nmOf(p.body) || '익명')}</span><span>${fdate(p.t)} ${cdate(p.t).includes(':') ? cdate(p.t) : ''}</span>${p.edited ? (isFx ? `<span class="upd">수정됨 · ${cdate(p.edited)}</span>` : '<span>수정됨</span>') : ''}<span>조회 ${p.views || 0}</span><span>댓글 ${p.comments.filter(c => !isDelC(c)).length}</span>`;
     const pb = $('#pb'), nb = rich(noRe(p.body)); if (pb.dataset.src !== p.body) { pb.innerHTML = nb; pb.dataset.src = p.body; }
     const lk = $('#plike'); lk.textContent = `좋아요 ${p.likes}`; lk.setAttribute('aria-pressed', liked);
     $('#pact').innerHTML = `<a class="cbtn ln" href="#/board/c/${p.cat}">목록</a><a class="cbtn" href="#/board/new">글쓰기</a>${mine && canEdit() ? `<a class="cbtn ln" href="#/board/edit/${p.id}">수정</a>` : ''}${mine ? '<button class="cbtn ln" type="button" id="pdel">삭제</button>' : ''}`;
-    $('#pch').textContent = `댓글 ${full ? p.comments.length : (p.comments.length || '')}`;
+    $('#pch').textContent = `댓글 ${full ? p.comments.filter(c => !isDelC(c)).length : (p.comments.length || '')}`;
     const ul = $('#pcl'); if (!ul.querySelector('.ed')) ul.innerHTML = full ? cmHTML(p) : (p.comments.length ? SKEL(Math.min(3, p.comments.length)) : '<li class="none">첫 댓글을 남겨 보세요.</li>');
   };
   const draw = p => {
@@ -1956,6 +1961,16 @@ function viewPost(id) {
           const v = re.val(); if (!v) { toast('답글 내용을 입력해 주세요.'); return; } const full = `[[re:${root}]]` + nmTok() + v; if (full.length > 300) { toast('답글이 너무 길어요.'); return; }
           f.remove(); sendComment(full, () => toast('답글을 등록하지 못했어요.'));
         });
+        return;
+      }
+      const db = e.target.closest('[data-cd]');
+      if (db) {
+        const c = cur.comments.find(x => String(x.id) === db.closest('li').dataset.cid); if (!c || !confirm('이 댓글을 지울까요?')) return;
+        const m0 = metaOf(c.body), v = (m0.re ? `[[re:${m0.re}]]` : '') + DEL_T, old = [c.body, c.edited];
+        c.body = v; c.edited = Date.now(); localEd[c.id] = { body: v, edited: c.edited }; patch(cur);
+        const r = await Board.editComment(id, c.id, v);
+        if (r !== true) { delete localEd[c.id]; const c2 = cur.comments.find(x => String(x.id) === String(c.id)) || c; c2.body = old[0]; c2.edited = old[1]; if (here()) patch(cur); toast(r === 'owner' ? '내 댓글만 지울 수 있어요.' : r === 'rate' ? '잠시 후 다시 시도해 주세요.' : '댓글을 지우지 못했어요.'); }
+        else { toast('댓글을 지웠어요.'); if (!REMOTE) cur = Board.get(id); else Board.persist(); }
         return;
       }
       const b = e.target.closest('[data-ce]'); if (!b) return;

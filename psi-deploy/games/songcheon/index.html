@@ -1879,7 +1879,7 @@ async function openThread(id) {
   if (!r || !r.ok) { body.append(el('p', 'm-note', '글을 불러오지 못했어요.')); return; }
   const p = r.post; const head = el('div', 'bd-post'); head.append(el('b', '', p.title), el('p', '', tokTxt(p.body)), el('small', '', `${ago(p.t)} · 조회 ${p.views || 0}`));
   const like = el('button', 'bd-btn', `좋아요 ${p.likes || 0}`); like.type = 'button'; like.style.marginTop = '8px'; like.onclick = async () => { like.disabled = true; await apiPost({ action: 'like', post: id }); E.SFX.pop(); await loadBoard(true); openThread(id); }; head.append(like); body.append(head);
-  (p.comments || []).forEach(c => { const d = el('div', 'cmt'); d.append(el('small', '', (nmOf(c.body) || (c.who === 'op' ? '글쓴이' : c.who || '익명')) + ' · ' + ago(c.t)), document.createTextNode(tokTxt(c.body))); body.append(d); });
+  (p.comments || []).filter(c => !/^(\[\[(re|nm):[^\]]*\]\])*\[\[del\]\]$/.test(c.body || '')).forEach(c => { const d = el('div', 'cmt'); d.append(el('small', '', (nmOf(c.body) || (c.who === 'op' ? '글쓴이' : c.who || '익명')) + ' · ' + ago(c.t)), document.createTextNode(tokTxt(c.body))); body.append(d); });
   if (!(p.comments || []).length) body.append(el('p', 'm-note', '첫 댓글을 남겨 보세요.'));
   $('#bdReply').hidden = false;
 }
@@ -2522,18 +2522,18 @@ function silhouette(f, w, h, L) {
 function fishBook(host, onClose) {
   const book = LSF.get('book', {}), v = document.createElement('div'); v.className = 'fz-bookv'; host.append(v);
   const n = FISH.filter(f => book[f.i]).length;
-  v.innerHTML = `<div class="hd"><b>숲 연못 도감</b><span>${n} / ${FISH.length}</span><button type="button" data-x aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="gr">${FISH.map(f => { const b = book[f.i]; return `<button type="button" class="it${b ? '' : ' no'}" data-i="${f.i}"><canvas width="160" height="90"></canvas><b>${b ? f.name : '???'}</b><small>${b ? `${RAR[f.r]} · ${b.n}마리` : RAR[f.r] + (f.night ? ' · 밤에 자주' : f.dusk ? ' · 노을에 자주' : f.deep ? ' · 깊은 물' : '')}</small></button>`; }).join('')}</div>`;
+  v.innerHTML = `<div class="hd"><b>숲 연못 도감</b><span>${n} / ${FISH.length}</span><button type="button" data-x aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="gr">${FISH.map(f => { const b = book[f.i]; return `<button type="button" class="it${b ? '' : ' no'}" data-i="${f.i}"><canvas width="160" height="90"></canvas><b>${b ? f.name : '???'}</b><small>${b ? `${RAR[f.r]} · ${b.n}마리` : RAR[f.r] + (f.night ? ' · 밤에 자주' : f.dusk ? ' · 노을에 자주' : f.deep ? ' · 깊은 물' : '')}</small><em class="pc">지금 ${pctS(nowPct(f.i))}</em></button>`; }).join('')}</div>`;
   v.querySelectorAll('.it').forEach(it => { const f = FISH[+it.dataset.i], cv = $q(it, 'canvas'), x = cv.getContext('2d'); const L = f.shape === 'eel' ? 120 : 92;
     if (book[f.i]) { x.translate(80, 45); drawFish(x, f, 0, 0, L, 1); }
     else if (f.r <= 2) x.drawImage(silhouette(f, 160, 90, L), 0, 0);
     else { x.fillStyle = 'rgba(52,58,70,.35)'; x.font = '800 44px "Noto Sans KR",sans-serif'; x.textAlign = 'center'; x.fillText('?', 80, 62); }
-    it.onclick = () => { if (!book[f.i]) { E.toast(f.r >= 3 ? '아직 만나지 못한 물고기예요. 힌트: ' + (f.night ? '밤' : f.dusk ? '노을' : f.deep ? '아주 깊은 물' : '숲 연못 어딘가') : '아직 잡지 못했어요.'); return; } fishDetail(v, f, book[f.i]); }; });
+    it.onclick = () => { if (!book[f.i]) { E.toast((f.r >= 3 ? '아직 만나지 못한 물고기예요. 힌트: ' + (f.night ? '밤' : f.dusk ? '노을' : f.deep ? '아주 깊은 물' : '숲 연못 어딘가') : '아직 잡지 못했어요.') + ' · 지금 잡힐 확률 ' + pctS(nowPct(f.i))); return; } fishDetail(v, f, book[f.i]); }; });
   $q(v, '[data-x]').onclick = () => { v.remove(); onClose && onClose(); };
   return v;
 }
 function fishDetail(host, f, b) {
   const m = document.createElement('div'); m.className = 'fz-detail'; host.append(m);
-  m.innerHTML = `<div class="in"><canvas width="420" height="230"></canvas><b>${f.name}</b><span class="rar r${f.r}">${RAR[f.r]}</span><p>${f.desc}</p><dl><div><dt>잡은 수</dt><dd>${b.n}마리</dd></div><div><dt>가장 큰 기록</dt><dd>${b.best}cm</dd></div><div><dt>처음 잡은 날</dt><dd>${b.first ? new Date(b.first).toLocaleDateString('ko-KR') : '-'}</dd></div><div><dt>잘 나오는 때</dt><dd>${f.night ? '밤' : f.dusk ? '노을' : '언제나'}${f.deep ? ' · 깊은 물' : ''}</dd></div></dl><button type="button">닫기</button></div>`;
+  m.innerHTML = `<div class="in"><canvas width="420" height="230"></canvas><b>${f.name}</b><span class="rar r${f.r}">${RAR[f.r]}</span><p>${f.desc}</p><dl><div><dt>잡은 수</dt><dd>${b.n}마리</dd></div><div><dt>가장 큰 기록</dt><dd>${b.best}cm</dd></div><div><dt>처음 잡은 날</dt><dd>${b.first ? new Date(b.first).toLocaleDateString('ko-KR') : '-'}</dd></div><div><dt>잘 나오는 때</dt><dd>${f.night ? '밤' : f.dusk ? '노을' : '언제나'}${f.deep ? ' · 깊은 물' : ''}</dd></div></dl><h4>잡힐 확률 <small>(물고기가 물었을 때)</small></h4><table class="pct"><tr><th></th>${PCT_D.map(([n]) => `<th>${n}</th>`).join('')}</tr>${PCT_T.map(([k, n]) => `<tr class="${k === E.preset ? 'on' : ''}"><th>${n}${k === E.preset ? ' · 지금' : ''}</th>${PCT_D.map(([, d]) => `<td>${pctS(fishPct(f.i, k, d))}</td>`).join('')}</tr>`).join('')}</table><button type="button">닫기</button></div>`;
   const cv = $q(m, 'canvas'), x = cv.getContext('2d'); let t0 = 0;
   const anim = () => { if (!m.isConnected) return; t0 += 1 / 60; x.clearRect(0, 0, 420, 230); const gr = x.createRadialGradient(210, 115, 10, 210, 115, 200); gr.addColorStop(0, f.r >= 3 ? 'rgba(255,238,190,.95)' : 'rgba(226,244,220,.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 420, 230); x.save(); x.translate(f.shape ? 210 : 230, 115 + Math.sin(t0 * 2) * 5); x.rotate(Math.sin(t0 * 1.2) * .07); drawFish(x, f, 0, 0, f.shape === 'eel' ? 280 : 190, t0); x.restore(); requestAnimationFrame(anim); };
   anim(); $q(m, 'button').onclick = () => m.remove(); m.addEventListener('click', e => { if (e.target === m) m.remove(); });
@@ -2717,8 +2717,14 @@ function openFishing() {
   loop();
   addEventListener('resize', () => { if (ov === d) [W, H, D] = fitCanvas(c); });
 }
+/* 물었을 때 어떤 물고기일지 (시간대 · 깊이) — 도감의 확률도 이걸로 계산해요 */
+function fishW(pr, depth) { return FISH.map(f => { let w = f.w; if (f.night && pr === 'night') w *= f.night; if (f.dusk && pr === 'dusk') w *= f.dusk; if (f.night && pr === 'day' && !f.dusk && f.r >= 3) w *= .25; if (f.r >= 3) w *= 1 + depth * 1.5; if (f.r >= 4) w *= 1 + depth * 2.5; if (f.r <= 1) w *= 1.3 - depth * .6; if (f.deep && depth < .6) w = 0; return w; }); }
+function fishPct(i, pr, depth) { const ws = fishW(pr, depth), tot = ws.reduce((a, b) => a + b, 0); return tot ? ws[i] / tot * 100 : 0; }
+const pctS = v => v <= 0 ? '안 나와요' : v < 1 ? '1% 미만' : (v < 10 ? v.toFixed(1) : Math.round(v)) + '%';
+const PCT_D = [['얕은 곳', .2], ['깊은 곳', .9]], PCT_T = [['day', '낮'], ['dusk', '노을'], ['night', '밤']];
+const nowPct = i => Math.max(...PCT_D.map(([, d]) => fishPct(i, E.preset, d)));
 function rollFishD(depth) {
-  const pr = E.preset; let tot = 0; const ws = FISH.map(f => { let w = f.w; if (f.night && pr === 'night') w *= f.night; if (f.dusk && pr === 'dusk') w *= f.dusk; if (f.night && pr === 'day' && !f.dusk && f.r >= 3) w *= .25; if (f.r >= 3) w *= 1 + depth * 1.5; if (f.r >= 4) w *= 1 + depth * 2.5; if (f.r <= 1) w *= 1.3 - depth * .6; if (f.deep && depth < .6) w = 0; tot += w; return w; });
+  const ws = fishW(E.preset, depth), tot = ws.reduce((x, y) => x + y, 0);
   let r = Math.random() * tot; for (let i = 0; i < FISH.length; i++) { r -= ws[i]; if (r <= 0) return FISH[i]; } return FISH[0];
 }
 
@@ -3445,6 +3451,11 @@ css2.textContent = `
 .fz-card button.eat{background:#e86a3a;color:#fff}
 .fz-detail ul.dishes{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}.fz-detail li.dish span{min-width:0}.fz-detail li .eat{min-height:40px;padding:0 12px;border-radius:10px;border:0;background:#e86a3a;color:#fff;font:700 13px "Noto Sans KR",sans-serif;cursor:pointer}
 .fz-detail .in>button.cl{display:block;margin:12px auto 0;min-height:44px;padding:0 26px;border-radius:12px;border:0;background:#2a2238;color:#fff;font:700 15px "Noto Sans KR",sans-serif}
+.fz-bookv .it .pc{display:block;font-style:normal;font-size:11px;font-weight:700;color:#3a7a5a;margin-top:1px}
+.fz-detail table.pct{width:100%;border-collapse:separate;border-spacing:4px;margin:0 0 6px;font-size:13px}
+.fz-detail table.pct th{font-weight:700;color:#6a6080;font-size:12px}.fz-detail table.pct td{background:#f4f0e6;border-radius:8px;padding:6px 4px;font-weight:700}
+.fz-detail table.pct tr.on td{background:#ffe9b8}.fz-detail table.pct tr.on th{color:#b07a10}
+.fz-detail h4 small{font-weight:400;color:#a098a8}
 .fz-wipe{position:fixed;inset:0;z-index:90;pointer-events:none;background:radial-gradient(circle at 50% 55%,#fffdf0 0%,#fff6c8 30%,rgba(255,246,200,.0) 60%);background-size:10% 10%;background-position:center;background-repeat:no-repeat;opacity:0;transition:opacity .5s,background-size 1.2s cubic-bezier(.6,0,.3,1)}
 .fz-wipe.on{opacity:1;background-size:400% 400%}
 .fz-wipe.off{opacity:0;transition:opacity 1.4s ease}
