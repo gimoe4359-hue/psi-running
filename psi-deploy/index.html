@@ -1490,11 +1490,18 @@ function capsule(g) {
   return `<div class="scap">${gcover(g, true)}</div>`;
 }
 let gq = '';
-/* 1급정보실 — 비밀번호를 알아야 열리는 이사 전용 방 (정적 사이트라 '잠금 시늉'이에요. 비밀번호는 해시로만 넣어 둠) */
-const VAULT_H = '4847bb7ba81bdd683ead12e07126d7ad4ecd85613d523959993761cb4acbc017', VAULT_K = 'psi.vault.ok';
-const VAULT = [{ title: '대싸이날 잭팟 룰렛', sub: '진행자 전용 · 카지노 룰렛 추첨', href: 'roulette/' }];
-const vaultOpen = () => { try { return sessionStorage.getItem(VAULT_K) === VAULT_H; } catch (e) { return false; } };
-async function sha256hex(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+/* 1급정보실 — 이사 전용. 비밀번호는 코드에 없고, 맞는 비밀번호로만 풀리는 암호 조각으로 확인해요 (c1/ 과 같은 열쇠) */
+const VAULT_D = { salt: 'eyElZWUx9kse6wHPZ8LP+g==', iter: 600000, iv: 'vriRyPDglOv8q7gp', ct: 'ZM9YlEF69CFUdpY+LnWkurYqFDl3DbhEjPU5Rg==' }, VAULT_K = 'psi.vault.k';
+const VAULT = [{ title: '1급 기밀', sub: '열람 즉시 폐기 · 외부 유출 금지', href: 'c1/' }];
+const vaultOpen = () => { try { return !!sessionStorage.getItem(VAULT_K); } catch (e) { return false; } };
+const b64u8 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function vaultKey(pw) {
+  const C = crypto.subtle, k = await C.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
+  const raw = await C.deriveBits({ name: 'PBKDF2', salt: b64u8(VAULT_D.salt), iterations: VAULT_D.iter, hash: 'SHA-256' }, k, 256);
+  const key = await C.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+  try { await C.decrypt({ name: 'AES-GCM', iv: b64u8(VAULT_D.iv) }, key, b64u8(VAULT_D.ct)); } catch (e) { return null; }
+  return btoa(String.fromCharCode(...new Uint8Array(raw)));
+}
 function vaultView(box) {
   if (vaultOpen()) {
     box.innerHTML = `<div class="vault on"><div class="vh"><span class="vs">Ⅰ급 기밀</span><h1>1급정보실</h1><p>이사진 열람 승인 완료. 이 방의 내용은 외부 유출을 금합니다.</p></div>
@@ -1507,7 +1514,8 @@ function vaultView(box) {
     <form id="vf" class="vf" autocomplete="off"><input id="vp" type="password" inputmode="numeric" maxlength="20" placeholder="비밀번호" aria-label="비밀번호"><button type="submit">열람</button></form><p class="verr" id="verr" aria-live="polite"></p></div>`;
   let tries = 0;
   $('#vf').addEventListener('submit', async e => { e.preventDefault(); const v = $('#vp').value.trim(); if (!v) return;
-    if (await sha256hex(v) === VAULT_H) { try { sessionStorage.setItem(VAULT_K, VAULT_H); } catch (x) {} vaultView(box); }
+    const er0 = $('#verr'); er0.textContent = '확인 중…'; const kk = await vaultKey(v);
+    if (kk) { try { sessionStorage.setItem(VAULT_K, kk); } catch (x) {} vaultView(box); }
     else { tries++; $('#vp').value = ''; const er = $('#verr'); er.textContent = tries >= 3 ? '열람 권한이 없습니다. 이 시도는 기록되었습니다. (아마도)' : '비밀번호가 맞지 않아요.'; const f = $('#vf'); f.classList.remove('shake'); void f.offsetWidth; f.classList.add('shake'); } });
   $('#vp').focus();
 }
