@@ -1492,7 +1492,7 @@ function capsule(g) {
 }
 let gq = '';
 /* 1급정보실 — 이사 전용. 비밀번호는 코드에 없고, 맞는 비밀번호로만 풀리는 암호 조각으로 확인해요 (c1/ 과 같은 열쇠) */
-const VAULT_D = { salt: 'eyElZWUx9kse6wHPZ8LP+g==', iter: 600000, iv: 'vriRyPDglOv8q7gp', ct: 'ZM9YlEF69CFUdpY+LnWkurYqFDl3DbhEjPU5Rg==' }, VAULT_K = 'psi.vault.k';
+const VAULT_D = { salt: 'nZWUT+H80BhncbuxhwckeA==', iter: 600000, iv: 'mFLSqPiPAgIvf/9P', ct: 'rv5GmFSuAA9YtEaf175B5y81Ywoh2D5hWNKctQ==' }, VAULT_K = 'psi.vault.k2';
 const VAULT = [{ title: '1급 기밀', sub: '열람 즉시 폐기 · 외부 유출 금지', href: 'c1/' }];
 const vaultOpen = () => { try { return !!sessionStorage.getItem(VAULT_K); } catch (e) { return false; } };
 const b64u8 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
