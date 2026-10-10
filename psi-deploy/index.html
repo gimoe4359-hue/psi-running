@@ -1684,6 +1684,8 @@ const canUp = () => REMOTE && !!mem.plus;
 const canEdit = () => !REMOTE || !!mem.plus;
 /* 서버 v3부터 긴 글(2만 자) — 예전 서버는 2000자에서 잘려서 막아 둬요 */
 const maxBody = () => !REMOTE || +mem.plus >= 3 ? 20000 : 2000;
+/* 게시판 글은 750자까지. 이미 그보다 긴 글(예: 공지)은 고칠 때 원래 길이까지는 허용해요 */
+const POST_MAX = 750, postMax = src => Math.min(maxBody(), Math.max(POST_MAX, src ? noRe(src.body).length : 0));
 const edHTML = (id, ph, max, mini, noImg) => `<div class="ed${mini ? ' mini' : ''}" id="${id}"${noImg ? ' data-noimg' : ''}><div class="ed-box e" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${esc(ph)}" data-ph="${esc(ph)}"></div>
   <div class="ed-pick" hidden>${Object.keys(STK).map(n => `<button type="button" data-st="${n}" aria-label="${esc(STK[n].t || '기밀')} 스티커"><img src="${stkUrl(n)}" alt="" width="56" height="56" loading="lazy"></button>`).join('')}</div>
   <div class="ed-bar"><button type="button" data-ed="st" aria-expanded="false">☺ 스티커</button>${canUp() && !noImg ? '<button type="button" data-ed="img">▣ 사진</button><input type="file" accept="image/*" multiple hidden>' : ''}<span class="ed-n">0/${max}</span></div></div>`;
@@ -2071,10 +2073,10 @@ async function viewWrite(eid) {
     <form class="cwf" id="wf" novalidate style="margin-top:14px"><div><label for="wc">게시판</label><select id="wc" ${src ? 'disabled' : ''}>${cats.map(c => `<option value="${c.id}" ${c.id === def ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select></div>
       <div><label for="wn">닉네임</label><input id="wn" type="text" maxlength="12" placeholder="비우면 익명" value="${esc(src ? nmOf(src.body) : myNick())}"></div>
       <div><label for="wt">제목</label><input id="wt" type="text" maxlength="60" placeholder="제목을 입력하세요"></div>
-      <div><label>내용</label>${edHTML('wed', '자유롭게 적어 주세요. 스티커와 사진을 글 사이에 넣을 수 있어요. 다른 사람이 상처받을 글은 삼가 주세요.', maxBody())}</div>
+      <div><label>내용</label>${edHTML('wed', '자유롭게 적어 주세요. 스티커와 사진을 글 사이에 넣을 수 있어요. 다른 사람이 상처받을 글은 삼가 주세요.', postMax(src))}</div>
       <div class="r">${REMOTE || src ? '<span class="wd"></span>' : '<label class="chk"><input type="checkbox" id="wp"> 공지로 등록</label>'}<span><a class="cbtn ln" href="${src ? '#/board/' + src.id : '#/board'}">취소</a> <button class="cbtn" type="submit">${src ? '수정 완료' : '등록'}</button></span></div></form>`, 'write');
   bindShell();
-  const ed = mkEditor($('#wed'), maxBody(), () => $('#wf').requestSubmit());
+  const ed = mkEditor($('#wed'), postMax(src), () => $('#wf').requestSubmit());
   if (src) { $('#wt').value = src.title; ed.set(noRe(src.body)); }
   else { const d = LS.get(DRAFT_KEY, null); if (d && (d.t || d.b)) { $('#wt').value = d.t || ''; ed.set(d.b || ''); if (d.c && cats.some(c => c.id === d.c)) $('#wc').value = d.c; const w = $('.wd'); if (w) w.textContent = '쓰던 글을 불러왔어요.'; } }
   let dT; const keep = () => { if (src) return; clearTimeout(dT); dT = setTimeout(() => LS.set(DRAFT_KEY, { t: $('#wt').value, b: ed.val(), c: $('#wc').value }), 400); };
@@ -2087,7 +2089,7 @@ async function viewWrite(eid) {
     if (t.length < 2) { toast('제목을 두 글자 이상 적어 주세요.'); $('#wt').focus(); return; }
     if (b0.length < 2) { toast('내용을 입력해 주세요.'); ed.focus(); return; }
     if (!src) setNick(wn); const b = nmTok(wn) + b0;
-    if (b.length > maxBody()) { toast(`내용은 ${maxBody()}자까지 쓸 수 있어요.`); return; }
+    if (b0.length > postMax(src)) { toast(`내용은 ${postMax(src)}자까지 쓸 수 있어요.`); return; }
     if (src) {
       const keepV = { title: src.title, body: src.body, edited: src.edited }, targets = [src, mem.pd[src.id], listItem(src.id)].filter(Boolean);
       targets.forEach(x => Object.assign(x, { title: t.slice(0, 60), body: b, edited: Date.now() })); if (mem.pd[src.id]) mem.pd[src.id].at = Date.now();
