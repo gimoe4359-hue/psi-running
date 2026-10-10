@@ -1684,8 +1684,8 @@ const canUp = () => REMOTE && !!mem.plus;
 const canEdit = () => !REMOTE || !!mem.plus;
 /* 서버 v3부터 긴 글(2만 자) — 예전 서버는 2000자에서 잘려서 막아 둬요 */
 const maxBody = () => !REMOTE || +mem.plus >= 3 ? 20000 : 2000;
-/* 게시판 글은 750자까지. 이미 그보다 긴 글(예: 공지)은 고칠 때 원래 길이까지는 허용해요 */
-const POST_MAX = 750, postMax = src => Math.min(maxBody(), Math.max(POST_MAX, src ? noRe(src.body).length : 0));
+/* 게시판 글은 2000자까지. 이미 그보다 긴 글(예: 공지)은 고칠 때 원래 길이까지는 허용해요 */
+const POST_MAX = 2000, postMax = src => Math.min(maxBody(), Math.max(POST_MAX, src ? noRe(src.body).length : 0));
 const edHTML = (id, ph, max, mini, noImg) => `<div class="ed${mini ? ' mini' : ''}" id="${id}"${noImg ? ' data-noimg' : ''}><div class="ed-box e" contenteditable="true" role="textbox" aria-multiline="true" aria-label="${esc(ph)}" data-ph="${esc(ph)}"></div>
   <div class="ed-pick" hidden>${Object.keys(STK).map(n => `<button type="button" data-st="${n}" aria-label="${esc(STK[n].t || '기밀')} 스티커"><img src="${stkUrl(n)}" alt="" width="56" height="56" loading="lazy"></button>`).join('')}</div>
   <div class="ed-bar"><button type="button" data-ed="st" aria-expanded="false">☺ 스티커</button>${canUp() && !noImg ? '<button type="button" data-ed="img">▣ 사진</button><input type="file" accept="image/*" multiple hidden>' : ''}<span class="ed-n">0/${max}</span></div></div>`;
@@ -2090,6 +2090,7 @@ async function viewWrite(eid) {
     if (b0.length < 2) { toast('내용을 입력해 주세요.'); ed.focus(); return; }
     if (!src) setNick(wn); const b = nmTok(wn) + b0;
     if (b0.length > postMax(src)) { toast(`내용은 ${postMax(src)}자까지 쓸 수 있어요.`); return; }
+    if (b.length > maxBody()) { toast(`닉네임까지 합쳐서 ${maxBody()}자를 넘었어요. 조금만 줄여 주세요.`); return; }
     if (src) {
       const keepV = { title: src.title, body: src.body, edited: src.edited }, targets = [src, mem.pd[src.id], listItem(src.id)].filter(Boolean);
       targets.forEach(x => Object.assign(x, { title: t.slice(0, 60), body: b, edited: Date.now() })); if (mem.pd[src.id]) mem.pd[src.id].at = Date.now();
