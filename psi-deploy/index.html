@@ -122,6 +122,60 @@ p.sec-sub{color:var(--ink-2);margin:0 0 24px}
 .tabs{display:flex;gap:8px;margin:0 0 22px;flex-wrap:wrap}
 .tabs button{border:2px solid var(--line);background:transparent;border-radius:999px;padding:6px 16px;font-weight:600;font-size:15px}
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+/* ── 키카오페이지 스타일 ── */
+.kp{--kb:#fff;--kt:#1e1e1e;--ks:#8a8a8a;--kl:#f2f2f4;--kln:#ececec;--ky:#ffd600;--kyt:#1e1e1e;background:var(--kb);color:var(--kt);font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;min-height:80vh;padding-bottom:40px}
+:root[data-theme="dark"] .kp{--kb:#121212;--kt:#f0f0f0;--ks:#9a9a9a;--kl:#1f1f22;--kln:#2a2a2e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .kp{--kb:#121212;--kt:#f0f0f0;--ks:#9a9a9a;--kl:#1f1f22;--kln:#2a2a2e}}
+.kpw{max-width:960px;margin:0 auto;padding:0 16px}
+.kph{display:flex;align-items:center;gap:10px;padding:16px 0 6px}
+.kplogo{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:9px;background:var(--ky);vertical-align:middle}.kplogo svg{width:19px;height:19px}
+.kph b,.kpback b{font-size:21px;font-weight:900;letter-spacing:-.04em;color:var(--kt)}.kpsub{font-size:13px;font-weight:700;color:var(--ks);margin-left:auto}
+.kptabs{display:flex;gap:18px;border-bottom:1px solid var(--kln);margin:8px 0 16px}
+.kptabs button{border:0;background:none;padding:12px 2px;font-weight:700;font-size:16px;font-family:inherit;color:var(--ks);border-bottom:3px solid transparent;margin-bottom:-1px;cursor:pointer;min-height:44px}
+.kptabs button[aria-pressed="true"]{color:var(--kt);border-bottom-color:var(--kt)}
+.kpban{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;margin-bottom:8px;scrollbar-width:none}.kpban::-webkit-scrollbar{display:none}
+.kpb{position:relative;flex:0 0 min(100%,620px);aspect-ratio:16/9;border-radius:16px;overflow:hidden;scroll-snap-align:start;text-decoration:none;color:#fff}
+.kpb .bg{position:absolute;inset:0;transform:scale(1.02)}.kpb .sh{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.82))}
+.kpb .tx{position:absolute;left:20px;right:20px;bottom:18px;display:grid;gap:6px}.kpb .tx b{font-size:26px;font-weight:900;letter-spacing:-.03em;line-height:1.2}.kpb .tx small{font-size:14px;opacity:.88;line-height:1.5}
+.kb{display:inline-block;font-style:normal;font-size:11px;font-weight:800;padding:2px 6px;border-radius:4px;line-height:1.3;margin-right:3px}
+.kb.up{background:#ff3b30;color:#fff}.kb.end{background:#1e1e1e;color:#fff}.kb.ing{background:var(--ky);color:#1e1e1e}.kb.free{background:#e9f7ff;color:#1a8ad8}.kb.rd{background:var(--kl);color:var(--ks)}
+.kps{margin:22px 0 6px}.kps h2{font-size:19px;font-weight:900;letter-spacing:-.03em;margin:0 0 12px}.kps h2 small{font-size:12px;font-weight:600;color:var(--ks);margin-left:6px}
+.kpt{display:grid;place-items:end start;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background-color:#222}.kpt b{padding:8px;color:#fff;font-size:13px;line-height:1.3;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.kpt.sm{width:58px;flex:none;border-radius:6px}.kpt.sm b,.kpt.ep b{display:none}.kpt.ep{width:64px;aspect-ratio:4/3;flex:none;border-radius:6px}.kpt.lg{width:min(150px,36vw);flex:none;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.kprow{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}.kprow::-webkit-scrollbar{display:none}
+.kpc{flex:0 0 120px;text-decoration:none;color:var(--kt);display:grid;gap:4px}.kpc b{font-size:14px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kpc small{font-size:12px;color:var(--ks)}
+.pg{height:3px;background:var(--kln);border-radius:2px;overflow:hidden}.pg i{display:block;height:100%;background:var(--ky)}
+.kprank{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px 20px}
+.kprank a{display:flex;align-items:center;gap:12px;padding:8px 0;text-decoration:none;color:var(--kt);min-height:44px}
+.kprank em{font-style:normal;font-size:20px;font-weight:900;width:22px;text-align:center}.kprank li:first-child em{color:#ff3b30}
+.kprank .in{flex:1;min-width:0;display:grid;gap:2px}.kprank .in b{font-size:15px}.kprank .in small{font-size:12px;color:var(--ks);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:18px 12px}
+.kpg{text-decoration:none;color:var(--kt);display:grid;gap:4px}.kpg .cv{position:relative}.kpg .cv .bd{position:absolute;left:6px;top:6px}
+.kpg b{font-size:14px;line-height:1.35;margin-top:4px}.kpg small{font-size:12px;color:var(--ks)}
+.kpempty{color:var(--ks);padding:30px 0;text-align:center;list-style:none}
+.kpdh{position:relative;overflow:hidden;color:#fff;padding:14px 0 26px}
+.kpdh .bg{position:absolute;inset:-30px;filter:blur(26px) saturate(1.2);transform:scale(1.15)}.kpdh .sh{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,.72))}
+.kpdh .in{position:relative}.kpback{display:inline-flex;align-items:center;gap:8px;color:#fff;text-decoration:none;font-size:20px;min-height:44px}.kpback b{color:#fff;font-size:17px}
+.kpdh .row{display:flex;gap:18px;align-items:flex-end;margin-top:12px}
+.kpdh .info{min-width:0}.kpdh h1{font-size:clamp(22px,5vw,32px);font-weight:900;letter-spacing:-.03em;margin:6px 0 6px;line-height:1.2}
+.kpdh .gen,.kpdh .st{margin:2px 0;font-size:14px;opacity:.85}
+.kpstat{display:grid;grid-template-columns:repeat(3,1fr);margin:16px 0 4px;background:var(--kl);border-radius:12px;padding:12px 0;text-align:center}
+.kpstat div{display:grid;gap:2px}.kpstat div+div{border-left:1px solid var(--kln)}.kpstat b{font-size:18px;font-weight:900}.kpstat small{font-size:12px;color:var(--ks)}
+.kpact{display:flex;gap:8px;margin:14px 0 6px}
+.kpgo{flex:1;display:grid;place-items:center;min-height:52px;border-radius:12px;background:var(--ky);color:#1e1e1e;font-weight:900;font-size:17px;text-decoration:none}
+.kpgo2{display:grid;place-items:center;min-height:52px;padding:0 18px;border-radius:12px;background:var(--kl);color:var(--kt);font-weight:700;text-decoration:none}
+.kpdtabs{display:flex;border-bottom:1px solid var(--kln);margin-top:14px}
+.kpdtabs button{flex:1;border:0;background:none;min-height:48px;font-weight:700;font-size:15px;font-family:inherit;color:var(--ks);border-bottom:3px solid transparent;margin-bottom:-1px;cursor:pointer}
+.kpdtabs button[aria-selected="true"]{color:var(--kt);border-bottom-color:var(--kt)}
+.kpeh{display:flex;justify-content:space-between;align-items:center;padding:10px 0;font-size:13px;color:var(--ks)}
+.kpeh button{border:0;background:none;color:var(--kt);font-weight:700;font-size:13px;font-family:inherit;min-height:40px;cursor:pointer}
+.kpeps{list-style:none;margin:0;padding:0}
+.kpeps li{border-bottom:1px solid var(--kln)}.kpeps a{display:flex;align-items:center;gap:12px;padding:10px 0;text-decoration:none;color:var(--kt);min-height:56px}
+.kpeps .in{flex:1;min-width:0;display:grid;gap:3px}.kpeps .t{font-size:15px;font-weight:600;line-height:1.4}.kpeps .d{font-size:12px;color:var(--ks)}.kpeps .d b{color:#1a8ad8}
+.kpeps .bd{display:flex;flex-direction:column;align-items:flex-end;gap:3px}.kpeps li.read .t{color:var(--ks)}.kpeps li.cur{background:linear-gradient(90deg,rgba(255,214,0,.12),transparent)}
+.kpinfo{padding:16px 0}.kpinfo p{font-size:15px;line-height:1.75;margin:0 0 14px}.kpinfo .mu{color:var(--ks)}
+.kptags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}.kptags span{background:var(--kl);border-radius:999px;padding:5px 12px;font-size:13px}
+.kpinfo dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:0}.kpinfo dl div{background:var(--kl);border-radius:10px;padding:10px 12px}.kpinfo dt{font-size:12px;color:var(--ks)}.kpinfo dd{margin:2px 0 0;font-weight:700}
 .ngrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:26px 20px}
 .ncard{text-decoration:none;color:var(--ink);display:block}
 .ncover{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:#000;border:2px solid var(--edge);display:grid;place-items:center}
@@ -1181,36 +1235,61 @@ const readSet = id => new Set(LS.get('psi.read.' + id, []));
 const cover = (n, cap) => n.gen
   ? `<div class="ncover gen" style="background:${coverBg(n)}"><div class="bd"><i>${esc(n.status)}</i></div><div class="gt">${esc(n.title)}</div></div>`
   : `<div class="ncover"><img src="${COVER}" alt="" loading="lazy"><div class="bd">${n.up ? '<i class="up">UP</i>' : ''}<i>${esc(n.status)}</i></div>${cap ? `<div class="cap">${esc(n.title)}</div>` : ''}</div>`;
+/* ---------- 키카오페이지 스타일 (목록 / 작품 홈) ---------- */
 let nfilter = '전체';
+const kpThumb = (n, cls = '') => `<span class="kpt ${cls}" style="background:${coverBg(n)} center/cover">${n.gen ? `<b>${esc(n.title)}</b>` : ''}</span>`;
+const kpNew = c => { const t = Date.parse(c && c.date); return t && Date.now() - t < 7 * 864e5; };
+const kpLast = n => n.chapters.length ? n.chapters[n.chapters.length - 1] : null;
+const kpBadges = n => `${n.up || kpNew(kpLast(n)) ? '<i class="kb up">UP</i>' : ''}${n.status === '완결' ? '<i class="kb end">완결</i>' : '<i class="kb ing">연재</i>'}`;
+const KP_LOGO = '<span class="kplogo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H4z" fill="#1e1e1e"/><path d="M20 4h-4a2 2 0 0 0-2 2v14a2.5 2.5 0 0 1 2.5-2.5H20z" fill="#1e1e1e" opacity=".55"/></svg></span><b>키카오페이지</b>';
 function viewNovels() {
   const list = NOVELS.filter(n => nfilter === '전체' || n.status === nfilter);
-  main.innerHTML = `<div class="wrap"><div class="phead"><h1>소설</h1><p>정보구출반의 출동 기록. 읽던 곳은 자동으로 기억해요.</p></div>
-    <div class="tabs" role="group" aria-label="상태 필터">${['전체', '연재중', '완결'].map(t => `<button type="button" data-f="${t}" aria-pressed="${nfilter === t}">${t}</button>`).join('')}</div>
-    ${list.length ? `<div class="ngrid">${list.map(n => `<a class="ncard" href="#/novels/${n.id}">${cover(n, true)}<h3>${esc(n.title)}</h3><p>${esc(n.tags.slice(0, 3).join(' · '))} · ${n.chapters.length}화</p></a>`).join('')}</div>` : '<div class="empty">해당하는 작품이 없어요.</div>'}</div>`;
+  const cont = NOVELS.map(n => ({ n, last: LS.get('psi.last.' + n.id, 0), rd: readSet(n.id).size })).filter(x => x.last && x.n.chapters.length);
+  const rank = NOVELS.slice().sort((x, y) => (y.up ? 1 : 0) - (x.up ? 1 : 0) || y.chapters.length - x.chapters.length);
+  const hero = NOVELS.filter(n => n.up).concat(NOVELS.filter(n => !n.up)).slice(0, 5);
+  main.innerHTML = `<div class="kp"><div class="kpw">
+    <header class="kph">${KP_LOGO}<span class="kpsub">웹소설</span></header>
+    <nav class="kptabs" role="group" aria-label="상태 필터">${['전체', '연재중', '완결'].map(t => `<button type="button" data-f="${t}" aria-pressed="${nfilter === t}">${t}</button>`).join('')}</nav>
+    ${nfilter === '전체' && hero.length ? `<div class="kpban">${hero.map(n => `<a class="kpb" href="#/novels/${n.id}"><span class="bg" style="background:${coverBg(n)} center/cover"></span><span class="sh"></span>
+      <span class="tx"><span class="bd">${kpBadges(n)}</span><b>${esc(n.title)}</b><small>${esc(n.summary ? n.summary.slice(0, 60) + (n.summary.length > 60 ? '…' : '') : n.tags.join(' · '))}</small></span></a>`).join('')}</div>` : ''}
+    ${nfilter === '전체' && cont.length ? `<section class="kps"><h2>이어보기</h2><div class="kprow">${cont.map(({ n, last, rd }) => `<a class="kpc" href="#/novels/${n.id}/${Math.min(last, n.chapters.length)}">${kpThumb(n)}<b>${esc(n.title)}</b><small>${last}화 이어보기</small><span class="pg"><i style="width:${Math.min(100, Math.round(rd / n.chapters.length * 100))}%"></i></span></a>`).join('')}</div></section>` : ''}
+    ${nfilter === '전체' ? `<section class="kps"><h2>실시간 랭킹 <small>정보구출반 기준</small></h2><ol class="kprank">${rank.map((n, i) => `<li><a href="#/novels/${n.id}"><em>${i + 1}</em>${kpThumb(n, 'sm')}<span class="in"><b>${esc(n.title)}</b><small>${esc(n.tags.slice(0, 3).join(' · '))}</small><small>${esc(n.status)} · ${n.chapters.length}화</small></span><span class="bd">${kpBadges(n)}</span></a></li>`).join('')}</ol></section>` : ''}
+    <section class="kps"><h2>${nfilter === '전체' ? '전체 작품' : nfilter}</h2>
+      ${list.length ? `<div class="kpgrid">${list.map(n => `<a class="kpg" href="#/novels/${n.id}"><span class="cv">${kpThumb(n)}<span class="bd">${kpBadges(n)}</span></span><b>${esc(n.title)}</b><small>웹소설 · ${n.chapters.length}화</small></a>`).join('')}</div>` : '<div class="kpempty">해당하는 작품이 없어요.</div>'}
+    </section></div></div>`;
   $$('[data-f]').forEach(b => b.addEventListener('click', () => { nfilter = b.dataset.f; viewNovels(); }));
 }
-let epAsc = true;
+let epAsc = true, kpTab = 'ep';
 function viewNovel(id) {
   const n = NOVELS.find(x => x.id === id); if (!n) return notFound();
-  const rd = readSet(id), last = LS.get('psi.last.' + id, 0);
+  const rd = readSet(id), last = LS.get('psi.last.' + id, 0), N = n.chapters.length;
   const idx = n.chapters.map((c, i) => i + 1); if (!epAsc) idx.reverse();
-  const lastDate = n.chapters.length ? n.chapters[n.chapters.length - 1].date : '';
-  main.innerHTML = `
-  <div class="nhero"><div class="bg" style="background:${coverBg(n)} center/cover"></div><div class="wrap"><div class="in">
-    ${cover(n, false)}
-    <div><h1>${esc(n.title)}</h1>
-      <div class="tags">${n.tags.map(t => `<span>#${esc(t)}</span>`).join('')}</div>
-      ${n.summary ? `<p class="sum">${esc(n.summary)}</p>` : ''}
-      <p class="meta">${esc(n.status)} · 총 ${n.chapters.length}화 · ${esc(lastDate)} 업데이트</p>
-      <div class="nact"><a class="btn pri" href="#/novels/${id}/${last && last <= n.chapters.length ? last : 1}">${last ? last + '화 이어보기' : '첫화보기'}</a>
-        ${last ? `<a class="btn ghost" href="#/novels/${id}/1">1화부터</a>` : ''}</div></div>
-  </div></div></div>
-  <div class="wrap"><div class="eplist-h"><b>회차 ${n.chapters.length}</b><button type="button" id="epSort">${epAsc ? '오래된 순' : '최신 순'}</button></div>
-    <ul class="eps">${idx.map(i => { const c = n.chapters[i - 1]; return `<li class="${rd.has(i) ? 'read' : ''}"><a href="#/novels/${id}/${i}"><span class="th" style="background:${coverBg(n)} center/cover"></span><span><span class="t">${esc(c.title)}</span><br><span class="d">${c.free ? '<span class="fr">무료</span>' : ''}${esc(c.date || '')}</span></span><span class="go">${rd.has(i) ? '읽음' : ''}</span></a></li>`; }).join('')}</ul></div>`;
+  const lc = kpLast(n), go = last && last <= N ? last : 1;
+  main.innerHTML = `<div class="kp"><div class="kpd">
+    <div class="kpdh"><span class="bg" style="background:${coverBg(n)} center/cover"></span><span class="sh"></span>
+      <div class="kpw in"><a class="kpback" href="#/novels" aria-label="키카오페이지 홈">‹ ${KP_LOGO}</a>
+        <div class="row">${kpThumb(n, 'lg')}
+          <div class="info"><span class="bd">${kpBadges(n)}</span><h1>${esc(n.title)}</h1>
+            <p class="gen">웹소설 · ${esc(n.tags.slice(0, 2).join(' · '))}</p>
+            <p class="st">${esc(n.status)} · 총 ${N}화${lc && lc.date ? ' · ' + esc(lc.date) + ' 업데이트' : ''}</p></div></div></div></div>
+    <div class="kpw">
+      <div class="kpstat"><div><b>${N}</b><small>전체 회차</small></div><div><b>${rd.size}</b><small>읽은 회차</small></div><div><b>${N ? Math.round(rd.size / N * 100) : 0}%</b><small>진행률</small></div></div>
+      <div class="nact kpact"><a class="kpgo" href="#/novels/${id}/${go}">${last ? `${go}화 이어보기` : '첫화보기'}</a>${last ? `<a class="kpgo2" href="#/novels/${id}/1">1화부터</a>` : ''}</div>
+      <nav class="kpdtabs" role="tablist"><button type="button" role="tab" data-t="ep" aria-selected="${kpTab === 'ep'}">회차 ${N}</button><button type="button" role="tab" data-t="info" aria-selected="${kpTab === 'info'}">작품소개</button></nav>
+      <div class="kppane" ${kpTab === 'ep' ? '' : 'hidden'}>
+        <div class="kpeh"><span>${N ? `총 ${N}화` : ''}</span><button type="button" id="epSort">${epAsc ? '첫화부터' : '최신화부터'} ⇅</button></div>
+        <ul class="kpeps">${idx.map(i => { const c = n.chapters[i - 1], r = rd.has(i); return `<li class="${r ? 'read' : ''}${i === last ? ' cur' : ''}"><a href="#/novels/${id}/${i}">${kpThumb(n, 'ep')}<span class="in"><span class="t">${esc(c.title)}</span><span class="d">${esc(c.date || '')}${i === last ? ' · <b>이어보기</b>' : ''}</span></span><span class="bd">${kpNew(c) ? '<i class="kb up">UP</i>' : ''}${c.free ? '<i class="kb free">무료</i>' : ''}${r ? '<i class="kb rd">읽음</i>' : ''}</span></a></li>`; }).join('') || '<li class="kpempty">아직 회차가 없어요.</li>'}</ul></div>
+      <div class="kppane" ${kpTab === 'info' ? '' : 'hidden'}><div class="kpinfo">
+        ${n.summary ? `<p>${esc(n.summary)}</p>` : '<p class="mu">작품 소개가 아직 없어요.</p>'}
+        <div class="kptags">${n.tags.map(t => `<span>#${esc(t)}</span>`).join('')}</div>
+        <dl><div><dt>연재 상태</dt><dd>${esc(n.status)}</dd></div><div><dt>회차</dt><dd>총 ${N}화</dd></div>${lc && lc.date ? `<div><dt>최근 업데이트</dt><dd>${esc(lc.date)}</dd></div>` : ''}<div><dt>열람 등급</dt><dd>정보구출반 전체</dd></div></dl></div></div>
+    </div></div></div>`;
   $('#epSort').addEventListener('click', () => { epAsc = !epAsc; viewNovel(id); });
-  setTimeout(() => prefetchChapter(n, last && last <= n.chapters.length ? last : 1), 300);
-  const eps = $('.eps'); if (eps) eps.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); const m = a && /\/(\d+)$/.exec(a.getAttribute('href')); if (m) prefetchChapter(n, +m[1]); }, { passive: true });
-  const na = $('.nact'); if (na) na.addEventListener('pointerdown', e => { const a = e.target.closest('a[href]'); const m = a && /\/(\d+)$/.exec(a.getAttribute('href')); if (m) prefetchChapter(n, +m[1]); }, { passive: true });
+  $$('.kpdtabs [data-t]').forEach(b => b.addEventListener('click', () => { kpTab = b.dataset.t; viewNovel(id); }));
+  setTimeout(() => prefetchChapter(n, go), 300);
+  const pf = e => { const a = e.target.closest('a[href]'); const m = a && /\/(\d+)$/.exec(a.getAttribute('href')); if (m) prefetchChapter(n, +m[1]); };
+  const eps = $('.kpeps'); if (eps) eps.addEventListener('pointerdown', pf, { passive: true });
+  const na = $('.nact'); if (na) na.addEventListener('pointerdown', pf, { passive: true });
 }
 
 const VDEF = { size: 19, lh: 1.95, font: 'serif', theme: 'white', mode: 'scroll', orig: true };
