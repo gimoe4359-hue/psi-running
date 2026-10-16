@@ -601,6 +601,10 @@ main:focus,main:focus-visible{outline:none}
 
 /* 소설 뷰어: 원본 스타일 */
 .vin .gap{height:1.9em}
+/* 구글 문서에서 온 글: 문서처럼 줄 사이 여백 없이, 빈 줄은 한 줄 높이, 앞 공백(들여쓰기)도 그대로 */
+.vin .blk p{margin:0;white-space:pre-wrap}
+.vin .blk .gap{height:calc(var(--vl) * 1em)}
+.vin .blk p.hd{margin-top:0}
 .vin p.hd{font-weight:700;margin-top:1.4em}
 .vin p.h1{font-size:1.25em}.vin p.h2{font-size:1.12em}.vin p.h3{font-size:1.04em}
 .vin p:empty{display:none}
@@ -1438,7 +1442,7 @@ async function viewRead(id, num) {
     <div class="vtop"><div class="vrow"><a class="vb" href="#/novels/${id}" aria-label="목록으로">목록</a><div class="ttl">${esc(n.title)}<small>${esc(c.title)}</small></div><button class="vb" type="button" id="vsetb" aria-label="보기 설정">Aa</button></div><div class="vprog"><i id="vp"></i></div></div>
     <div class="vbody" id="vbody"><div class="vin" id="vin">
       <h1>${esc(c.title)}</h1><p class="cm">${esc(n.title)} · ${num}/${n.chapters.length}화</p>
-      <div id="vtext">${c.blocks ? blocksHTML(c.blocks, P.orig !== false) : paras(c.body || '')}</div>
+      <div id="vtext" class="${c.blocks ? 'blk' : ''}">${c.blocks ? blocksHTML(c.blocks, P.orig !== false) : paras(c.body || '')}</div>
       <div class="vend">${hasNext ? `<a class="btn" href="#/novels/${id}/${num + 1}">다음 화 보기</a>` : '<p class="cm" style="margin:0 0 6px">마지막 화입니다. 다음 이야기를 기다려 주세요.</p>'}<br><a class="btn ghost" href="#/novels/${id}">목록으로</a></div>
       <section class="ncm" id="ncm" aria-label="이 화 댓글"><h2>댓글 <b id="ncn"></b></h2>
         <form id="ncf">${edHTML('nced', '이 화를 읽은 소감을 남겨 주세요. (익명)', 480, true, true)}<div class="r">${nickInput()}<button class="btn" type="submit">등록</button></div></form>
@@ -1477,7 +1481,7 @@ async function viewRead(id, num) {
     $$('[data-t]', vset).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === P.theme)));
     $$('[data-m]', vset).forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === P.mode)));
     $$('[data-o]', vset).forEach(b => b.setAttribute('aria-pressed', String((b.dataset.o === '1') === (P.orig !== false))));
-    const vt = $('#vtext'); if (vt && c.blocks) { vt.innerHTML = blocksHTML(c.blocks, P.orig !== false); hydrateImages(vt, layout); }
+    const vt = $('#vtext'); if (vt && c.blocks) { vt.classList.add('blk'); vt.innerHTML = blocksHTML(c.blocks, P.orig !== false); hydrateImages(vt, layout); }
     layout();
   };
   function layout() {
