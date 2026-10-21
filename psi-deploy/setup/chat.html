@@ -1,0 +1,26 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>chat.gs 복사</title>
+<style>
+:root{--bg:#f6f7fb;--fg:#1c2230;--card:#fff;--line:#dde2ec;--accent:#3a6ad8}
+@media (prefers-color-scheme:dark){:root{--bg:#12151c;--fg:#e8ecf4;--card:#1b2030;--line:#2c3448;--accent:#7aa8ff}}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;padding:20px 16px}
+h1{font-size:20px;margin:0 0 6px}p{margin:0 0 16px;font-size:14px;opacity:.75}
+button{width:100%;padding:18px;border:0;border-radius:14px;background:var(--accent);color:#fff;font-size:18px;font-weight:800}
+button.ok{background:#2fa36b}
+textarea{width:100%;box-sizing:border-box;height:45vh;margin-top:16px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font:12px/1.5 ui-monospace,Menlo,monospace;padding:10px}
+</style></head><body>
+<h1>chat.gs 코드 복사</h1>
+<p>아래 버튼을 누르면 코드 전체가 복사돼요. 그다음 Apps Script의 chat.gs에 붙여넣으세요.</p>
+<button id="b" disabled>불러오는 중…</button>
+<textarea id="t" readonly></textarea>
+<script>
+const b = document.getElementById('b'), t = document.getElementById('t');
+fetch('../../apps-script/chat.gs', { cache: 'no-store' }).then(r => { if (!r.ok) throw 0; return r.text(); })
+  .then(s => { t.value = s; b.disabled = false; b.textContent = '코드 전체 복사하기'; })
+  .catch(() => { b.textContent = '불러오기 실패 — 새로고침해 주세요'; });
+b.onclick = async () => {
+  try { await navigator.clipboard.writeText(t.value); }
+  catch (e) { t.focus(); t.select(); t.setSelectionRange(0, t.value.length); document.execCommand('copy'); }
+  b.classList.add('ok'); b.textContent = '복사 완료! 이제 붙여넣기 하세요';
+};
+</script></body></html>
