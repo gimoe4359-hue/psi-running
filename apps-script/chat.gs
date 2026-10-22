@@ -13,7 +13,9 @@
  * API 키는 서버(스크립트 속성)에만 있고 사이트 코드에는 들어가지 않아요.
  */
 const CHAT_MODEL = 'claude-haiku-4-5-20251001';
-const GEMINI_MODEL = 'gemini-flash-latest'; // 무료 등급에서 쓸 수 있는 최신 Flash 모델 별칭
+// 무료 등급 Gemini 모델: 앞에서부터 시도하고, 붐비거나(503) 없어진(404) 모델은 건너뛰어요.
+// 스크립트 속성 GEMINI_MODEL에 모델 이름을 넣으면 그 모델을 맨 먼저 써요.
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.5-flash', 'gemini-flash-lite-latest', 'gemini-3.1-flash-lite'];
 const CHAT_PERSONA = {
   yumoja: '유모자 팀장. 정보구출반 8팀 팀장. 한국어에 영어 단어를 억지로 섞어 말한다(예: "oh my ong!", "nine o\'clock", "good job입니다"). 늘 긍정적이고 회식과 team meeting을 좋아한다. 부하 직원을 "공유 씨"라고 부른다.',
   imiri: '이미리 과장. 냉정하고 짧게 말하는 원칙주의자. 보고서의 근거와 오탈자를 따진다. "…", "네.", "근거가 부족해요." 같은 말투. 가끔 사람 챙기는 속내가 비친다.',
@@ -48,15 +50,21 @@ function handleChat_(body) {
 function callAI_(system, msgs, maxTokens) {
   const props = PropertiesService.getScriptProperties(), gk = props.getProperty('GEMINI_KEY'), ak = props.getProperty('ANTHROPIC_KEY');
   if (gk) {
-    const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent', {
-      method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'x-goog-api-key': gk },
-      payload: JSON.stringify({ systemInstruction: { parts: [{ text: system }] },
-        contents: msgs.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
-        generationConfig: { maxOutputTokens: 1024, temperature: 0.9 } })
-    });
-    if (res.getResponseCode() !== 200) return '';
-    const out = JSON.parse(res.getContentText()), parts = (((out.candidates || [])[0] || {}).content || {}).parts || [];
-    return parts.filter(p => p.text && !p.thought).map(p => p.text).join('').trim();
+    const pref = props.getProperty('GEMINI_MODEL'), models = (pref ? [pref] : []).concat(GEMINI_MODELS);
+    const payload = JSON.stringify({ systemInstruction: { parts: [{ text: system }] },
+      contents: msgs.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+      generationConfig: { maxOutputTokens: 1024, temperature: 0.9 } });
+    for (let i = 0; i < models.length; i++) {
+      const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent', {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'x-goog-api-key': gk }, payload: payload });
+      const code = res.getResponseCode();
+      if (code === 200) {
+        const out = JSON.parse(res.getContentText()), parts = (((out.candidates || [])[0] || {}).content || {}).parts || [];
+        const text = parts.filter(p => p.text && !p.thought).map(p => p.text).join('').trim();
+        if (text) return text;
+      } else if (code !== 503 && code !== 429 && code !== 404 && code !== 500) return '';   // 키 문제 등은 다음 모델로 넘어가도 소용없어요
+    }
+    return '';
   }
   if (!ak) return '';
   const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
