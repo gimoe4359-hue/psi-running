@@ -78,6 +78,11 @@ html,body{margin:0;height:100%;background:#0b0d12;font-family:var(--ui);overflow
 .gbar .sp{flex:1}.gbar svg{width:20px;height:20px}
 .dock{position:absolute;left:14px;right:14px;bottom:56px;display:grid;grid-template-columns:repeat(4,1fr)}
 .dock .app span:last-child:not(.bd){display:none}
+.hu{position:absolute;top:8px;left:8px;right:8px;z-index:96;background:rgba(252,252,254,.97);color:#111;border-radius:22px;padding:11px 14px;display:flex;gap:11px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.22);transform:translateY(-130%);transition:transform .35s cubic-bezier(.2,.9,.25,1.1);cursor:pointer}
+.hu.on{transform:none}
+.hu .pf{width:40px;height:40px}.hu .tx{flex:1;min-width:0}
+.hu .hd{display:flex;align-items:center;gap:5px;font-size:11.5px;color:#6b6b6b}.hu .hd i{width:13px;height:13px;border-radius:4px;background:var(--k-yel)}
+.hu b{font-size:14px;font-weight:600;display:block;margin-top:1px}.hu span{font-size:13.5px;color:#2a2a2a;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .toast{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(50,50,52,.94);color:#fff;font-size:13.5px;padding:11px 18px;border-radius:22px;z-index:95;white-space:nowrap;transition:opacity .3s}
 /* ===== 내비게이션 바 (최근 앱 · 홈 · 뒤로) ===== */
 .nav{position:absolute;left:0;right:0;bottom:0;height:46px;display:flex;justify-content:space-around;align-items:center;z-index:85}
@@ -278,6 +283,7 @@ function pic(p, cls = '') {
       : `<svg viewBox="0 0 44 44"><rect width="44" height="44" fill="#a4bed6"/><circle cx="22" cy="17" r="7.5" fill="#fff"/><path d="M8 42c1.5-8.5 7-12.5 14-12.5S34.5 33.5 36 42z" fill="#fff"/></svg>`;
   return `<span class="pf ${cls}">${svg}</span>`;
 }
+function allRooms() { const a = ROOMS.concat(dmRooms()); return a.filter((r, i) => a.findIndex(x => x.id === r.id) === i); }
 const roomPic = r => r.members.length === 1 ? pic(who(r.members[0])) : `<span class="grp n${Math.min(4, r.members.length)}">${r.members.slice(0, 4).map(m => pic(who(m))).join('')}</span>`;
 
 /* ===== 시계 ===== */
@@ -292,7 +298,7 @@ let cur = 'lock', curRoom = null, tab = 'friends';
 function show(id) { ['lock', 'home', 'kk', 'room'].forEach(x => $('#' + x).classList.toggle('hide', x !== id)); cur = id;
   const light = id === 'kk' || id === 'room'; $('#sb').classList.toggle('dark', light); $('#nav').classList.toggle('dark', light);
   $('#sb').style.background = id === 'room' ? 'var(--k-room)' : id === 'kk' ? '#fff' : 'transparent';
-  const n = ROOMS.concat(dmRooms()).reduce((a, r) => a + unread(r), 0); $('#sbn').hidden = !n || id === 'kk' || id === 'room';
+  const n = allRooms().reduce((a, r) => a + unread(r), 0); $('#sbn').hidden = !n || id === 'kk' || id === 'room';
   $('#sbn').style.setProperty('--niBg', light ? '#fff' : '#3b4fd8'); }
 function goBack() { if (cur === 'room') { show('kk'); renderKK(); } else if (cur === 'kk') { show('home'); renderHome(); } else if (cur === 'home') { renderLock(); show('lock'); } }
 $('#nBack').onclick = goBack; $('#rback').onclick = goBack;
@@ -302,7 +308,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape') goBack(); });
 
 /* ===== 잠금화면 ===== */
 function renderLock() {
-  const items = ROOMS.concat(dmRooms()).map(r => ({ r, m: logOf(r).filter(x => x[0] !== 'me' && x[0] !== 'sys').slice(-1)[0], n: unread(r) })).filter(x => x.m && x.n)
+  const items = allRooms().map(r => ({ r, m: logOf(r).filter(x => x[0] !== 'me' && x[0] !== 'sys').slice(-1)[0], n: unread(r) })).filter(x => x.m && x.n)
     .sort((a, b) => a.m[2] < b.m[2] ? 1 : -1).slice(0, 3);
   $('#notis').innerHTML = items.map(({ r, m, n }) => `<div class="noti"><span class="nav2">${pic(who(m[0]))}</span><div class="tx"><div class="hd"><i></i>키카오톡<small>${ampm(m[2])}</small></div>
     <b>${esc(r.members.length > 1 ? r.name : who(m[0]).name)}${n > 1 ? ` (${n})` : ''}</b><span>${esc(r.members.length > 1 ? who(m[0]).name + ': ' : '')}${esc(m[1])}</span></div></div>`).join('');
@@ -334,7 +340,7 @@ const ICONS = {
   health: ['Samsung Health', sq('<rect width="60" height="60" fill="#fff"/>', '<path d="M30 44S15 35 15 25.5A7.5 7.5 0 0 1 30 21a7.5 7.5 0 0 1 15 4.5C45 35 30 44 30 44z" fill="#1fbf8f"/><path d="M19 30h6l2.5-5 4 9 2.5-4H41" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>')]
 };
 const GRID = ['cal', 'clock', 'gallery', 'notes', 'play', 'yt', 'store', 'set', 'health', 'files', 'web'], DOCK = ['phone', 'msg', 'kakao', 'cam'];
-function appHTML(k) { const [n, svg] = ICONS[k], bd = k === 'kakao' ? ROOMS.concat(dmRooms()).reduce((a, r) => a + unread(r), 0) : 0;
+function appHTML(k) { const [n, svg] = ICONS[k], bd = k === 'kakao' ? allRooms().reduce((a, r) => a + unread(r), 0) : 0;
   return `<div class="app" data-app="${k}"><span class="ico">${svg}</span><span>${esc(n)}</span>${bd ? `<span class="bd">${bd > 99 ? '99+' : bd}</span>` : ''}</div>`; }
 function renderHome() { $('#apps').innerHTML = GRID.map(appHTML).join(''); $('#dock').innerHTML = DOCK.map(appHTML).join(''); tick(); }
 $('#home').addEventListener('click', e => { const a = e.target.closest('[data-app]'); if (!a) return;
@@ -365,7 +371,6 @@ function renderKK() {
       <div class="meta">${m ? `<span>${listTime(m[2])}</span>` : ''}${unread(r) ? `<span class="un">${unread(r)}</span>` : ''}</div></div>`).join('');
   } else kb.innerHTML = `<div class="row mine">${pic(ME, 'big')}<div class="tx"><div class="nm">${esc(ME.name)}</div><div class="st">(주운 폰이에요 👀)</div></div></div>`;
 }
-const allRooms = () => ROOMS.concat(dmRooms()).filter((r, i, a) => a.findIndex(x => x.id === r.id) === i);
 function dmRooms() { return Object.keys(extra).filter(k => k.startsWith('dm_') && PEOPLE[k.slice(3)]).map(k => dmRoom(k.slice(3))); }
 function dmRoom(id) { return ROOMS.find(r => r.members.length === 1 && r.members[0] === id) || { id: 'dm_' + id, name: PEOPLE[id].name, members: [id], ctx: PEOPLE[id].name + '와(과) 공유의 1:1 대화방.', log: [] }; }
 $('#kb').addEventListener('click', e => { const d = e.target.closest('[data-dm]'), r = e.target.closest('[data-room]');
@@ -409,7 +414,10 @@ sendB.onclick = async () => {
   const res = await ask(r, first); busy = false;
   // 답장을 [보낸사람, 내용] 줄로 나누기 (단톡방은 "이름: 내용")
   let out = [];
+  const dms = [];
   if (res.reply) res.reply.split('\n').map(x => x.trim()).filter(Boolean).forEach(line => {
+    const dm = line.match(/^\[\s*갠톡\s*\]\s*([^:：]{1,12})\s*[:：]\s*(.+)$/);
+    if (dm) { const id = idByName(dm[1]); if (id) dms.push([id, dm[2]]); return; }
     const m = r.members.length > 1 && line.match(/^([^:：]{1,12})\s*[:：]\s*(.+)$/), id = m && idByName(m[1]);
     if (m && m[1].trim() === '공유') return;                       // AI가 공유 말을 대신 쓰면 버려요
     if (m && id && r.members.includes(id)) out.push([id, m[2]]);
@@ -423,7 +431,29 @@ sendB.onclick = async () => {
     if (curRoom === r && cur === 'room') { read[r.id] = logOf(r).filter(m => m[0] !== 'me' && m[0] !== 'sys').length; save('read', read); renderRoom(); }
   }
   if (curRoom === r) renderRoom();
+  if (dms.length) deliverDMs(dms);
 };
+/* ===== 갠톡(선톡): 다른 사람이 공유에게 따로 보내는 메시지 ===== */
+const DM_RULE = '[갠톡 규칙] 공유의 말이 이상하거나, 엉뚱하거나, 걱정되거나, 단톡방에서 말하기 곤란한 내용이면 맨 끝에 "[갠톡] 이름: 내용" 형식의 줄을 1~2개 덧붙인다. 이것은 그 인물이 단톡방이 아니라 공유에게 따로 보내는 1:1 카톡이다(예: 걱정, 뒷얘기, 몰래 하는 말). 평범한 대화에서는 절대 쓰지 않는다.';
+async function deliverDMs(list) {
+  const byWho = {}; list.forEach(([id, t]) => (byWho[id] = byWho[id] || []).push(t));
+  for (const id of Object.keys(byWho)) {
+    await sleep(2500 + Math.random() * 2500);
+    const room = dmRoom(id), arr = (extra[room.id] = extra[room.id] || []);
+    byWho[id].forEach(t => arr.push([id, t, nowStr()])); save('extra', extra);
+    if (curRoom && curRoom.id === room.id && cur === 'room') { read[room.id] = logOf(room).filter(m => m[0] !== 'me' && m[0] !== 'sys').length; save('read', read); renderRoom(); }
+    else { headsUp(room, id, byWho[id][byWho[id].length - 1]); if (cur === 'kk') renderKK(); if (cur === 'home') renderHome(); if (cur === 'lock') renderLock(); show(cur); }
+  }
+}
+function headsUp(room, id, text) {
+  $$('.hu').forEach(e => e.remove());
+  const e = document.createElement('div'); e.className = 'hu';
+  e.innerHTML = `${pic(who(id))}<div class="tx"><div class="hd"><i></i>키카오톡 · 지금</div><b>${esc(who(id).name)}</b><span>${esc(text)}</span></div>`;
+  e.onclick = () => { e.remove(); if (cur === 'lock') renderHome(); openRoom(room); };
+  $('#scr').append(e); requestAnimationFrame(() => requestAnimationFrame(() => e.classList.add('on')));
+  if (navigator.vibrate) try { navigator.vibrate(60); } catch (x) {}
+  setTimeout(() => { e.classList.remove('on'); setTimeout(() => e.remove(), 400); }, 4500);
+}
 /* 서버 요청: 45초까지 기다리고, 연결이 끊기거나 AI가 붐비면 자동으로 한 번 더 시도 */
 const MODELS = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 async function post1(body) {
@@ -446,7 +476,7 @@ async function ask(r, first) {
   if (group) {
     // 단톡방: AI가 멤버 전원을 연기 → 멤버 말 = assistant("이름: 내용"), 공유 말 = user
     const msgs = mergeMsgs(L.map(m => m[0] === 'me' ? { role: 'user', content: m[1] } : { role: 'assistant', content: who(m[0]).name + ': ' + m[1] }));
-    j = await post({ action: 'chat', mode: 'phone', cards: r.members.map(id => ({ name: PEOPLE[id].name, card: PEOPLE[id].card })), ctx: r.ctx || '', dev, messages: msgs });
+    j = await post({ action: 'chat', mode: 'phone', cards: r.members.map(id => ({ name: PEOPLE[id].name, card: PEOPLE[id].card })), ctx: r.ctx || '', rules: DM_RULE, dev, messages: msgs });
     if (j.ok) return { reply: j.reply };
   }
   // 1:1 (또는 예전 서버): 대답하는 사람 말 = assistant, 나머지 = user
@@ -457,6 +487,21 @@ async function ask(r, first) {
   if (!j.ok && j.error === 'persona' && p.persona) j = await post({ action: 'chat', persona: p.persona, dev, messages: msgs });
   return j.ok ? { reply: j.reply, who: first } : { error: j.error || 'upstream', detail: j.detail || (j.codes || []).join(',') };
 }
+
+/* 오랜만에 폰을 열면(45분 이상) 누군가 먼저 카톡을 보내요 */
+async function maybeFirstTalk() {
+  const last = load('seen', 0), talked = Object.values(extra).some(a => a.some(m => m[0] === 'me')); save('seen', Date.now());
+  if (!last || !talked || Date.now() - last < 45 * 60000) return;   // 처음 연 날은 건너뛰어요
+  const ids = Object.keys(PEOPLE), pool = ids.concat(['mom', 'mom']), id = pool[Math.floor(Math.random() * pool.length)], room = dmRoom(id);
+  // 최근 대화(단톡 포함)를 조금 알려 줘서 맥락 있는 선톡이 되게
+  const recent = allRooms().filter(x => x.members.includes(id)).flatMap(x => logOf(x).slice(-6).map(m => (m[0] === 'me' ? '공유' : who(m[0]).name) + ': ' + m[1])).slice(-10).join('\n');
+  const msgs = mergeMsgs(logOf(room).filter(m => m[0] !== 'sys').slice(-12).map(m => m[0] === id ? { role: 'assistant', content: m[1] } : { role: 'user', content: m[1] }));
+  msgs.push({ role: 'user', content: '(공유가 한동안 카톡을 안 봤다. 이번엔 네가 먼저 공유에게 카톡을 보낸다. 최근 일이나 안부, 인물다운 용건으로 자연스럽게 말을 건다.)' });
+  const j = await post({ action: 'chat', mode: 'phone', card: PEOPLE[id].card, ctx: (room.ctx || '') + (recent ? '\n최근 대화:\n' + recent : ''), dev, messages: mergeMsgs(msgs) });
+  if (!j.ok || !j.reply) return;
+  deliverDMs(j.reply.split('\n').map(x => x.trim().replace(/^[^:：]{1,12}[:：]\s*/, '')).filter(Boolean).slice(0, 3).map(t => [id, t]));
+}
+setTimeout(maybeFirstTalk, 2500);
 
 /* 엄마는 먼저 말을 걸어 와요 (처음 열었을 때만) */
 (() => { const r = ROOMS.find(x => x.id === 'dm_mom'); if (!r || logOf(r).length) return;
