@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="robots" content="noindex"><title>주운 핸드폰</title>
+<style>
+:root{--k-yellow:#fee500;--k-bg:#b2c7da;--k-ink:#191919;--k-sub:#8b8b8b;--k-line:#ececec;--ui:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0d12;font-family:var(--ui);color:#111;overflow:hidden;-webkit-user-select:none;user-select:none}
+/* 기기 프레임: 넓은 화면에선 폰 모양, 좁은 화면(폰)에선 꽉 채움 */
+#dev{position:absolute;inset:0;margin:auto;width:min(390px,100vw);height:min(844px,100dvh);background:#000;overflow:hidden}
+@media (min-width:520px) and (min-height:700px){
+  #dev{width:390px;height:min(820px,calc(100dvh - 40px));border-radius:46px;box-shadow:0 0 0 10px #1c1f26,0 0 0 12px #3a3f4a,0 30px 80px rgba(0,0,0,.6)}
+}
+#scr{position:absolute;inset:0;overflow:hidden;border-radius:inherit}
+.punch{position:absolute;top:12px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#050608;box-shadow:0 0 0 2px #111;z-index:60;pointer-events:none}
+/* 상태바 */
+.sb{position:absolute;top:0;left:0;right:0;height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:13px;font-weight:600;z-index:50;pointer-events:none;color:#fff;transition:color .2s}
+.sb.dark{color:#111}
+.sb .r{display:flex;gap:5px;align-items:center}
+.sb svg{width:16px;height:16px;fill:currentColor}
+.bat{width:24px;height:11px;border:1.5px solid currentColor;border-radius:3px;position:relative;opacity:.95}
+.bat:after{content:'';position:absolute;left:1px;top:1px;bottom:1px;width:62%;background:currentColor;border-radius:1px}
+/* 화면(레이어) */
+.layer{position:absolute;inset:0;transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .25s}
+.hide{opacity:0;pointer-events:none}
+/* 잠금화면 */
+#lock{background:radial-gradient(120% 70% at 20% 10%,#ffcfa8 0,transparent 55%),radial-gradient(120% 70% at 90% 90%,#7d8cff 0,transparent 55%),linear-gradient(160deg,#ff9fb5,#8f7bff 55%,#3d4bb8);color:#fff;display:flex;flex-direction:column;align-items:center;padding-top:96px}
+#lock .lt{font-size:86px;font-weight:300;line-height:1;letter-spacing:-2px}
+#lock .ld{font-size:17px;margin-top:10px;font-weight:500;opacity:.95}
+#lock .notis{width:calc(100% - 28px);margin-top:44px;display:flex;flex-direction:column;gap:8px}
+.noti{background:rgba(255,255,255,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#111;border-radius:22px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.noti .ic{width:22px;height:22px;border-radius:7px;background:var(--k-yellow);flex:none;display:grid;place-items:center;font-size:11px;font-weight:900;color:#3a1d1d}
+.noti b{font-size:13px;display:block}.noti span{font-size:13px;color:#333;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.noti small{margin-left:auto;font-size:11px;color:#666;flex:none}
+#lock .hint{position:absolute;bottom:44px;font-size:13px;opacity:.9;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+#lock .sc{position:absolute;bottom:40px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center}
+#lock .sc.l{left:28px}#lock .sc.r{right:28px}
+#lock .sc svg{width:22px;height:22px;fill:#fff}
+/* 홈 화면 (One UI) */
+#home{background:radial-gradient(90% 60% at 80% 0,#ffd8c2 0,transparent 60%),radial-gradient(90% 60% at 0 100%,#a9b6ff 0,transparent 60%),linear-gradient(170deg,#ffb8c8,#9d8cff 60%,#5563c9);padding:60px 18px 0;color:#fff}
+.wid{background:rgba(255,255,255,.22);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:26px;padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-end}
+.wid .t{font-size:48px;font-weight:300;line-height:1}.wid .d{font-size:14px;margin-top:6px;opacity:.95}
+.wid .w{text-align:right;font-size:13px}.wid .w b{font-size:26px;font-weight:500;display:block}
+.apps{display:grid;grid-template-columns:repeat(4,1fr);gap:22px 6px;margin-top:30px}
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;text-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;position:relative}
+.app i{width:58px;height:58px;border-radius:19px;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.18);font-style:normal}
+.app i svg{width:30px;height:30px}
+.app .bd{position:absolute;top:-4px;right:8px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#ff3b30;color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;text-shadow:none}
+.dock{position:absolute;left:14px;right:14px;bottom:62px;display:grid;grid-template-columns:repeat(4,1fr);padding:12px 6px;border-radius:30px;background:rgba(255,255,255,.18);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.dock .app span{display:none}
+.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);background:rgba(40,40,40,.92);color:#fff;font-size:13px;padding:10px 16px;border-radius:20px;z-index:80;white-space:nowrap;transition:opacity .3s}
+/* 하단 내비게이션 바 */
+.nav{position:absolute;left:0;right:0;bottom:0;height:48px;display:flex;justify-content:space-around;align-items:center;z-index:55}
+.nav button{background:none;border:0;width:80px;height:44px;display:grid;place-items:center;cursor:pointer}
+.nav svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2}
+.nav.dark svg{stroke:#555}
+/* 키카오톡 */
+#kk{background:#fff;color:var(--k-ink);padding-top:36px;display:flex;flex-direction:column}
+.kh{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 8px}
+.kh h2{margin:0;font-size:21px;font-weight:800}
+.kh .ic{display:flex;gap:16px}.kh svg{width:22px;height:22px;stroke:#222;fill:none;stroke-width:1.8}
+.kbody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ktabs{display:flex;justify-content:space-around;border-top:1px solid var(--k-line);padding:6px 0 54px;background:#fff}
+.ktabs button{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:#9a9a9a;cursor:pointer;padding:4px 10px}
+.ktabs button.on{color:#191919}
+.ktabs svg{width:24px;height:24px;fill:currentColor}
+.row{display:flex;align-items:center;gap:12px;padding:9px 18px;cursor:pointer}
+.row:active{background:#f4f4f4}
+.av{width:44px;height:44px;border-radius:16px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:16px;overflow:hidden}
+.av.me{width:58px;height:58px;border-radius:21px;font-size:20px}
+.row .tx{flex:1;min-width:0}.row .nm{font-size:15px;font-weight:600;display:flex;gap:6px;align-items:center}
+.row .nm em{font-style:normal;color:var(--k-sub);font-weight:500;font-size:13px}
+.row .st{font-size:12.5px;color:var(--k-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.row .meta{text-align:right;font-size:11px;color:var(--k-sub);flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.row .un{background:#ff5a3c;color:#fff;font-size:11px;font-weight:700;border-radius:10px;padding:1px 7px}
+.sec{font-size:12px;color:var(--k-sub);padding:12px 18px 4px}
+.grp{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;width:44px;height:44px;flex:none}
+.grp .av{width:21px;height:21px;border-radius:8px;font-size:9px}
+.empty{padding:40px 24px;text-align:center;color:var(--k-sub);font-size:13px;line-height:1.7}
+/* 채팅방 */
+#room{background:var(--k-bg);padding-top:36px;display:flex;flex-direction:column;color:var(--k-ink)}
+.rh{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--k-bg)}
+.rh button{background:none;border:0;padding:6px;cursor:pointer}.rh svg{width:22px;height:22px;stroke:#222;fill:none;stroke-width:2}
+.rh b{font-size:17px;flex:1}.rh small{font-size:14px;color:#555;font-weight:500;margin-left:4px}
+.msgs{flex:1;overflow-y:auto;padding:6px 12px 10px;-webkit-overflow-scrolling:touch}
+.day{text-align:center;margin:14px 0 10px}.day span{background:rgba(0,0,0,.18);color:#fff;font-size:11.5px;padding:4px 12px;border-radius:12px}
+.m{display:flex;gap:8px;margin:3px 0;align-items:flex-start}
+.m .av{width:38px;height:38px;border-radius:14px;font-size:13px}
+.m .col{display:flex;flex-direction:column;max-width:72%}
+.m .who{font-size:12px;color:#333;margin:0 0 4px 2px}
+.m .ln{display:flex;align-items:flex-end;gap:5px}
+.bb{background:#fff;padding:8px 11px;border-radius:4px 15px 15px 15px;font-size:14.5px;line-height:1.45;word-break:break-word;white-space:pre-wrap;-webkit-user-select:text;user-select:text}
+.m.cont .av{visibility:hidden;height:0}
+.m.cont .bb{border-radius:15px}
+.tm{font-size:10px;color:#556;flex:none;white-space:nowrap}
+.m.me{justify-content:flex-end}.m.me .ln{flex-direction:row-reverse}
+.m.me .bb{background:var(--k-yellow);border-radius:15px 4px 15px 15px}.m.me.cont .bb{border-radius:15px}
+.sys{text-align:center;font-size:12px;color:#445;margin:10px 0}
+.typing .bb{display:flex;gap:4px;padding:12px 13px}.typing i{width:6px;height:6px;border-radius:50%;background:#aaa;animation:dot 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{50%{opacity:.25;transform:translateY(-2px)}}
+.ib{display:flex;align-items:flex-end;gap:8px;padding:8px 10px 56px;background:#fff}
+.ib textarea{flex:1;border:0;resize:none;font:15px/1.4 var(--ui);max-height:96px;padding:8px 4px;outline:none;background:transparent;color:#111;-webkit-user-select:text;user-select:text}
+.ib button{border:0;background:var(--k-yellow);border-radius:8px;width:38px;height:36px;display:grid;place-items:center;cursor:pointer;flex:none}
+.ib button:disabled{background:#f1f1f1}
+.ib svg{width:18px;height:18px;fill:#3a1d1d}
+</style></head>
+<body>
+<div id="dev"><div id="scr">
+  <div class="punch"></div>
+  <div class="sb" id="sb"><span id="sbt">9:41</span><span class="r">
+    <svg viewBox="0 0 24 24"><path d="M2 20h3v-4H2zm5 0h3v-7H7zm5 0h3V9h-3zm5 0h3V4h-3z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M12 18.5a1.8 1.8 0 1 0 0 .01zM5 12.6l1.6 1.6a7.6 7.6 0 0 1 10.8 0l1.6-1.6a9.9 9.9 0 0 0-14 0zm-3.4-3.4L3.2 10.8a12.4 12.4 0 0 1 17.6 0l1.6-1.6a14.7 14.7 0 0 0-20.8 0z"/></svg>
+    <span class="bat"></span></span></div>
+
+  <!-- 잠금화면 -->
+  <div class="layer" id="lock">
+    <div class="lt" id="lt">9:41</div><div class="ld" id="ld"></div>
+    <div class="notis" id="notis"></div>
+    <div class="sc l"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></div>
+    <div class="hint">위로 밀거나 눌러서 열기</div>
+    <div class="sc r"><svg viewBox="0 0 24 24"><path d="M12 9a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm8-3h-3.2l-1.8-2H9L7.2 6H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/></svg></div>
+  </div>
+
+  <!-- 홈 화면 -->
+  <div class="layer hide" id="home">
+    <div class="wid"><div><div class="t" id="ht">9:41</div><div class="d" id="hd"></div></div><div class="w"><b>☁ 17°</b>송천동</div></div>
+    <div class="apps" id="apps"></div>
+    <div class="dock" id="dock"></div>
+  </div>
+
+  <!-- 키카오톡 -->
+  <div class="layer hide" id="kk">
+    <div class="kh"><h2 id="kt">친구</h2><div class="ic">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div></div>
+    <div class="kbody" id="kb"></div>
+    <div class="ktabs" id="ktabs">
+      <button data-t="friends" class="on"><svg viewBox="0 0 24 24"><path d="M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5z"/></svg>친구</button>
+      <button data-t="chats"><svg viewBox="0 0 24 24"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.3 4.6 6.7L5.6 21l4.1-2.4c.7.1 1.5.2 2.3.2 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>채팅</button>
+      <button data-t="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>더보기</button>
+    </div>
+  </div>
+
+  <!-- 채팅방 -->
+  <div class="layer hide" id="room">
+    <div class="rh"><button id="rback" aria-label="뒤로"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button><b id="rt"></b>
+      <button aria-label="검색"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></button></div>
+    <div class="msgs" id="msgs"></div>
+    <div class="ib"><textarea id="in" rows="1" placeholder="메시지 입력" maxlength="300"></textarea><button id="send" disabled aria-label="전송"><svg viewBox="0 0 24 24"><path d="M3 20.5 21 12 3 3.5v6.6l12 1.9-12 1.9z"/></svg></button></div>
+  </div>
+
+  <div class="nav" id="nav">
+    <button id="nRecent" aria-label="최근 앱"><svg viewBox="0 0 24 24"><path d="M7 5v14M12 5v14M17 5v14"/></svg></button>
+    <button id="nHome" aria-label="홈"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="5"/></svg></button>
+    <button id="nBack" aria-label="뒤로"><svg viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></svg></button>
+  </div>
+</div></div>
+
+<script>
+/* ===== 데이터: 공유 핸드폰 속 사람들 · 채팅방 =====
+   p: 서버(chat.gs)의 캐릭터 id, c: 프로필 색, s: 상태메시지
+   대화 기록(log): [보낸사람 id 또는 'me', 내용, 'YYYY-MM-DD HH:MM'] */
+const ME = { name: '공유', c: '#5b8def', s: '' };
+const PEOPLE = {
+  mom:       { name: '엄마', c: '#e88aa0', s: '', p: 'mom' },
+  yumoja:    { name: '유모자 팀장', c: '#8d74c9', s: '', p: 'yumoja' },
+  imiri:     { name: '이미리 과장', c: '#4e9a78', s: '', p: 'imiri' },
+  sejin:     { name: '장세진 대리', c: '#d86f93', s: '', p: 'sejin' },
+  gyeongsu:  { name: '안경수 대리', c: '#5a5e6a', s: '', p: 'gyeongsu' },
+  gangmyeon: { name: '차강면 차장', c: '#2f3a5a', s: '', p: 'gangmyeon' },
+  eskimo:    { name: '에스키모', c: '#6aa8c8', s: '', p: 'eskimo' },
+  elizabeth: { name: '엘리자베스', c: '#c9a24e', s: '', p: 'elizabeth' }
+};
+const ROOMS = [
+  { id: 'team8', name: '정보구출반 8팀', members: ['yumoja', 'imiri', 'sejin', 'gyeongsu', 'gangmyeon'], log: [] },
+  { id: 'dong', name: '동기방', members: ['eskimo', 'elizabeth'], log: [] },
+  { id: 'mom', name: '엄마', members: ['mom'], log: [] }
+];
+
+/* ===== 공통 ===== */
+const API_URL = "https://script.google.com/macros/s/AKfycbwiqBmXVY2nDlmyokpaDUxBxEezhbPRvYtKBA-kjVrHK0VU4pktS77wgRv9aN_ZWeTj/exec";
+const $ = s => document.querySelector(s), esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const LS = (() => { try { const k = '__t'; localStorage.setItem(k, 1); localStorage.removeItem(k); return localStorage; } catch (e) { return null; } })();
+const load = (k, d) => { try { return JSON.parse(LS.getItem('psi.phone.' + k)) ?? d; } catch (e) { return d; } };
+const save = (k, v) => { try { LS.setItem('psi.phone.' + k, JSON.stringify(v)); } catch (e) {} };
+const dev = load('dev', null) || (() => { const d = 'ph' + Math.random().toString(36).slice(2, 10); save('dev', d); return d; })();
+const extra = load('extra', {}), read = load('read', {});   // 내가 보낸/받은 새 메시지, 읽은 개수
+const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const pad = n => String(n).padStart(2, '0');
+const nowStr = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const ampm = t => { const [h, m] = t.slice(11).split(':').map(Number); return `${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${pad(m)}`; };
+const dayLabel = t => { const d = new Date(t.slice(0, 10)); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${DAYS[d.getDay()]}요일`; };
+const logOf = r => r.log.concat(extra[r.id] || []);
+const who = id => id === 'me' ? ME : PEOPLE[id] || { name: id, c: '#999' };
+const avatar = (p, cls = '') => `<span class="av ${cls}" style="background:${p.c}">${esc(p.name[0])}</span>`;
+const roomAv = r => r.members.length === 1 ? avatar(who(r.members[0])) : `<span class="grp">${r.members.slice(0, 4).map(m => avatar(who(m))).join('')}</span>`;
+const unread = r => Math.max(0, logOf(r).filter(m => m[0] !== 'me').length - (read[r.id] || 0));
+function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; $('#scr').append(e); setTimeout(() => e.style.opacity = 0, 1500); setTimeout(() => e.remove(), 1900); }
+
+/* ===== 시계 ===== */
+function tick() { const d = new Date(), t = `${d.getHours()}:${pad(d.getMinutes())}`, ds = `${d.getMonth() + 1}월 ${d.getDate()}일 ${DAYS[d.getDay()]}요일`;
+  $('#sbt').textContent = t; $('#lt').textContent = t; $('#ht').textContent = t; $('#ld').textContent = ds; $('#hd').textContent = ds; }
+tick(); setInterval(tick, 15000);
+
+/* ===== 화면 전환 ===== */
+let cur = 'lock', curRoom = null, tab = 'friends';
+function show(id) { ['lock', 'home', 'kk', 'room'].forEach(x => $('#' + x).classList.toggle('hide', x !== id)); cur = id;
+  const light = id === 'kk' || id === 'room'; $('#sb').classList.toggle('dark', light); $('#nav').classList.toggle('dark', light); }
+function goBack() { if (cur === 'room') { show('kk'); renderKK(); } else if (cur === 'kk') show('home'); else if (cur === 'home') show('lock'); }
+$('#nBack').onclick = goBack; $('#rback').onclick = goBack; $('#nHome').onclick = () => { if (cur !== 'lock') show('home'); renderHome(); };
+$('#nRecent').onclick = () => toast('최근 실행한 앱이 없어요');
+addEventListener('keydown', e => { if (e.key === 'Escape') goBack(); });
+
+/* ===== 잠금화면: 미리보기 알림 + 위로 밀어 열기 ===== */
+function renderLock() {
+  const last = ROOMS.map(r => ({ r, m: logOf(r).slice(-1)[0] })).filter(x => x.m && x.m[0] !== 'me').sort((a, b) => a.m[2] < b.m[2] ? 1 : -1).slice(0, 3);
+  $('#notis').innerHTML = last.map(({ r, m }) => `<div class="noti"><span class="ic">TALK</span><div><b>${esc(r.members.length > 1 ? r.name : who(m[0]).name)}</b><span>${esc(r.members.length > 1 ? who(m[0]).name + ': ' : '')}${esc(m[1])}</span></div><small>${ampm(m[2]).replace(/^(오전|오후) /, '')}</small></div>`).join('');
+}
+(() => { let y0 = null; const L = $('#lock');
+  L.addEventListener('pointerdown', e => y0 = e.clientY);
+  L.addEventListener('pointerup', e => { if (y0 !== null && (y0 - e.clientY > 40 || Math.abs(y0 - e.clientY) < 8)) { show('home'); renderHome(); } y0 = null; }); })();
+
+/* ===== 홈 화면 ===== */
+const ICONS = {
+  phone: ['전화', '#34c759', '<path fill="#fff" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/>'],
+  msg: ['메시지', '#3e8cf5', '<path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.4 1.3 4.6 3.4 6L4.6 21l4.4-2.3c1 .2 2 .3 3 .3 5.5 0 10-3.6 10-8S17.5 3 12 3z"/>'],
+  kakao: ['키카오톡', '#fee500', '<path fill="#3a1d1d" d="M12 4C6.8 4 2.6 7.3 2.6 11.4c0 2.6 1.7 4.9 4.3 6.2l-1 3.6 4.1-2.7c.7.1 1.3.2 2 .2 5.2 0 9.4-3.3 9.4-7.3S17.2 4 12 4z"/><text x="12" y="13.6" font-size="5.4" font-weight="900" text-anchor="middle" fill="#fee500" font-family="sans-serif">TALK</text>'],
+  cam: ['카메라', '#ef5a5a', '<path fill="#fff" d="M12 9a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm8-3h-3.2l-1.8-2H9L7.2 6H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/>'],
+  gallery: ['갤러리', '#f05a8c', '<path fill="#fff" d="M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm1 14h10l-3.3-4.4-2.5 3.2-1.7-2.1zM8.5 9.5a1.5 1.5 0 1 0 0-.01z"/>'],
+  web: ['인터넷', '#6a5cf0', '<circle cx="12" cy="12" r="8.5" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M3.5 12h17M12 3.5c2.5 3 2.5 14 0 17M12 3.5c-2.5 3-2.5 14 0 17" fill="none" stroke="#fff" stroke-width="1.5"/>'],
+  cal: ['캘린더', '#fff', '<rect x="3" y="4" width="18" height="17" rx="3" fill="#fff" stroke="#e5484d" stroke-width="1.6"/><path d="M3 9h18" stroke="#e5484d" stroke-width="1.6"/><text x="12" y="18" font-size="8" font-weight="800" text-anchor="middle" fill="#222" font-family="sans-serif" id="calD">22</text>'],
+  memo: ['Samsung Notes', '#f5a524', '<path fill="#fff" d="M5 3h10l4 4v14H5zm9 1.5V8h3.5zM8 12h8v1.5H8zm0 3.5h8V17H8z"/>'],
+  set: ['설정', '#6b7280', '<path fill="#fff" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.4-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3.3h-4l-.4 2.7a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.4 2.5-1c.5.4 1.1.7 1.7 1l.4 2.7h4l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.4zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/>'],
+  clock: ['시계', '#1f2937', '<circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>'],
+  store: ['Galaxy Store', '#9b5cf6', '<path fill="#fff" d="M7 8V7a5 5 0 0 1 10 0v1h3l-1 12H5L4 8zm2 0h6V7a3 3 0 0 0-6 0z"/>'],
+  music: ['뮤직', '#ff6a3d', '<path fill="#fff" d="M9 17.5a2.5 2.5 0 1 1-2-2.45V5l11-2v11.5a2.5 2.5 0 1 1-2-2.45V6.4L9 7.8z"/>']
+};
+const GRID = ['cal', 'clock', 'gallery', 'memo', 'store', 'music', 'set', 'web'], DOCK = ['phone', 'msg', 'kakao', 'cam'];
+function appHTML(k) { const [n, bg, svg] = ICONS[k], bd = k === 'kakao' ? ROOMS.reduce((a, r) => a + unread(r), 0) : 0;
+  return `<div class="app" data-app="${k}"><i style="background:${bg}"><svg viewBox="0 0 24 24">${svg}</svg></i><span>${esc(n)}</span>${bd ? `<span class="bd">${bd}</span>` : ''}</div>`; }
+function renderHome() { $('#apps').innerHTML = GRID.map(appHTML).join(''); $('#dock').innerHTML = DOCK.map(appHTML).join(''); const c = document.getElementById('calD'); if (c) c.textContent = new Date().getDate(); }
+$('#home').addEventListener('click', e => { const a = e.target.closest('[data-app]'); if (!a) return;
+  if (a.dataset.app === 'kakao') { show('kk'); renderKK(); } else toast('🔒 잠겨 있어서 열 수 없는 앱이에요'); });
+
+/* ===== 키카오톡: 친구 · 채팅 · 더보기 ===== */
+$('#ktabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (!b) return; tab = b.dataset.t; renderKK(); });
+function renderKK() {
+  $$('#ktabs [data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
+  $('#kt').textContent = { friends: '친구', chats: '채팅', more: '더보기' }[tab];
+  const kb = $('#kb'); kb.scrollTop = 0;
+  if (tab === 'friends') {
+    const ids = Object.keys(PEOPLE);
+    kb.innerHTML = `<div class="row">${avatar(ME, 'me')}<div class="tx"><div class="nm" style="font-size:17px">${esc(ME.name)}</div><div class="st">${esc(ME.s)}</div></div></div>
+      <div class="sec">친구 ${ids.length}</div>` + ids.map(id => { const p = PEOPLE[id];
+      return `<div class="row" data-dm="${id}">${avatar(p)}<div class="tx"><div class="nm">${esc(p.name)}</div>${p.s ? `<div class="st">${esc(p.s)}</div>` : ''}</div></div>`; }).join('');
+  } else if (tab === 'chats') {
+    const rs = ROOMS.concat(dmRooms()).filter((r, i, a) => a.findIndex(x => x.id === r.id) === i)
+      .map(r => ({ r, m: logOf(r).slice(-1)[0] })).sort((a, b) => ((b.m || [])[2] || '') > ((a.m || [])[2] || '') ? 1 : -1);
+    kb.innerHTML = rs.map(({ r, m }) => `<div class="row" data-room="${r.id}">${roomAv(r)}<div class="tx"><div class="nm">${esc(r.name)}${r.members.length > 1 ? `<em>${r.members.length + 1}</em>` : ''}</div><div class="st">${m ? esc(m[1]) : '대화를 시작해 보세요'}</div></div>
+      <div class="meta">${m ? `<span>${ampm(m[2])}</span>` : ''}${unread(r) ? `<span class="un">${unread(r)}</span>` : ''}</div></div>`).join('');
+  } else kb.innerHTML = `<div class="empty">공유의 핸드폰이에요.<br>남의 폰이니까 조심조심 구경하세요 👀</div>`;
+}
+const $$ = s => document.querySelectorAll(s);
+/* 친구 목록에서 1:1 대화: ROOMS에 없으면 즉석으로 만들어요 */
+function dmRooms() { return Object.keys(extra).filter(k => k.startsWith('dm_') && PEOPLE[k.slice(3)]).map(k => dmRoom(k.slice(3))); }
+function dmRoom(id) { return ROOMS.find(r => r.members.length === 1 && r.members[0] === id) || { id: 'dm_' + id, name: PEOPLE[id].name, members: [id], log: [] }; }
+$('#kb').addEventListener('click', e => { const d = e.target.closest('[data-dm]'), r = e.target.closest('[data-room]');
+  if (d) openRoom(dmRoom(d.dataset.dm)); else if (r) openRoom(ROOMS.concat(dmRooms()).find(x => x.id === r.dataset.room)); });
+
+/* ===== 채팅방 ===== */
+function openRoom(r) { curRoom = r; $('#rt').innerHTML = esc(r.name) + (r.members.length > 1 ? `<small>${r.members.length + 1}</small>` : '');
+  read[r.id] = logOf(r).filter(m => m[0] !== 'me').length; save('read', read); show('room'); renderRoom(); }
+function renderRoom(typingId) {
+  const L = logOf(curRoom), box = $('#msgs'); let h = '', prevDay = '', prev = null;
+  L.forEach((m, i) => { const day = m[2].slice(0, 10); if (day !== prevDay) { h += `<div class="day"><span>${dayLabel(m[2])}</span></div>`; prevDay = day; prev = null; }
+    if (m[0] === 'sys') { h += `<div class="sys">${esc(m[1])}</div>`; prev = null; return; }
+    const nx = L[i + 1], cont = prev && prev[0] === m[0] && prev[2].slice(0, 16) === m[2].slice(0, 16), showT = !(nx && nx[0] === m[0] && nx[2].slice(0, 16) === m[2].slice(0, 16));
+    const p = who(m[0]), me = m[0] === 'me';
+    h += `<div class="m${me ? ' me' : ''}${cont ? ' cont' : ''}">${me ? '' : avatar(p)}<div class="col">${!me && !cont ? `<div class="who">${esc(p.name)}</div>` : ''}<div class="ln"><div class="bb">${esc(m[1])}</div>${showT ? `<span class="tm">${ampm(m[2])}</span>` : ''}</div></div></div>`;
+    prev = m; });
+  if (typingId) h += `<div class="m typing">${avatar(who(typingId))}<div class="col"><div class="who">${esc(who(typingId).name)}</div><div class="ln"><div class="bb"><i></i><i></i><i></i></div></div></div></div>`;
+  if (!L.length && !typingId) h = `<div class="empty">아직 대화가 없어요.<br>먼저 말을 걸어 보세요.</div>`;
+  box.innerHTML = h; box.scrollTop = box.scrollHeight;
+}
+const inp = $('#in'), sendB = $('#send');
+inp.addEventListener('input', () => { sendB.disabled = !inp.value.trim(); inp.style.height = 'auto'; inp.style.height = Math.min(96, inp.scrollHeight) + 'px'; });
+inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendB.click(); } });
+let busy = false;
+sendB.onclick = async () => {
+  const v = inp.value.trim(); if (!v || busy || !curRoom) return;
+  const r = curRoom, arr = (extra[r.id] = extra[r.id] || []); arr.push(['me', v, nowStr()]); save('extra', extra);
+  inp.value = ''; inp.dispatchEvent(new Event('input')); renderRoom();
+  // 단톡방이면 이름이 불린 사람, 없으면 아무나 한 명이 대답해요
+  const resp = r.members.find(id => v.includes(PEOPLE[id].name.split(' ')[0]) || v.includes(PEOPLE[id].name.slice(1, 3))) || r.members[Math.floor(Math.random() * r.members.length)];
+  busy = true; await new Promise(t => setTimeout(t, 500 + Math.random() * 700)); if (curRoom === r) renderRoom(resp);
+  const reply = await ask(r, resp); busy = false;
+  const lines = reply ? reply.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 4) : ['(답장이 안 와요… 잠시 뒤 다시 보내 보세요)'];
+  for (let k = 0; k < lines.length; k++) {
+    if (k) { if (curRoom === r) renderRoom(resp); await new Promise(t => setTimeout(t, 500 + lines[k].length * 35)); }
+    arr.push([reply ? resp : 'sys', lines[k], nowStr()]); save('extra', extra);
+    if (curRoom === r && cur === 'room') { read[r.id] = logOf(r).filter(m => m[0] !== 'me').length; save('read', read); renderRoom(); }
+  }
+};
+async function ask(r, resp) {
+  // 대답할 사람 입장에서: 그 사람 말 = assistant, 나머지(공유와 다른 사람들) = user
+  const msgs = logOf(r).filter(m => m[0] !== 'sys').slice(-16).map(m => m[0] === resp ? { role: 'assistant', content: m[1] }
+    : { role: 'user', content: (r.members.length > 1 ? (m[0] === 'me' ? '공유: ' : who(m[0]).name + ': ') : '') + m[1] });
+  const merged = []; msgs.forEach(m => { const l = merged[merged.length - 1]; if (l && l.role === m.role) l.content += '\n' + m.content; else merged.push({ ...m }); });
+  const c = new AbortController(), to = setTimeout(() => c.abort(), 25000);
+  try { const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: c.signal,
+      body: JSON.stringify({ action: 'chat', persona: PEOPLE[resp].p, room: r.members.length > 1 ? r.name : '', dev, messages: merged }) });
+    const j = await res.json(); return j.ok ? j.reply : '';
+  } catch (e) { return ''; } finally { clearTimeout(to); }
+}
+
+renderLock(); renderHome();
+/* 홈페이지 키링에서 열었을 때: 바깥을 누르면 닫기 */
+if (parent !== window) document.body.addEventListener('click', e => { if (!e.target.closest('#dev')) parent.postMessage('psi-phone-close', '*'); });
+</script>
+</body></html>
