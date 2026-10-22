@@ -389,20 +389,32 @@ inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !
 let busy = false;
 const ERR = { rate: '(메시지를 너무 많이 보냈어요. 잠깐 쉬었다가 보내 주세요)', network: '(인터넷 연결이 불안정해요. 다시 보내 주세요)', persona: '(이 사람은 아직 대화 준비 중이에요)',
   upstream: '(답장이 안 와요… AI가 붐비는 중일 수 있어요. 조금 뒤 다시 보내 주세요)' };
+const sleep = ms => new Promise(t => setTimeout(t, ms));
+const shortName = id => PEOPLE[id].name.replace(/ (팀장|과장|대리|차장|부장)$/, '');
+function idByName(n) { n = n.replace(/[\s:]/g, ''); return Object.keys(PEOPLE).find(id => PEOPLE[id].name.replace(/\s/g, '') === n)
+  || Object.keys(PEOPLE).find(id => n.includes(shortName(id).replace(/\s/g, '')) || shortName(id).replace(/\s/g, '').includes(n)); }
 sendB.onclick = async () => {
   const v = inp.value.trim(); if (!v || busy || !curRoom) return;
   const r = curRoom, arr = (extra[r.id] = extra[r.id] || []); arr.push(['me', v, nowStr()]); save('extra', extra);
-  inp.value = ''; inp.dispatchEvent(new Event('input')); renderRoom();
-  // 단톡방: 이름이 불린 사람이 대답, 없으면 아무나 한 명
-  const named = r.members.find(id => { const n = PEOPLE[id].name.replace(/ (팀장|과장|대리|차장)$/, ''); return v.includes(n) || (n.length > 2 && v.includes(n.slice(1))); });
-  const resp = named || r.members[Math.floor(Math.random() * r.members.length)];
-  busy = true; await new Promise(t => setTimeout(t, 400 + Math.random() * 600)); if (curRoom === r) renderRoom(resp);
-  const res = await ask(r, resp); busy = false;
-  const lines = res.reply ? res.reply.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 4) : [ERR[res.error] || ERR.upstream];
-  for (let k = 0; k < lines.length; k++) {
-    if (k && res.reply) { if (curRoom === r) renderRoom(resp); await new Promise(t => setTimeout(t, 450 + lines[k].length * 30)); }
-    arr.push([res.reply ? resp : 'sys', lines[k], nowStr()]); save('extra', extra);
-    if (curRoom === r && cur === 'room') { read[r.id] = logOf(r).filter(m => m[0] !== 'me' && m[0] !== 'sys').length; save('read', read); }
+  inp.value = ''; inp.dispatchEvent(new Event('input'));
+  const named = r.members.find(id => v.includes(shortName(id)) || (shortName(id).length > 2 && v.includes(shortName(id).slice(1))));
+  const first = named || r.members[0];
+  busy = true; renderRoom(first);
+  const res = await ask(r, first); busy = false;
+  // 답장을 [보낸사람, 내용] 줄로 나누기 (단톡방은 "이름: 내용")
+  let out = [];
+  if (res.reply) res.reply.split('\n').map(x => x.trim()).filter(Boolean).forEach(line => {
+    const m = r.members.length > 1 && line.match(/^([^:：]{1,12})\s*[:：]\s*(.+)$/), id = m && idByName(m[1]);
+    if (m && m[1].trim() === '공유') return;                       // AI가 공유 말을 대신 쓰면 버려요
+    if (m && id && r.members.includes(id)) out.push([id, m[2]]);
+    else out.push([res.who || first, m ? m[2] : line]);
+  });
+  out = out.filter(x => x[1]).slice(0, 7);
+  if (!out.length) out = [['sys', ERR[res.error] || ERR.upstream]];
+  for (let k = 0; k < out.length; k++) {
+    if (k && out[k][0] !== 'sys') { if (curRoom === r) renderRoom(out[k][0]); await sleep(Math.min(1100, 260 + out[k][1].length * 14)); }
+    arr.push([out[k][0], out[k][1], nowStr()]); save('extra', extra);
+    if (curRoom === r && cur === 'room') { read[r.id] = logOf(r).filter(m => m[0] !== 'me' && m[0] !== 'sys').length; save('read', read); renderRoom(); }
   }
   if (curRoom === r) renderRoom();
 };
@@ -411,19 +423,30 @@ async function post(body) {
   try { const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: c.signal, body: JSON.stringify(body) });
     return await res.json(); } catch (e) { return { ok: false, error: 'network' }; } finally { clearTimeout(to); }
 }
-async function ask(r, resp) {
-  // 대답할 사람 입장: 그 사람 말 = assistant, 공유와 다른 사람 말 = user (단톡방은 "이름: 내용")
-  const group = r.members.length > 1;
-  const msgs = logOf(r).filter(m => m[0] !== 'sys').slice(-20).map(m => m[0] === resp ? { role: 'assistant', content: m[1] }
-    : { role: 'user', content: (group ? (m[0] === 'me' ? '공유: ' : who(m[0]).name + ': ') : '') + m[1] });
-  const merged = []; msgs.forEach(m => { const l = merged[merged.length - 1]; if (l && l.role === m.role) l.content += '\n' + m.content; else merged.push({ ...m }); });
-  while (merged.length && merged[0].role !== 'user') merged.shift();
-  const p = PEOPLE[resp];
-  let j = await post({ action: 'chat', mode: 'phone', card: p.card, ctx: r.ctx || '', dev, messages: merged });
+function mergeMsgs(list) { const merged = []; list.forEach(m => { const l = merged[merged.length - 1]; if (l && l.role === m.role) l.content += '\n' + m.content; else merged.push({ ...m }); });
+  if (merged.length && merged[0].role !== 'user') merged.unshift({ role: 'user', content: '(공유가 카톡방을 열었다)' }); return merged; }
+async function ask(r, first) {
+  const group = r.members.length > 1, L = logOf(r).filter(m => m[0] !== 'sys').slice(-30);
+  let j;
+  if (group) {
+    // 단톡방: AI가 멤버 전원을 연기 → 멤버 말 = assistant("이름: 내용"), 공유 말 = user
+    const msgs = mergeMsgs(L.map(m => m[0] === 'me' ? { role: 'user', content: m[1] } : { role: 'assistant', content: who(m[0]).name + ': ' + m[1] }));
+    j = await post({ action: 'chat', mode: 'phone', cards: r.members.map(id => ({ name: PEOPLE[id].name, card: PEOPLE[id].card })), ctx: r.ctx || '', dev, messages: msgs });
+    if (j.ok) return { reply: j.reply };
+  }
+  // 1:1 (또는 예전 서버): 대답하는 사람 말 = assistant, 나머지 = user
+  const msgs = mergeMsgs(L.map(m => m[0] === first ? { role: 'assistant', content: m[1] } : { role: 'user', content: (group ? (m[0] === 'me' ? '공유: ' : who(m[0]).name + ': ') : '') + m[1] }));
+  const p = PEOPLE[first];
+  if (!group || (j && j.error === 'persona')) j = await post({ action: 'chat', mode: 'phone', card: p.card, ctx: r.ctx || '', dev, messages: msgs });
   // 서버가 아직 예전 버전이면(인물 설정을 못 받음) 등록된 캐릭터 id로 다시 시도
-  if (!j.ok && j.error === 'persona' && p.persona) j = await post({ action: 'chat', persona: p.persona, dev, messages: merged });
-  return j.ok ? { reply: j.reply } : { error: j.error || 'upstream' };
+  if (!j.ok && j.error === 'persona' && p.persona) j = await post({ action: 'chat', persona: p.persona, dev, messages: msgs });
+  return j.ok ? { reply: j.reply, who: first } : { error: j.error || 'upstream' };
 }
+
+/* 엄마는 먼저 말을 걸어 와요 (처음 열었을 때만) */
+(() => { const r = ROOMS.find(x => x.id === 'dm_mom'); if (!r || logOf(r).length) return;
+  const d = new Date(Date.now() - 95 * 60000), t = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  extra.dm_mom = [['mom', '공유야 밥은 먹었니', t], ['mom', '요즘 회사 일 많이 힘들지? 엄마가 반찬 좀 보내줄까', t]]; save('extra', extra); })();
 
 renderLock(); renderHome();
 if (parent !== window) document.body.addEventListener('click', e => { if (!e.target.closest('#dev')) parent.postMessage('psi-phone-close', '*'); });
