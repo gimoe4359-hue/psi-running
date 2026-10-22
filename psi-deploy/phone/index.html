@@ -132,7 +132,9 @@ html,body{margin:0;height:100%;background:#0b0d12;font-family:var(--ui);overflow
 .bb{position:relative;background:#fff;padding:7px 11px 8px;border-radius:14px;font-size:14.5px;line-height:1.45;word-break:break-word;white-space:pre-wrap;-webkit-user-select:text;user-select:text;color:#191919}
 .m.first .bb:before{content:'';position:absolute;top:0;left:-6px;width:12px;height:12px;background:inherit;clip-path:polygon(0 0,100% 0,100% 100%)}
 .m.cont{padding-left:46px}.m.cont .pf{display:none}
-.tm{font-size:10px;color:#56687a;flex:none;white-space:nowrap;margin-bottom:1px}
+.tm{font-size:10px;color:#56687a;flex:none;white-space:nowrap;margin-bottom:1px;display:flex;flex-direction:column;align-items:flex-end;line-height:1.25}
+.tm b{color:#e6b800;font-size:10.5px;font-weight:700}
+.m:not(.me) .tm{align-items:flex-start}
 .m.me{justify-content:flex-end}.m.me .ln{flex-direction:row-reverse}.m.me .col{align-items:flex-end}
 .m.me .bb{background:var(--k-yel)}
 .m.me.first .bb:before{left:auto;right:-6px;clip-path:polygon(0 0,100% 0,0 100%)}
@@ -374,11 +376,14 @@ function openRoom(r) { curRoom = r; $('#rt').innerHTML = esc(r.name) + (r.member
   read[r.id] = logOf(r).filter(m => m[0] !== 'me' && m[0] !== 'sys').length; save('read', read); show('room'); renderRoom(); }
 function renderRoom(typingId) {
   const L = logOf(curRoom), box = $('#msgs'); let h = '', prevDay = '', prev = null;
+  // 아직 아무도 답하지 않은 내 메시지에는 안 읽은 숫자(1)를 표시
+  let lastOther = -1; L.forEach((m, i) => { if (m[0] !== 'me' && m[0] !== 'sys') lastOther = i; });
+  const unreadN = busy ? (curRoom.members.length > 1 ? curRoom.members.length : 1) : 0;
   L.forEach((m, i) => { const day = m[2].slice(0, 10); if (day !== prevDay) { h += `<div class="day"><span>${dayLabel(m[2])} ›</span></div>`; prevDay = day; prev = null; }
     if (m[0] === 'sys') { h += `<div class="sys">${esc(m[1])}</div>`; prev = null; return; }
     const nx = L[i + 1], same = (a, b) => a && b && a[0] === b[0] && a[2].slice(0, 16) === b[2].slice(0, 16);
     const cont = same(prev, m), showT = !same(m, nx), p = who(m[0]), me = m[0] === 'me';
-    h += `<div class="m${me ? ' me' : ''}${cont ? ' cont' : ' first'}">${me ? '' : pic(p)}<div class="col">${!me && !cont ? `<div class="who">${esc(p.name)}</div>` : ''}<div class="ln"><div class="bb">${esc(m[1])}</div>${showT ? `<span class="tm">${ampm(m[2])}</span>` : ''}</div></div></div>`;
+    h += `<div class="m${me ? ' me' : ''}${cont ? ' cont' : ' first'}">${me ? '' : pic(p)}<div class="col">${!me && !cont ? `<div class="who">${esc(p.name)}</div>` : ''}<div class="ln"><div class="bb">${esc(m[1])}</div>${showT || (me && i > lastOther && unreadN) ? `<span class="tm">${me && i > lastOther && unreadN ? `<b>${unreadN}</b>` : ''}${showT ? ampm(m[2]) : ''}</span>` : ''}</div></div></div>`;
     prev = m; });
   if (typingId) h += `<div class="m first typing">${pic(who(typingId))}<div class="col"><div class="who">${esc(who(typingId).name)}</div><div class="ln"><div class="bb"><i></i><i></i><i></i></div></div></div></div>`;
   box.innerHTML = h; box.scrollTop = box.scrollHeight;
@@ -387,7 +392,8 @@ const inp = $('#in'), sendB = $('#send');
 inp.addEventListener('input', () => { $('#ib').classList.toggle('has', !!inp.value.trim()); inp.style.height = 'auto'; inp.style.height = Math.min(96, inp.scrollHeight) + 'px'; });
 inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendB.click(); } });
 let busy = false;
-const ERR = { rate: '(메시지를 너무 많이 보냈어요. 잠깐 쉬었다가 보내 주세요)', network: '(인터넷 연결이 불안정해요. 다시 보내 주세요)', persona: '(이 사람은 아직 대화 준비 중이에요)',
+const ERR = { rate: '(메시지를 너무 많이 보냈어요. 잠깐 쉬었다가 보내 주세요)', network: '(서버에 연결이 안 됐어요. 다시 보내 주세요)', timeout: '(답장이 너무 오래 걸려서 끊겼어요. 다시 보내 주세요)',
+  server: '(서버 오류가 났어요. 다시 보내 주세요)', persona: '(이 사람은 아직 대화 준비 중이에요)',
   upstream: '(답장이 안 와요… AI가 붐비는 중일 수 있어요. 조금 뒤 다시 보내 주세요)' };
 const sleep = ms => new Promise(t => setTimeout(t, ms));
 const shortName = id => PEOPLE[id].name.replace(/ (팀장|과장|대리|차장|부장)$/, '');
@@ -410,7 +416,7 @@ sendB.onclick = async () => {
     else out.push([res.who || first, m ? m[2] : line]);
   });
   out = out.filter(x => x[1]).slice(0, 7);
-  if (!out.length) out = [['sys', ERR[res.error] || ERR.upstream]];
+  if (!out.length) out = [['sys', (ERR[res.error] || ERR.upstream) + (res.detail ? ' · ' + res.detail : '')]];
   for (let k = 0; k < out.length; k++) {
     if (k && out[k][0] !== 'sys') { if (curRoom === r) renderRoom(out[k][0]); await sleep(Math.min(1100, 260 + out[k][1].length * 14)); }
     arr.push([out[k][0], out[k][1], nowStr()]); save('extra', extra);
@@ -418,10 +424,19 @@ sendB.onclick = async () => {
   }
   if (curRoom === r) renderRoom();
 };
+/* 서버 요청: 45초까지 기다리고, 연결이 끊기거나 AI가 붐비면 자동으로 한 번 더 시도 */
+const MODELS = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+async function post1(body) {
+  const c = new AbortController(), to = setTimeout(() => c.abort(), 45000);
+  try { const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: c.signal, body: JSON.stringify(Object.assign({ models: MODELS }, body)) });
+    const txt = await res.text(); try { return JSON.parse(txt); } catch (e) { return { ok: false, error: 'server', detail: 'HTTP ' + res.status }; }
+  } catch (e) { return { ok: false, error: e.name === 'AbortError' ? 'timeout' : 'network' }; } finally { clearTimeout(to); }
+}
 async function post(body) {
-  const c = new AbortController(), to = setTimeout(() => c.abort(), 30000);
-  try { const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, signal: c.signal, body: JSON.stringify(body) });
-    return await res.json(); } catch (e) { return { ok: false, error: 'network' }; } finally { clearTimeout(to); }
+  let j = await post1(body);
+  if (!j.ok && /network|timeout|upstream|server/.test(j.error)) { await sleep(1200); const j2 = await post1(body); if (j2.ok || j2.error === 'persona') j = j2; else j.detail = (j.detail || (j.codes || []).join(',')) + ' / ' + (j2.detail || (j2.codes || []).join(',')); }
+  if (j.ms) console.log('[phone] AI', j.model, j.ms + 'ms', j.codes);
+  return j;
 }
 function mergeMsgs(list) { const merged = []; list.forEach(m => { const l = merged[merged.length - 1]; if (l && l.role === m.role) l.content += '\n' + m.content; else merged.push({ ...m }); });
   if (merged.length && merged[0].role !== 'user') merged.unshift({ role: 'user', content: '(공유가 카톡방을 열었다)' }); return merged; }
@@ -440,7 +455,7 @@ async function ask(r, first) {
   if (!group || (j && j.error === 'persona')) j = await post({ action: 'chat', mode: 'phone', card: p.card, ctx: r.ctx || '', dev, messages: msgs });
   // 서버가 아직 예전 버전이면(인물 설정을 못 받음) 등록된 캐릭터 id로 다시 시도
   if (!j.ok && j.error === 'persona' && p.persona) j = await post({ action: 'chat', persona: p.persona, dev, messages: msgs });
-  return j.ok ? { reply: j.reply, who: first } : { error: j.error || 'upstream' };
+  return j.ok ? { reply: j.reply, who: first } : { error: j.error || 'upstream', detail: j.detail || (j.codes || []).join(',') };
 }
 
 /* 엄마는 먼저 말을 걸어 와요 (처음 열었을 때만) */
