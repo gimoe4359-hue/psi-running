@@ -258,10 +258,10 @@ for (let k = 0; k < 40; k++) add(new THREE.SphereGeometry(.035, 6, 5), M('#fff2b
   // 둥근 덤불 (일부는 꽃 피는 덤불)
   const BC = ['#6f9a44', '#86ad52', '#7aa84e', '#93b65a'];
   for (let k = 0; k < 150; k++) { const a = R() * 6.28, d = 4 + R() * 30, x = Math.cos(a) * d * 1.05, z = 2 + Math.sin(a) * d * .9; if (!free(x, z, true)) continue;
-    const s = .45 + R() * .5, y = hgt(x, z); hit(x, z, s * 1.15); add(blob(s, 2), M(BC[k % 4]), x, y + s * .6, z, { s: [1.25, .85, 1.1] }); if (R() < .5) add(blob(s * .7, 2), M(BC[(k + 1) % 4]), x + s * .7, y + s * .45, z + .2, { s: [1.2, .8, 1] });
+    const s = .45 + R() * .5, y = hgt(x, z); hit(x, z, s * .85); add(blob(s, 2), M(BC[k % 4]), x, y + s * .6, z, { s: [1.25, .85, 1.1] }); if (R() < .5) add(blob(s * .7, 2), M(BC[(k + 1) % 4]), x + s * .7, y + s * .45, z + .2, { s: [1.2, .8, 1] });
   }
   // 이끼 낀 바위
-  for (let k = 0; k < 45; k++) { const a = R() * 6.28, d = 5 + R() * 30, x = Math.cos(a) * d, z = 2 + Math.sin(a) * d * .9; if (!free(x, z)) continue; const s = .25 + R() * .45, y = hgt(x, z); if (s > .35) { hit(x, z, s * 1.1); ROCKS.push([x, z, s]); }
+  for (let k = 0; k < 45; k++) { const a = R() * 6.28, d = 5 + R() * 30, x = Math.cos(a) * d, z = 2 + Math.sin(a) * d * .9; if (!free(x, z)) continue; const s = .25 + R() * .45, y = hgt(x, z); if (s > .35) { hit(x, z, s * .9); ROCKS.push([x, z, s]); }
     add(blob(s, 1), M(['#c8bca8', '#b8ad98', '#d6ccb8'][k % 3]), x, y + s * .35, z, { s: [1.2, .7, 1] }); if (R() < .6) add(blob(s * .6, 1), M('#7a9e4c'), x, y + s * .7, z, { s: [1.2, .35, 1] }); }
   // 버섯 무리
   for (let k = 0; k < 22; k++) { const a = R() * 6.28, d = 8 + R() * 26, cx = Math.cos(a) * d, cz = 2 + Math.sin(a) * d * .9; if (!free(cx, cz)) continue;
@@ -490,7 +490,19 @@ sc.traverse(o => {
   if (!groups.has(key)) groups.set(key, { m, cast: o.castShadow, list: [] }); groups.get(key).list.push(g); kill.push(o);
 });
 kill.forEach(o => o.parent.remove(o));
+// 카메라와 캐릭터 사이를 가리는 부분은 망점처럼 뚫어서 보이게 (시야 확보)
+const SEE = { uCam: { value: new THREE.Vector3() }, uFocus: { value: new THREE.Vector3() }, uR: { value: 1.6 } };
+const seeThrough = m => { m.onBeforeCompile = sh => { Object.assign(sh.uniforms, SEE);
+  sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vSeeW;').replace('#include <project_vertex>', '#include <project_vertex>\nvSeeW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vSeeW; uniform vec3 uCam; uniform vec3 uFocus; uniform float uR;\nfloat bayer4(vec2 p){ p = mod(floor(p), 4.0); float a = mod(p.x + p.y * 2.0, 4.0); float b = mod(p.x * 2.0 + p.y, 4.0); return (a * 4.0 + b) / 16.0; }')
+    .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+      { vec3 ab = uFocus - uCam; float L = length(ab); vec3 dir = ab / max(L, 1e-4); float t = dot(vSeeW - uCam, dir);
+        if (t > 0.0 && t < L - 0.6) { float d = length(vSeeW - (uCam + dir * t)); float r = uR * mix(0.55, 1.0, clamp(t / L, 0.0, 1.0));
+          float k = smoothstep(r * 0.55, r, d); float nearK = smoothstep(1.2, 2.6, length(vSeeW - uCam)); k = min(k, nearK);
+          if (k < 0.97 && bayer4(gl_FragCoord.xy) > k * 0.9 + 0.05) discard; } }`); };
+  m.customProgramCacheKey = () => 'see'; };
 for (const { m, cast, list } of groups.values()) {
+  if (!m.transparent) seeThrough(m);
   const mm = new THREE.Mesh(mergeGeometries(list, false), m); mm.castShadow = cast; mm.receiveShadow = true; mm.matrixAutoUpdate = false; sc.add(mm);
   if (m.emissiveIntensity > 0 && m.emissive.getHex() !== 0) EMIS.push([m, m.emissiveIntensity]); list.forEach(g => g.dispose());
 }
@@ -507,5 +519,5 @@ function tick(t, dt) {
   if (flies.visible) flies.children.forEach(f => { const [x, y, z, ph] = f.userData.o; f.position.set(x + Math.sin(t * .6 + ph) * .8, y + Math.sin(t * 1.1 + ph * 2) * .4, z + Math.cos(t * .5 + ph) * .8); });
   if (FIRE) FIRE.emissiveIntensity *= .92 + Math.random() * .16;
 }
-return { hgt, groundY, collide, INTER, setTime, tick, onDock, COLS, AREAS, TREES, ROCKS };
+return { hgt, groundY, collide, INTER, setTime, tick, onDock, COLS, AREAS, TREES, ROCKS, DYN, SEE };
 }

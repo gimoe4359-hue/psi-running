@@ -134,7 +134,7 @@ setTimeout(async () => {
     ensureDaily(); coinsUI(); hud();
     lbar(1); $('#lmsg').textContent = '준비 완료!'; const go = $('#lgo'); go.style.display = 'inline-block';
     go.onclick = () => { ac(); $('.back') && $('.back').remove(); $('#load').style.opacity = 0; setTimeout(() => $('#load').remove(), 600); ready = true; clock.getDelta();
-      if (!S.stats.welcomed) { S.stats.welcomed = 1; say('유모자', ['oh my ong! 공유 씨, 마이세카이에 welcome이에요!', '여기선 낚시하고, 밭도 가꾸고, 빵도 구울 수 있어요. 지도(M)에 할 수 있는 곳이 다 표시돼 있어요.', '먼저 게시판에서 오늘의 quest를 확인해 보세요. fighting!']); } };
+      if (!S.stats.welcomed) { S.stats.welcomed = 1; const y = npcs.find(n => n.id === 'yumoja'); npcHop(y); say('유모자', ['oh my ong! 공유 씨, 마이세카이에 welcome이에요!', '여기선 낚시하고, 밭도 가꾸고, 빵도 구울 수 있어요. 지도(M)에 할 수 있는 곳이 다 표시돼 있어요.', '먼저 게시판에서 오늘의 quest를 확인해 보세요. fighting!']); } };
     loop();
   } catch (e) { console.error(e); $('#lmsg').textContent = '불러오기에 실패했어요: ' + e.message; }
 }, 60);
@@ -150,18 +150,87 @@ function label(text) {
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const x = cv.getContext('2d');
   x.font = '800 30px sans-serif'; const w = x.measureText(text).width + 36; x.fillStyle = 'rgba(60,40,30,.78)'; x.beginPath(); x.roundRect((256 - w) / 2, 10, w, 44, 22); x.fill();
   x.fillStyle = '#fff8ec'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 33);
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), depthTest: false, transparent: true })); sp.scale.set(1.15, .29, 1); sp.renderOrder = 10; return sp;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true })); sp.scale.set(1.05, .26, 1); sp.renderOrder = 10; return sp;
 }
 function makeChars(src) {
-  P = charFrom(src); P.pos = new THREE.Vector3(S.pos[0], 0, S.pos[1]); P.vy = 0; P.ground = true; P.phase = 0; P.speed = 0; P.root.rotation.y = S.ry; P.pose = null;
-  P.pos.y = W.groundY(P.pos.x, P.pos.z);
+  P = charFrom(src); P.pos = new THREE.Vector3(S.pos[0], 0, S.pos[1]); P.vel = new THREE.Vector3(); P.vy = 0; P.ground = true; P.air = 0; P.jbuf = 0; P.phase = 0; P.speed = 0; P.idle = 0;
+  P.root.rotation.y = S.ry; P.pose = null; P.pos.y = W.groundY(P.pos.x, P.pos.z); P.hand = new THREE.Group(); P.hand.position.set(.36, .62, .32); P.rig.add(P.hand);
   // 낚싯대 (낚시할 때만 보임)
   const rod = new THREE.Group(); const rm = new THREE.MeshStandardMaterial({ color: '#8a5e3c', roughness: .7 });
-  const stick = new THREE.Mesh(new THREE.CylinderGeometry(.015, .025, 1.6, 6), rm); stick.position.set(0, .8, 0); rod.add(stick); rod.position.set(.42, .55, .25); rod.rotation.x = .9; rod.visible = false; P.rig.add(rod); P.rod = rod;
-  NPCS.forEach(n => { const c = charFrom(src, n.c); c.root.position.set(n.at[0], W.groundY(...n.at), n.at[1]); c.root.rotation.y = Math.random() * 6; const lb = label(n.name); lb.position.y = 1.95; c.root.add(lb);
-    npcs.push({ ...n, ...c, lb, home: new THREE.Vector3(n.at[0], 0, n.at[1]), tgt: null, wait: 1 + Math.random() * 3, phase: Math.random() * 6 }); });
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(.015, .025, 1.6, 6), rm); stick.position.set(0, .8, 0); rod.add(stick); rod.position.set(.36, .6, .28); rod.rotation.x = .9; rod.visible = false; P.rig.add(rod); P.rod = rod;
+  NPCS.forEach(n => { const c = charFrom(src, n.c); c.root.position.set(n.at[0], W.groundY(...n.at), n.at[1]); c.root.rotation.y = Math.random() * 6; const lb = label(n.name); lb.position.y = 1.85; c.root.add(lb);
+    npcs.push({ ...n, ...c, lb, home: new THREE.Vector3(n.at[0], 0, n.at[1]), tgt: null, wait: 1 + Math.random() * 3, phase: Math.random() * 6, hop: 0 }); });
 }
+const npcHop = n => { if (n) n.hop = 1; };
 
+// ================= 효과 (이모지 파티클) · 소품 · 모션 =================
+const texCache = {};
+function emojiTex(e) {
+  if (texCache[e]) return texCache[e];
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d'); x.font = '100px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(e, 64, 72);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return texCache[e] = t;
+}
+const FX = [];
+function fx(e, pos, o = {}) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex(e), transparent: true, depthWrite: false })); s.position.copy(pos); const sz = o.size || .35; s.scale.setScalar(sz); s.renderOrder = 12; scene.add(s);
+  const p = { s, v: o.v ? o.v.clone() : new THREE.Vector3(), g: o.g ?? 0, life: 0, max: o.life || 1, sz, grow: o.grow ?? 0, fade: o.fade ?? .35, drag: o.drag ?? 0, spin: o.spin || 0, follow: o.follow || null, upd: o.upd || null };
+  FX.push(p); return p;
+}
+function burst(e, pos, n = 6, o = {}) { for (let i = 0; i < n; i++) { const a = Math.random() * 6.28, sp = (o.speed || 1.6) * (.6 + Math.random() * .6); fx(e, pos, { ...o, v: new THREE.Vector3(Math.cos(a) * sp * (o.flat ?? 1), (o.up ?? 2) * (.7 + Math.random() * .6), Math.sin(a) * sp * (o.flat ?? 1)), g: o.g ?? -5, life: (o.life || .9) * (.8 + Math.random() * .4), size: (o.size || .26) * (.8 + Math.random() * .4) }); } }
+function fxTick(dt) {
+  for (let i = FX.length - 1; i >= 0; i--) { const p = FX[i]; p.life += dt; const u = p.life / p.max;
+    if (p.upd) p.upd(p, u, dt); else { p.v.y += p.g * dt; if (p.drag) p.v.multiplyScalar(1 - p.drag * dt); p.s.position.addScaledVector(p.v, dt); }
+    p.s.scale.setScalar(p.sz * (1 + p.grow * u)); p.s.material.opacity = u > 1 - p.fade ? Math.max(0, (1 - u) / p.fade) : 1; p.s.material.rotation += p.spin * dt;
+    if (u >= 1) { scene.remove(p.s); p.s.material.dispose(); FX.splice(i, 1); } }
+}
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const head = (dy = 1.9) => V3(P.pos.x, P.pos.y + dy, P.pos.z);
+const front = (d = .7, y = .6) => V3(P.pos.x + Math.sin(P.root.rotation.y) * d, P.pos.y + y, P.pos.z + Math.cos(P.root.rotation.y) * d);
+// 날아가는 아이템: from → to (포물선)
+function fly(e, from, to, dur = .6, o = {}) { return new Promise(res => { const a = from.clone(), b = to.clone(), h = o.h ?? 1.2; fx(e, a, { life: dur, fade: o.fade ?? .05, size: o.size || .4, upd: (p, u) => { p.s.position.lerpVectors(a, b, u); p.s.position.y += Math.sin(u * Math.PI) * h; } }); setTimeout(res, dur * 1000); }); }
+
+// 소품 (손에 드는 것들)
+const PM = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, ...o });
+const PROPS = {
+  bucket: () => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.CylinderGeometry(.13, .1, .2, 14), PM('#a87a52')); g.add(b); const h = new THREE.Mesh(new THREE.TorusGeometry(.12, .012, 6, 16, Math.PI), PM('#6a6a6a', { metalness: .6 })); h.position.y = .1; g.add(h); return g; },
+  hammer: () => { const g = new THREE.Group(); const h = new THREE.Mesh(new THREE.CylinderGeometry(.025, .03, .5, 8), PM('#8a5e3c')); h.position.y = .25; g.add(h); const k = new THREE.Mesh(new THREE.BoxGeometry(.24, .1, .1), PM('#6a6a72', { metalness: .6, roughness: .35 })); k.position.y = .5; g.add(k); return g; },
+  can: () => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.CylinderGeometry(.12, .13, .2, 14), PM('#7ab0c8', { metalness: .3 })); g.add(b); const s = new THREE.Mesh(new THREE.CylinderGeometry(.02, .03, .3, 8), PM('#7ab0c8', { metalness: .3 })); s.position.set(0, .05, .2); s.rotation.x = 1.1; g.add(s); return g; },
+  guitar: () => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.SphereGeometry(.2, 16, 12), PM('#d8884a')); b.scale.set(1, 1.15, .4); g.add(b); const n = new THREE.Mesh(new THREE.BoxGeometry(.06, .5, .04), PM('#6a4a32')); n.position.y = .4; g.add(n); const h = new THREE.Mesh(new THREE.CircleGeometry(.06, 14), PM('#3a2a20')); h.position.set(0, .02, .085); g.add(h); g.rotation.z = -1.1; return g; },
+  camera: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.BoxGeometry(.3, .2, .12), PM('#4a4a52'))); const l = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .1, 16), PM('#2a2a30', { metalness: .5, roughness: .2 })); l.rotation.x = Math.PI / 2; l.position.z = .1; g.add(l); return g; },
+  book: () => { const g = new THREE.Group(); [-1, 1].forEach(s => { const p = new THREE.Mesh(new THREE.BoxGeometry(.18, .02, .24), PM(s > 0 ? '#fffaf0' : '#f3ecdc')); p.position.x = s * .09; p.rotation.z = -s * .2; g.add(p); }); const c = new THREE.Mesh(new THREE.BoxGeometry(.4, .015, .26), PM('#c86a4a')); c.position.y = -.02; g.add(c); return g; },
+  tray: () => { const g = new THREE.Group(); const t = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .03, 18), PM('#c8a06a')); g.add(t); const s = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .5, 6), PM('#8a5e3c')); s.rotation.x = Math.PI / 2; s.position.z = -.32; g.add(s); return g; },
+  bag: () => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.SphereGeometry(.14, 12, 10), PM('#e8d6b0')); b.scale.set(1, 1.1, .9); g.add(b); const t = new THREE.Mesh(new THREE.TorusGeometry(.05, .015, 6, 12), PM('#a87a52')); t.position.y = .14; t.rotation.x = Math.PI / 2; g.add(t); return g; },
+  letter: () => { const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.BoxGeometry(.28, .18, .01), PM('#fffaf0'))); const h = new THREE.Mesh(new THREE.CircleGeometry(.035, 12), PM('#ff6a7a')); h.position.z = .008; g.add(h); return g; },
+  marsh: () => { const g = new THREE.Group(); const s = new THREE.Mesh(new THREE.CylinderGeometry(.01, .01, .7, 6), PM('#a87a52')); s.rotation.x = Math.PI / 2 - .3; s.position.z = .3; g.add(s); const m = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .08, 12), PM('#fff8ec')); m.position.set(0, .2, .65); m.rotation.x = Math.PI / 2; g.add(m); g.userData.m = m; return g; }
+};
+function hold(kind) { const g = PROPS[kind](); P.hand.add(g); return g; }
+function drop(g) { if (g && g.parent) g.parent.remove(g); }
+
+// 모션: 진행되는 동안 조작이 잠기고, 리그(몸)를 직접 움직임
+let pm = null;
+function mo(dur, fn) { return new Promise(res => { if (pm) pm.res(); pm = { t: 0, dur, fn, res }; }); }
+const ease = u => u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+const wave = (u, n = 1) => Math.sin(u * Math.PI * 2 * n);
+function rigSet(px = 0, py = 0, pz = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) { P.rig.position.set(px, py, pz); P.rig.rotation.set(rx, ry, rz); P.rig.scale.set(sx, sy, sz); }
+const lean = (a, u) => rigSet(0, 0, 0, a, 0, 0, 1, 1 - Math.abs(a) * .08, 1);
+// 자주 쓰는 동작
+const M_ = {
+  crouch: (dur = .7) => mo(dur, u => { const k = Math.sin(u * Math.PI); rigSet(0, -.04 * k, .05 * k, .35 * k, 0, 0, 1 + .08 * k, 1 - .16 * k, 1 + .08 * k); }),
+  hop: (dur = .45) => mo(dur, u => { const k = Math.sin(u * Math.PI); rigSet(0, .35 * k, 0, 0, 0, 0, 1 - .06 * k, 1 + .1 * k, 1 - .06 * k); }),
+  nod: (dur = .6) => mo(dur, u => rigSet(0, 0, 0, .18 * Math.abs(wave(u, 2)), 0, 0)),
+  shake: (dur = .8) => mo(dur, u => rigSet(0, 0, 0, 0, 0, .16 * wave(u, 4) * (1 - u))),
+  spin: (dur = .6) => mo(dur, u => rigSet(0, .3 * Math.sin(u * Math.PI), 0, 0, ease(u) * Math.PI * 2, 0)),
+  raise: (dur = .9) => mo(dur, u => { const k = Math.min(1, u * 4), s = 1 + .1 * Math.sin(Math.min(1, u * 3) * Math.PI); rigSet(0, .08 * k, 0, -.12 * k, 0, 0, 1 / Math.sqrt(s), s, 1 / Math.sqrt(s)); }),
+  wait: (dur = .3) => mo(dur, () => {})
+};
+// 얻은 아이템을 머리 위로 번쩍 (동물의 숲처럼)
+async function gain(k, n = 1, from) {
+  const ic = (ITEMS[k] || FISHI(k) || ['🎁'])[0];
+  if (from) await fly(ic, from, head(1.95), .55, { h: .8 });
+  const it = fx(ic, head(2.0), { life: 1.05, fade: .2, size: .55, upd: (p, u) => { p.s.position.copy(head(2.0 + Math.min(1, u * 5) * .12)); } });
+  burst('✨', head(2.0), 5, { up: 1.2, speed: 1, g: 0, life: .7, size: .2, drag: 2 }); ding();
+  await M_.raise(1.0); add(k, n);
+}
 // ================= 지도 이미지 (위에서 찍기) =================
 const MAP = { x0: -33, z0: -29, size: 66 };
 function makeMap() {
@@ -225,10 +294,12 @@ function hud() {
   $('#bQuest').innerHTML = '📜' + (qready ? '<i class="dot"></i>' : ''); $('#bBag').innerHTML = '🎒' + (unread ? '' : '');
 }
 
+
 // ================= 입력 =================
 const keys = new Set(); let runToggle = false; const joyV = new THREE.Vector2();
+const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 addEventListener('keydown', e => {
-  if (e.repeat && !['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) return;
+  if (e.repeat && !MOVE_KEYS.includes(e.code)) return;
   if (e.code === 'Escape') { closeSheet(); if (talking()) nextSay(); return; }
   if (talking() && (e.code === 'Space' || e.code === 'KeyF' || e.code === 'Enter' || e.code === 'KeyE')) { e.preventDefault(); nextSay(); return; }
   if (sheetOpen) { if (e.code === 'KeyM') closeSheet(); return; }
@@ -236,166 +307,263 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyF' || e.code === 'KeyE') { e.preventDefault(); act(); return; }
   if (e.code === 'KeyM') { openMap(); return; }
   if (e.code === 'KeyI' || e.code === 'KeyB') { openBag(); return; }
+  if (e.code === 'KeyQ') { camS.tYaw = P.root.rotation.y + Math.PI; return; }     // 카메라를 등 뒤로
   if (e.code === 'Space') { e.preventDefault(); jump(); return; }
   keys.add(e.code);
 });
 addEventListener('keyup', e => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
-const camS = { yaw: 0, pitch: .42, dist: 9, tYaw: 0, tPitch: .42, tDist: 9 };
+// 카메라 상태: 목표값(t*)을 부드럽게 따라감 · 드래그 관성 · 자동으로 등 뒤 따라가기
+const CAM_D = TOUCH ? 8.4 : 8;
+const camS = { yaw: 0, pitch: .5, dist: CAM_D, tYaw: 0, tPitch: .5, tDist: CAM_D, vYaw: 0, vPitch: 0, lastDrag: -9, real: CAM_D };
 camS.yaw = camS.tYaw = S.ry + Math.PI;
-const ptrs = new Map(); let joyId = null, joyO = null, pinch0 = 0;
+const ptrs = new Map(); let joyId = null, joyO = null, pinch0 = 0, lastT = 0;
+const now = () => performance.now() / 1000;
 canvas.addEventListener('pointerdown', e => {
   if (!ready) return; canvas.setPointerCapture(e.pointerId);
   if (fishing) { fishTap(); return; }
   if (talking()) { nextSay(); return; }
   const isTouch = e.pointerType !== 'mouse';
-  if (isTouch && e.clientX < innerWidth * .42 && joyId === null) { joyId = e.pointerId; joyO = [e.clientX, e.clientY]; const j = $('#joy'); j.style.display = 'block'; j.style.left = e.clientX + 'px'; j.style.top = e.clientY + 'px'; $('#joyhint').style.display = 'none'; return; }
-  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (isTouch && e.clientX < innerWidth * .45 && e.clientY > innerHeight * .3 && joyId === null) { joyId = e.pointerId; joyO = [e.clientX, e.clientY]; const j = $('#joy'); j.style.display = 'block'; j.style.left = e.clientX + 'px'; j.style.top = e.clientY + 'px'; $('#joyhint').style.display = 'none'; return; }
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]); camS.vYaw = camS.vPitch = 0; lastT = now();
   if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); }
 });
 canvas.addEventListener('pointermove', e => {
-  if (e.pointerId === joyId) { let dx = e.clientX - joyO[0], dy = e.clientY - joyO[1]; const d = Math.hypot(dx, dy), m = 55; if (d > m) { dx *= m / d; dy *= m / d; } joyV.set(dx / m, dy / m); $('#joy span').style.transform = `translate(${dx}px,${dy}px)`; return; }
+  if (e.pointerId === joyId) { let dx = e.clientX - joyO[0], dy = e.clientY - joyO[1]; const d = Math.hypot(dx, dy), m = 52;
+    if (d > m) { // 손가락이 멀리 가면 조이스틱 중심이 따라옴 (계속 밀어도 편하게)
+      joyO[0] += dx / d * (d - m); joyO[1] += dy / d * (d - m); const j = $('#joy'); j.style.left = joyO[0] + 'px'; j.style.top = joyO[1] + 'px'; dx *= m / d; dy *= m / d; }
+    const mag = Math.min(1, Math.hypot(dx, dy) / m), dz = .14, k = mag < dz ? 0 : (mag - dz) / (1 - dz);
+    joyV.set(mag ? dx / (mag * m) * k : 0, mag ? dy / (mag * m) * k : 0); $('#joy span').style.transform = `translate(${dx}px,${dy}px)`; return; }
   if (!ptrs.has(e.pointerId)) return; const [px, py] = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) camS.tDist = THREE.MathUtils.clamp(camS.tDist * pinch0 / d, 3.2, 18); pinch0 = d; return; }
-  camS.tYaw -= (e.clientX - px) * .0065; camS.tPitch = THREE.MathUtils.clamp(camS.tPitch + (e.clientY - py) * .0045, .08, 1.25);
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) camS.tDist = THREE.MathUtils.clamp(camS.tDist * pinch0 / d, 3.2, 14); pinch0 = d; return; }
+  const sens = e.pointerType === 'mouse' ? .0055 : .0075, t = now(), dtp = Math.max(.008, t - lastT); lastT = t;
+  const dYaw = -(e.clientX - px) * sens, dPitch = (e.clientY - py) * sens * .75;
+  camS.tYaw += dYaw; camS.tPitch = THREE.MathUtils.clamp(camS.tPitch + dPitch, .05, 1.2); camS.vYaw = dYaw / dtp; camS.vPitch = dPitch / dtp; camS.lastDrag = t;
 });
-const endPtr = e => { if (e.pointerId === joyId) { joyId = null; joyV.set(0, 0); $('#joy').style.display = 'none'; $('#joy span').style.transform = ''; } ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = 0; };
+const endPtr = e => { if (e.pointerId === joyId) { joyId = null; joyV.set(0, 0); $('#joy').style.display = 'none'; $('#joy span').style.transform = ''; }
+  if (ptrs.has(e.pointerId) && now() - lastT > .06) camS.vYaw = camS.vPitch = 0;   // 멈췄다 뗀 경우 관성 없음
+  ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = 0; };
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
-canvas.addEventListener('wheel', e => { e.preventDefault(); camS.tDist = THREE.MathUtils.clamp(camS.tDist * (1 + Math.sign(e.deltaY) * .1), 3.2, 18); }, { passive: false });
+canvas.addEventListener('wheel', e => { e.preventDefault(); camS.tDist = THREE.MathUtils.clamp(camS.tDist * (1 + Math.sign(e.deltaY) * .1), 3.2, 14); }, { passive: false });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 const tap = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (ready) fn(); });
 tap('#bAct', () => fishing ? fishTap() : talking() ? nextSay() : act()); tap('#bJump', () => jump()); tap('#bRun', () => { runToggle = !runToggle; $('#bRun').classList.toggle('on', runToggle); });
 tap('#mini', () => openMap()); tap('#bBag', () => openBag()); tap('#bDex', () => openDex()); tap('#bQuest', () => openQuests()); tap('#bMore', () => openMore());
-function jump() { if (P.ground && !P.pose) { P.vy = 6.2; P.ground = false; beep(420, .08, 'triangle', .05); } }
+function jump() { if (pm || sheetOpen || talking() || fishing) return; if (P.pose) { P.pose = null; return; } P.jbuf = .16; }
 
 // ================= 상호작용 대상 찾기 =================
 let target = null;
 function findTarget() {
-  if (!P) return null; const px = P.pos.x, pz = P.pos.z; let best = null, bd = 1e9;
-  const consider = (o, d) => { if (d < bd) { bd = d; best = o; } };
-  for (const [ic, nm, ac, x, y, z] of W.INTER) { const r = REACH[nm]; const tx = r ? r[0] : x, tz = r ? r[1] : z, rr = r ? r[2] : 1.6; const d = Math.hypot(px - tx, pz - tz) - rr; if (d < 0) consider({ k: 'inter', ic, nm, ac }, d - 1); }
-  for (const n of npcs) { const d = n.root.position.distanceTo(P.pos) - 1.7; if (d < 0) consider({ k: 'npc', ic: '💬', nm: n.name, ac: '이야기하기', n }, d - 1.5); }
-  if (!best) { W.TREES.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (.45 * s + 1.1); if (d < 0) consider({ k: 'tree', ic: '🌳', nm: '나무', ac: S.shaken[i] ? '오늘은 다 흔들었어요' : '흔들기', i, x, z }, d); });
-    W.ROCKS.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (s * 1.1 + 1.0); if (d < 0) consider({ k: 'rock', ic: '🪨', nm: '바위', ac: S.mined[i] ? '오늘은 다 캤어요' : '돌 캐기', i, x, z }, d); }); }
+  if (!P) return null; const px = P.pos.x, pz = P.pos.z, fx_ = Math.sin(P.root.rotation.y), fz_ = Math.cos(P.root.rotation.y); let best = null, bd = 1e9;
+  // 바라보는 방향에 있는 것을 조금 더 우선
+  const score = (tx, tz, d) => { const dx = tx - px, dz = tz - pz, l = Math.hypot(dx, dz) || 1; return d - ((dx * fx_ + dz * fz_) / l) * .6; };
+  const consider = (o, s) => { if (s < bd) { bd = s; best = o; } };
+  for (const [ic, nm, ac, x, y, z] of W.INTER) { const r = REACH[nm]; const tx = r ? r[0] : x, tz = r ? r[1] : z, rr = r ? r[2] : 1.6; const d = Math.hypot(px - tx, pz - tz) - rr; if (d < 0) consider({ k: 'inter', ic, nm, ac, x, z }, score(x, z, d) - 1); }
+  for (const n of npcs) { const d = n.root.position.distanceTo(P.pos) - 1.7; if (d < 0) consider({ k: 'npc', ic: '💬', nm: n.name, ac: '이야기하기', n }, score(n.root.position.x, n.root.position.z, d) - 1.5); }
+  if (!best) { W.TREES.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (.45 * s + 1.1); if (d < 0) consider({ k: 'tree', ic: '🌳', nm: '나무', ac: S.shaken[i] ? '오늘은 다 흔들었어요' : '흔들기', i, x, z, s }, score(x, z, d)); });
+    W.ROCKS.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (s * 1.1 + 1.0); if (d < 0) consider({ k: 'rock', ic: '🪨', nm: '바위', ac: S.mined[i] ? '오늘은 다 캤어요' : '돌 캐기', i, x, z, s }, score(x, z, d)); }); }
   return best;
 }
 function showPrompt() {
   const t = target, el = $('#prompt'), b = $('#bAct');
-  if (!t || sheetOpen || talking() || fishing || P.pose) { el.innerHTML = ''; b.classList.add('off'); $('#actE').textContent = P && P.pose ? '🚶' : '✋'; $('#actT').textContent = P && P.pose ? '일어나기' : '상호작용'; if (P && P.pose) b.classList.remove('off'); return; }
+  if (P && P.pose && !pm) { el.innerHTML = ''; el.dataset.h = ''; b.classList.remove('off'); $('#actE').textContent = '🚶'; $('#actT').textContent = '일어나기'; return; }
+  if (!t || sheetOpen || talking() || fishing || pm) { el.innerHTML = ''; el.dataset.h = ''; b.classList.add('off'); $('#actE').textContent = '✋'; $('#actT').textContent = '상호작용'; return; }
   b.classList.remove('off'); $('#actE').textContent = t.ic; $('#actT').textContent = t.ac.length > 6 ? t.nm : t.ac;
   const html = `<div class="prompt p" id="pr"><kbd>${TOUCH ? '👆' : 'F'}</kbd>${esc(t.nm)} <small>· ${esc(t.ac)}</small></div>`;
   if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; $('#pr').addEventListener('pointerdown', e => { e.preventDefault(); act(); }); }
 }
-function faceTo(x, z) { P.root.rotation.y = Math.atan2(x - P.pos.x, z - P.pos.z); }
-
-function act() {
-  if (sheetOpen || talking()) return;
-  if (P.pose) { P.pose = null; return; }
-  const t = target; if (!t) return; pop();
-  if (t.k === 'npc') return talkNPC(t.n);
-  if (t.k === 'tree') return shakeTree(t);
-  if (t.k === 'rock') return mineRock(t);
-  const fn = ACTS[t.nm]; if (fn) fn(t); else toast(`${t.ic} ${esc(t.nm)} — 준비 중이에요`);
+// 대상 쪽으로 부드럽게 돌아서기 (모션)
+const turnTo = (x, z, dur = .22) => { const a0 = P.root.rotation.y, want = Math.atan2(x - P.pos.x, z - P.pos.z); let d = want - a0; d = Math.atan2(Math.sin(d), Math.cos(d)); P.vel.set(0, 0, 0); P.speed = 0; return mo(dur, u => { P.root.rotation.y = a0 + d * ease(u); rigSet(); }); };
+let acting = false, camSave = null;
+// 상호작용할 때 카메라가 비스듬히 옆으로 돌아가 동작이 잘 보이게
+function actionCam(on) {
+  if (on) { if (!camSave) camSave = { d: camS.tDist, p: camS.tPitch }; const side = P.root.rotation.y + Math.PI; let best = side + 1.05;
+    // 좌·우 중 덜 가리는 쪽
+    const f = V3(P.pos.x, P.pos.y + 1.1, P.pos.z), test = a => camHit(f, V3(Math.sin(a) * Math.cos(.42), Math.sin(.42), Math.cos(a) * Math.cos(.42)), 6);
+    if (test(side - 1.05) > test(side + 1.05)) best = side - 1.05;
+    let d = best - camS.tYaw; d = Math.atan2(Math.sin(d), Math.cos(d)); camS.tYaw += d; camS.tDist = 5.6; camS.tPitch = .42; camS.lastDrag = now(); }
+  else if (camSave) { camS.tDist = camSave.d; camS.tPitch = camSave.p; camSave = null; }
+}
+async function act() {
+  if (sheetOpen || talking() || pm || acting) return;
+  if (P.pose) { P.pose = null; await M_.hop(.35); return; }
+  const t = target; if (!t) return; pop(); acting = true;
+  try {
+    if (t.k === 'npc') { actionCam(true); await talkNPC(t.n); }
+    else if (t.k === 'tree') { await turnTo(t.x, t.z); actionCam(true); await shakeTree(t); }
+    else if (t.k === 'rock') { await turnTo(t.x, t.z); actionCam(true); await mineRock(t); }
+    else { const fn = ACTS[t.nm]; if (t.x != null && t.nm !== '선착장') await turnTo(t.x, t.z); if (t.nm !== '선착장') actionCam(true); if (fn) await fn(t); else toast(`${t.ic} ${esc(t.nm)} — 준비 중이에요`); }
+  } finally { acting = false; }
 }
 
 // ================= 각 장소 =================
 const row = (ic, t, s, btn) => `<div class="row"><span class="ri">${ic}</span><span class="rt"><b>${t}</b><small>${s || ''}</small></span>${btn || ''}</div>`;
-const need = req => Object.entries(req).map(([k, n]) => `${(ITEMS[k] || ['•'])[0]}${esc(k)} ${S.inv[k] || 0}/${n}`).join(' · ');
+const need = req => Object.entries(req).map(([k, n]) => `${(ITEMS[k] || FISHI(k) || ['•'])[0]}${esc(k)} ${S.inv[k] || 0}/${n}`).join(' · ');
 const canMake = req => Object.entries(req).every(([k, n]) => has(k, n));
 const take = req => Object.entries(req).forEach(([k, n]) => add(k, -n, true));
 function bindBtns(b, map) { b.querySelectorAll('[data-a]').forEach(el => el.addEventListener('pointerdown', e => { e.preventDefault(); if (el.disabled) return; map[el.dataset.a](el.dataset.v, el); })); }
+const at = (x, y, z) => V3(x, W.hgt(x, z) + y, z);
 
-const ACTS = {
-  '우물': () => { if ((S.inv['물'] || 0) >= 20) return toast('💧 물통이 가득 찼어요 (20)'); faceTo(-7.2, -1.6); add('물', 1); beep(300, .2, 'sine', .06); ev('water'); save(); },
-  '퀘스트 게시판': () => openQuests(),
-  '잡화점': () => openShop(),
-  '캡슐 뽑기': () => openGacha(),
-  '풍차 방앗간': () => craftSheet('🌾', '풍차 방앗간', '밀 2개 → 밀가루 1개', [['🥣', '밀가루', { '밀': 2 }]], () => ev('mill')),
-  '화덕': () => craftSheet('🍞', '화덕', '따끈하게 굽기 · 요리하면 퀘스트 진행', [['🍞', '빵', { '밀가루': 1, '물': 1 }], ['🍕', '토마토 피자', { '밀가루': 1, '토마토': 2, '물': 1 }], ['🥧', '사과파이', { '밀가루': 1, '사과': 2 }], ['🍯', '꿀빵', { '빵': 1, '꿀': 1 }]], () => ev('bake')),
-  '모닥불': () => craftSheet('🔥', '모닥불', '생선을 굽거나 마시멜로를 구워요', [['🍢', '생선구이', { '붕어': 1 }, '붕어·송사리·피라미 아무거나'], ['🍡', '구운 마시멜로', { '마시멜로': 1 }]], () => ev('bake'), true),
-  '작업대': () => craftSheet('🛠', '작업대', '모은 재료로 가구 만들기 → 오두막에 장식돼요', CRAFT.map(([ic, nm, req, item]) => [ic, nm, req, item ? '' : '오두막 장식', !item]), null),
-  '공방': () => openForge(),
-  '벌통': () => { const left = S.honeyAt + 3 - T(); if (left > 0) return toast(`🐝 벌들이 아직 일하는 중이에요 (${Math.ceil(left * 60)}분 뒤)`); S.honeyAt = T(); add('꿀', 1 + (Math.random() < .3 ? 1 : 0)); ev('honey'); save(); },
-  '선착장': () => startFishing(),
-  '텐트': () => sheet('⛺', '텐트', '자면 다음 날 아침 7시가 돼요 · 자동 저장', `<p>포근한 침낭이 깔려 있어요.</p><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-a="sleep">잠자기 (아침까지)</button><button class="btn sub" data-a="save">저장만 하기</button></div>`, b => bindBtns(b, {
-    sleep: () => { closeSheet(); fade(() => { S.h = 7; S.day++; ensureDaily(); W.setTime(S.h, P.pos); save(); hud(); toast(`🌤 ${S.day}일째 아침이에요. 잘 잤다!`); }, 900, true); },
-    save: () => { save(); toast('💾 저장했어요'); closeSheet(); } })),
-  '아쿠아리움': () => openAquarium(),
-  '지하실': () => cellar(),
-  '오두막': () => openHouse(),
-  '우체통': () => openMail(),
-  '고양이': () => { faceTo(-2.9, 2.2); heart(); heart('💕'); beep(760, .1, 'sine', .05); beep(980, .14, 'sine', .04, .1); if (S.petDay !== S.day) { S.petDay = S.day; S.friend.cat = (S.friend.cat || 0) + 1; ev('pet'); toast(`🐈 고양이가 골골송을 불러요 (친밀도 ${S.friend.cat})`); save(); } else toast('🐈 …냐아. (졸려 보여요)'); },
-  '피크닉': () => { P.pose = 'sit'; faceTo(-4.2, 7); const snack = ['빵', '사과', '구운 마시멜로', '꿀빵'].find(k => has(k)); if (snack) { add(snack, -1, true); toast(`🧺 ${snack}을(를) 먹으며 쉬어요. 냠냠`); heart('😋'); } else toast('🧺 담요에 앉아 노을을 봐요'); },
-  '해먹': () => { P.pose = 'lie'; fade(() => { S.h += 1; toast('🌿 해먹에서 한 시간 쉬었어요'); }, 700); },
-  '새집': () => { if (!has('새모이')) return say('', ['새집이 비어 있어요. <b>새모이</b>(작업대에서 밀로 만들거나 잡화점에서 사요)를 넣어 주면 새가 찾아와요.']); add('새모이', -1, true); toast('🐦 짹짹! 새가 모이를 먹으러 왔어요'); if (Math.random() < .5) setTimeout(() => add('깃털', 1), 900); save(); },
-  '이정표': () => sheet('🪧', '이정표', '빠른 이동', TRAVEL.map(([ic, nm], i) => row(ic, esc(nm), '', `<button class="btn" data-a="go" data-v="${i}">이동</button>`)).join(''), b => bindBtns(b, { go: v => { const [, nm, [x, z]] = TRAVEL[+v]; closeSheet(); fade(() => { P.pos.set(x, W.groundY(x, z), z); toast(`🪧 ${nm}(으)로 왔어요`); }, 450); } })),
-  '정자': () => sheet('📖', '정자', '책 읽기 · 낮잠', `<p>바람이 솔솔 부는 정자. 책장에 「정보구출반 사내 소식지」가 꽂혀 있어요.</p><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-a="read">책 읽기</button><button class="btn sub" data-a="nap">낮잠 (3시간)</button></div>`, b => bindBtns(b, {
-    read: () => { closeSheet(); say('사내 소식지', [BOOK[Math.floor(Math.random() * BOOK.length)], '…피식 웃음이 나요.']); },
-    nap: () => { closeSheet(); P.pose = 'lie'; fade(() => { S.h += 3; toast('😴 낮잠을 푹 잤어요 (+3시간)'); P.pose = null; }, 900, true); } })),
-  '전망대': () => photo('전망대에서 본 풍경'),
-  '포토 스팟': () => photo('포토 스팟에서 한 컷'),
-  '버스킹 무대': () => busk(),
-  '텃밭': () => openFarm()
+// --- 제작 동작들 (만들기 버튼 → 창 닫고 동작 → 결과 → 다시 창) ---
+const CRAFT_MO = {
+  cook: async (spot) => { const g = hold('tray'); g.rotation.x = -.2; await mo(.5, u => lean(.25 * ease(u))); g.position.z = .25;
+    for (let i = 0; i < 3; i++) { burst(i % 2 ? '♨️' : '💨', spot, 2, { up: 1.4, speed: .3, g: .5, life: 1.1, size: .3, grow: 1 }); await mo(.45, u => lean(.25 + .05 * wave(u))); }
+    drop(g); await mo(.3, u => lean(.25 * (1 - u))); },
+  fire: async (spot) => { const g = hold('marsh'); await mo(.4, u => lean(.18 * u));
+    for (let i = 0; i < 4; i++) { burst('🔥', spot, 1, { up: 1.2, speed: .2, g: 0, life: .6, size: .28 }); await mo(.4, u => { lean(.18); g.rotation.z = wave(u) * .4; }); }
+    drop(g); await mo(.25, u => lean(.18 * (1 - u))); },
+  mill: async (spot) => { const hub = W.DYN.find(o => o.userData.spin); const s0 = hub ? hub.userData.spin : 0; const g = hold('bag');
+    if (hub) hub.userData.spin = 3.5; for (let i = 0; i < 4; i++) { burst('💨', spot, 2, { up: .6, speed: .8, g: 0, life: .8, size: .28, grow: 1.2 }); await mo(.4, u => rigSet(0, .04 * Math.abs(wave(u)), 0, .1, 0, .06 * wave(u))); }
+    if (hub) hub.userData.spin = s0; drop(g); },
+  hammer: async (spot) => { const g = hold('hammer'); g.rotation.x = -.3;
+    for (let i = 0; i < 3; i++) { await mo(.32, u => { const k = u < .6 ? -ease(u / .6) * 1.6 : -1.6 + ease((u - .6) / .4) * 2.4; g.rotation.x = k; lean(u < .6 ? -.06 : .18); });
+      burst('✨', spot, 4, { up: 1.5, speed: 1.6, life: .5, size: .2 }); beep(240 + i * 40, .08, 'square', .05); shake = .12; }
+    drop(g); }
 };
-function talkNPC(n) {
-  faceTo(n.root.position.x, n.root.position.z); n.root.rotation.y = Math.atan2(P.pos.x - n.root.position.x, P.pos.z - n.root.position.z); n.wait = 6; n.tgt = null;
-  const f = S.friend[n.id] || 0, line = n.lines[(f + S.day) % n.lines.length];
-  const h = S.h; const extra = h >= 21 || h < 5 ? '(하품) 벌써 밤이네요.' : h < 9 ? '좋은 아침이에요.' : null;
-  say(n.name, extra && Math.random() < .4 ? [extra, line] : [line], () => {
-    S.talked = S.talked || {}; if (!S.talked[n.id]) { S.talked[n.id] = 1; S.friend[n.id] = f + 1; ev('talk'); heart(); toast(`💗 ${esc(n.name)}와(과) 조금 더 친해졌어요 (${f + 1})`); save(); }
-  });
-}
-function shakeTree(t) {
-  if (S.shaken[t.i]) return toast('🌳 오늘은 이미 흔들었어요');
-  S.shaken[t.i] = 1; faceTo(t.x, t.z); beep(200, .25, 'sawtooth', .03); shake = .35;
-  const r = Math.random(); if (r < .65) add('나뭇가지', 1 + (Math.random() < .3 ? 1 : 0)); else if (r < .88) add('사과', 1); else { toast('🐝 앗, 벌이다! 도망쳐요~'); }
-  ev('shake'); save();
-}
-function mineRock(t) { if (S.mined[t.i]) return toast('🪨 오늘은 이미 캤어요'); S.mined[t.i] = 1; faceTo(t.x, t.z); beep(160, .1, 'square', .04); beep(140, .1, 'square', .04, .12); add('돌', 1 + (Math.random() < .25 ? 1 : 0)); ev('mine'); save(); }
-
-function craftSheet(ic, title, sub, recipes, onMake, anyFish) {
+function craftSheet(ic, title, sub, recipes, onMake, opt = {}) {
   const fishKinds = ['붕어', '송사리', '피라미', '민물새우'];
   const fishReq = () => { const k = fishKinds.find(f => has(f)); return k ? { [k]: 1 } : { '붕어': 1 }; };
   const render = b => {
-    b.innerHTML = recipes.map(([ric, nm, req, note, decor], i) => { const rq = anyFish && nm === '생선구이' ? fishReq() : req;
+    b.innerHTML = recipes.map(([ric, nm, req, note, decor], i) => { const rq = opt.anyFish && nm === '생선구이' ? fishReq() : req;
       return row(ric, esc(nm) + (S.inv[nm] ? ` <small>(${S.inv[nm]}개 있음)</small>` : decor && S.decor[nm] ? ` <small>(${S.decor[nm]}개 장식)</small>` : ''), (note ? esc(note) + ' · ' : '') + need(rq), `<button class="btn" data-a="mk" data-v="${i}" ${canMake(rq) ? '' : 'disabled'}>만들기</button>`); }).join('')
       + `<p style="font-size:12px;color:#9a8a78">재료는 🎒가방에서 확인할 수 있어요.</p>`;
-    bindBtns(b, { mk: v => { const [ric, nm, req, , decor] = recipes[+v]; const rq = anyFish && nm === '생선구이' ? fishReq() : req; if (!canMake(rq)) return; take(rq);
-      if (decor) { S.decor[nm] = (S.decor[nm] || 0) + 1; toast(`${ric} ${esc(nm)} 완성! 오두막에 장식했어요`); } else add(nm, 1);
-      ding(); onMake && onMake(); save(); render(b); } });
+    bindBtns(b, { mk: async v => { const [ric, nm, req, , decor] = recipes[+v]; const rq = opt.anyFish && nm === '생선구이' ? fishReq() : req; if (!canMake(rq)) return; take(rq); closeSheet();
+      acting = true; actionCam(true); try { await CRAFT_MO[opt.mo || 'hammer'](opt.spot || front(1.1, .8));
+        if (decor) { S.decor[nm] = (S.decor[nm] || 0) + 1; burst('✨', head(2), 6, { up: 1.4, speed: 1, g: 0, life: .8, size: .22 }); fx(ric, head(2), { life: 1, size: .55, g: 0 }); ding(); await M_.raise(); toast(`${ric} ${esc(nm)} 완성! 오두막에 장식했어요`); }
+        else await gain(nm, 1, opt.spot);
+        onMake && onMake(); save(); } finally { acting = false; }
+      sheet(ic, title, sub, '', render); actionCam(true); } });
   };
   sheet(ic, title, sub, '', render);
+}
+
+const ACTS = {
+  '우물': async () => { if ((S.inv['물'] || 0) >= 20) return toast('💧 물통이 가득 찼어요 (20)');
+    const well = at(-7.2, .8, -1.6), g = hold('bucket'); g.position.set(-.1, .1, .3);
+    await mo(.5, u => { lean(.3 * ease(u)); g.position.y = .1 - .45 * ease(u); });
+    beep(220, .25, 'sine', .05); burst('💧', well, 5, { up: 1.6, speed: .7, life: .7, size: .2 });
+    await mo(.7, u => { lean(.3 - .4 * ease(u)); g.position.y = -.35 + .55 * ease(u); rigSet(0, .05 * Math.sin(u * Math.PI), 0, .3 - .4 * ease(u)); });
+    await mo(.25, u => lean(-.1 * (1 - u))); drop(g); await gain('물', 1); ev('water'); save(); },
+  '퀘스트 게시판': async () => { await M_.nod(.6); openQuests(); },
+  '잡화점': async () => { const n = npcs.find(x => x.id === 'sejin'); await M_.hop(.35); openShop(); },
+  '캡슐 뽑기': async () => { openGacha(); },
+  '풍차 방앗간': () => craftSheet('🌾', '풍차 방앗간', '밀 2개 → 밀가루 1개', [['🥣', '밀가루', { '밀': 2 }]], () => ev('mill'), { mo: 'mill', spot: at(10.4, 1.6, -7.6) }),
+  '화덕': () => craftSheet('🍞', '화덕', '따끈하게 굽기 · 요리하면 퀘스트 진행', [['🍞', '빵', { '밀가루': 1, '물': 1 }], ['🍕', '토마토 피자', { '밀가루': 1, '토마토': 2, '물': 1 }], ['🥧', '사과파이', { '밀가루': 1, '사과': 2 }], ['🍯', '꿀빵', { '빵': 1, '꿀': 1 }]], () => ev('bake'), { mo: 'cook', spot: at(14.5, .8, 2.2) }),
+  '모닥불': () => craftSheet('🔥', '모닥불', '생선을 굽거나 마시멜로를 구워요', [['🍢', '생선구이', { '붕어': 1 }, '붕어·송사리·피라미 아무거나'], ['🍡', '구운 마시멜로', { '마시멜로': 1 }]], () => ev('bake'), { anyFish: true, mo: 'fire', spot: at(-15.2, .7, 5.4) }),
+  '작업대': () => craftSheet('🛠', '작업대', '모은 재료로 가구 만들기 → 오두막에 장식돼요', CRAFT.map(([ic, nm, req, item]) => [ic, nm, req, item ? '' : '오두막 장식', !item]), null, { mo: 'hammer', spot: at(15, 1.2, 5) }),
+  '공방': async () => openForge(),
+  '벌통': async () => { const left = S.honeyAt + 3 - T(); const hive = at(29.6, 1.1, 9.6);
+    if (left > 0) { burst('🐝', hive, 3, { up: .5, speed: .8, g: 0, life: 1.2, size: .2 }); return toast(`🐝 벌들이 아직 일하는 중이에요 (약 ${Math.max(1, Math.ceil(left))}분 뒤)`); }
+    S.honeyAt = T(); await mo(.4, u => lean(.25 * ease(u)));
+    // 벌들이 주위를 빙글빙글
+    const bees = [0, 1, 2, 3, 4].map(i => fx('🐝', head(1.2), { life: 1.8, size: .22, upd: (p, u) => { const a = u * 9 + i * 1.26, r = .8 + .2 * Math.sin(u * 7 + i); p.s.position.set(P.pos.x + Math.cos(a) * r, P.pos.y + 1.1 + Math.sin(u * 11 + i) * .3, P.pos.z + Math.sin(a) * r); } }));
+    beep(180, .6, 'sawtooth', .015); await mo(1.6, u => rigSet(0, 0, 0, 0, 0, .14 * wave(u, 6) * (1 - u)));
+    await gain('꿀', 1 + (Math.random() < .3 ? 1 : 0)); ev('honey'); save(); },
+  '선착장': () => startFishing(),
+  '텐트': async () => sheet('⛺', '텐트', '자면 다음 날 아침 7시가 돼요 · 자동 저장', `<p>포근한 침낭이 깔려 있어요.</p><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-a="sleep">잠자기 (아침까지)</button><button class="btn sub" data-a="save">저장만 하기</button></div>`, b => bindBtns(b, {
+    sleep: async () => { closeSheet(); P.pose = 'lie'; const z = setInterval(() => fx('💤', head(1.2), { v: V3(.2, .5, 0), life: 1.4, size: .3, grow: .6 }), 500);
+      await M_.wait(1.6); fade(() => { clearInterval(z); S.h = 7; S.day++; ensureDaily(); W.setTime(S.h, P.pos); P.pose = null; save(); hud(); toast(`🌤 ${S.day}일째 아침이에요. 잘 잤다!`); M_.hop(.4); }, 900, true); },
+    save: () => { save(); toast('💾 저장했어요'); closeSheet(); } })),
+  '아쿠아리움': async () => openAquarium(),
+  '지하실': async () => { await mo(1.1, u => { rigSet(0, -1.6 * ease(u), 0, .15 * u); }); P.pose = 'under'; cellar(); },
+  '오두막': async () => { await mo(.6, u => rigSet(0, .1 * Math.abs(wave(u, 2)), .25 * u)); fade(() => openHouse(), 450); },
+  '우체통': async () => { const box = at(3.6, 1.2, 1.6); await mo(.4, u => lean(.2 * ease(u))); await fly('✉️', box, head(1.95), .5, { h: .5 }); fx('✉️', head(2), { life: .9, size: .45 }); await M_.raise(.9); openMail(); },
+  '고양이': async () => { const cat = at(-2.9, .4, 2.2); await M_.crouch(.35);
+    for (let i = 0; i < 3; i++) { fx(i % 2 ? '💕' : '💗', cat, { v: V3((Math.random() - .5) * .4, .9, 0), life: 1.1, size: .3 }); beep(760 + i * 120, .08, 'sine', .04); await mo(.35, u => rigSet(0, -.04, .05, .3, 0, .12 * wave(u), 1.06, .88, 1.06)); }
+    await mo(.3, u => rigSet(0, -.04 * (1 - u), 0, .3 * (1 - u)));
+    if (S.petDay !== S.day) { S.petDay = S.day; S.friend.cat = (S.friend.cat || 0) + 1; ev('pet'); fx('😺', cat.clone().add(V3(0, .5, 0)), { life: 1.2, size: .4, v: V3(0, .3, 0) }); toast(`🐈 고양이가 골골송을 불러요 (친밀도 ${S.friend.cat})`); save(); } else toast('🐈 …냐아. (졸려 보여요)'); },
+  '피크닉': async () => { await M_.hop(.35); P.pose = 'sit'; const snack = ['빵', '사과', '구운 마시멜로', '꿀빵'].find(k => has(k));
+    if (snack) { add(snack, -1, true); const ic = (ITEMS[snack] || ['🍞'])[0]; fx(ic, front(.35, .95), { life: 1.2, size: .32 }); for (let i = 0; i < 3; i++) { beep(400 + i * 60, .05, 'triangle', .04); await mo(.3, u => rigSet(0, -.05, 0, -.1 + .12 * Math.abs(wave(u)), 0, 0, 1.06, .9, 1.06)); } fx('😋', head(1.7), { life: 1, size: .35, v: V3(0, .4, 0) }); toast(`🧺 ${snack}을(를) 먹으며 쉬어요. 냠냠`); }
+    else toast('🧺 담요에 앉아 노을을 봐요'); },
+  '해먹': async () => { await M_.hop(.4); P.pose = 'lie'; const z = setInterval(() => fx('💤', head(1), { v: V3(.2, .5, 0), life: 1.4, size: .3, grow: .6 }), 600);
+    await M_.wait(1.8); fade(() => { clearInterval(z); S.h += 1; toast('🌿 해먹에서 한 시간 쉬었어요'); }, 700); },
+  '새집': async () => { if (!has('새모이')) return say('', ['새집이 비어 있어요. <b>새모이</b>(작업대에서 밀로 만들거나 잡화점에서 사요)를 넣어 주면 새가 찾아와요.']);
+    add('새모이', -1, true); const nest = at(-6.8, 2.6, .6);
+    await mo(.35, u => lean(-.15 * u)); fly('🌰', front(.4, 1.1), nest, .5, { h: .6, size: .25 }); await mo(.3, u => lean(-.15 + .35 * u));
+    const from = nest.clone().add(V3(6, 3, -4)); await fly('🐦', from, nest.clone().add(V3(0, .35, 0)), .9, { h: .5, size: .4 });
+    const b = fx('🐦', nest.clone().add(V3(0, .35, 0)), { life: 1.6, size: .4, upd: (p, u) => { p.s.position.y = nest.y + .35 + Math.abs(Math.sin(u * 14)) * .05; } }); beep(1800, .05, 'sine', .04); beep(2200, .05, 'sine', .04, .1);
+    await M_.wait(1.5); fly('🐦', nest.clone().add(V3(0, .35, 0)), nest.clone().add(V3(-7, 4, 5)), 1, { h: .4, size: .4 }); toast('🐦 짹짹! 새가 모이를 먹고 갔어요');
+    if (Math.random() < .5) await gain('깃털', 1, nest); save(); },
+  '이정표': async () => sheet('🪧', '이정표', '빠른 이동', TRAVEL.map(([ic, nm], i) => row(ic, esc(nm), '', `<button class="btn" data-a="go" data-v="${i}">이동</button>`)).join(''), b => bindBtns(b, { go: async v => { const [, nm, [x, z]] = TRAVEL[+v]; closeSheet();
+    burst('💨', P.pos.clone().add(V3(0, .4, 0)), 8, { up: .5, speed: 1.5, g: 0, life: .7, size: .35, grow: 1 }); await M_.spin(.5);
+    fade(() => { P.pos.set(x, W.groundY(x, z), z); P.vel.set(0, 0, 0); camS.tYaw = camS.yaw = P.root.rotation.y + Math.PI; burst('💨', P.pos.clone().add(V3(0, .4, 0)), 8, { up: .5, speed: 1.5, g: 0, life: .7, size: .35, grow: 1 }); M_.hop(.4); toast(`🪧 ${nm}(으)로 왔어요`); }, 450); } })),
+  '정자': async () => sheet('📖', '정자', '책 읽기 · 낮잠', `<p>바람이 솔솔 부는 정자. 책장에 「정보구출반 사내 소식지」가 꽂혀 있어요.</p><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-a="read">책 읽기</button><button class="btn sub" data-a="nap">낮잠 (3시간)</button></div>`, b => bindBtns(b, {
+    read: async () => { closeSheet(); P.pose = 'sit'; const g = hold('book'); g.position.set(-.36, .1, .1); g.rotation.x = -.6; await M_.wait(.6); say('사내 소식지', [BOOK[Math.floor(Math.random() * BOOK.length)], '…피식 웃음이 나요.'], () => { drop(g); fx('😆', head(1.7), { life: 1, size: .35, v: V3(0, .4, 0) }); }); },
+    nap: async () => { closeSheet(); P.pose = 'lie'; const z = setInterval(() => fx('💤', head(1), { v: V3(.2, .5, 0), life: 1.4, size: .3, grow: .6 }), 500); await M_.wait(1.6); fade(() => { clearInterval(z); S.h += 3; toast('😴 낮잠을 푹 잤어요 (+3시간)'); P.pose = null; }, 900, true); } })),
+  '전망대': async () => { await mo(.5, u => lean(.22 * ease(u))); fx('🔭', front(.5, 1.5), { life: 1.2, size: .3 }); await M_.wait(.8); await mo(.3, u => lean(.22 * (1 - u))); await photo('전망대에서 본 풍경'); },
+  '포토 스팟': async () => { await photo('포토 스팟에서 한 컷'); },
+  '버스킹 무대': () => busk(),
+  '텃밭': async () => openFarm()
+};
+async function talkNPC(n) {
+  turnTo(n.root.position.x, n.root.position.z); n.root.rotation.y = Math.atan2(P.pos.x - n.root.position.x, P.pos.z - n.root.position.z); n.wait = 8; n.tgt = null; npcHop(n);
+  fx('💬', n.root.position.clone().add(V3(0, 2.1, 0)), { life: .9, size: .4, v: V3(0, .3, 0) }); beep(640, .06, 'triangle', .05); beep(820, .08, 'triangle', .04, .08);
+  const f = S.friend[n.id] || 0, line = n.lines[(f + S.day) % n.lines.length];
+  const h = S.h; const extra = h >= 21 || h < 5 ? '(하품) 벌써 밤이네요.' : h < 9 ? '좋은 아침이에요.' : null;
+  await new Promise(res => say(n.name, extra && Math.random() < .4 ? [extra, line] : [line], res));
+  S.talked = S.talked || {}; if (!S.talked[n.id]) { S.talked[n.id] = 1; S.friend[n.id] = f + 1; ev('talk'); npcHop(n); burst('💗', n.root.position.clone().add(V3(0, 1.8, 0)), 4, { up: 1.2, speed: .5, g: 0, life: 1, size: .26 }); toast(`💗 ${esc(n.name)}와(과) 조금 더 친해졌어요 (${f + 1})`); save(); }
+}
+async function shakeTree(t) {
+  await turnTo(t.x, t.z);
+  if (S.shaken[t.i]) { await M_.shake(.5); return toast('🌳 오늘은 이미 흔들었어요'); }
+  S.shaken[t.i] = 1; const crown = at(t.x, 2.9 * t.s, t.z);
+  // 나무를 밀었다 당겼다
+  beep(200, .25, 'sawtooth', .025);
+  for (let i = 0; i < 3; i++) { burst('🍃', crown, 3, { up: .2, speed: 1.2 * t.s, g: -1.2, life: 1.4, size: .25, spin: 3 }); shake = .12; await mo(.28, u => rigSet(0, 0, .12 * Math.sin(u * Math.PI), .22 * Math.sin(u * Math.PI), 0, 0, 1, 1 - .05 * Math.sin(u * Math.PI), 1)); }
+  const r = Math.random();
+  if (r < .88) { const k = r < .65 ? '나뭇가지' : '사과', ic = ITEMS[k][0], ground = at(t.x + (P.pos.x - t.x) * .45, .2, t.z + (P.pos.z - t.z) * .45);
+    await fly(ic, crown, ground, .55, { h: .2 }); fx(ic, ground, { life: .5, size: .4, upd: (p, u) => { p.s.position.y = ground.y + Math.abs(Math.sin(u * Math.PI * 2)) * .2 * (1 - u); } }); await M_.wait(.45);
+    await M_.crouch(.4); await gain(k, 1 + (k === '나뭇가지' && Math.random() < .3 ? 1 : 0), ground); }
+  else { const bees = [0, 1, 2].map(i => fx('🐝', crown, { life: 1.6, size: .22, upd: (p, u) => { const a = u * 10 + i * 2; p.s.position.set(P.pos.x + Math.cos(a) * .7, P.pos.y + 1.2 + Math.sin(u * 13) * .2, P.pos.z + Math.sin(a) * .7); } }));
+    toast('🐝 앗, 벌이다! 도망쳐요~'); await mo(1.2, u => rigSet(0, .15 * Math.abs(wave(u, 4)), 0, 0, 0, .2 * wave(u, 6))); }
+  ev('shake'); save();
+}
+async function mineRock(t) {
+  await turnTo(t.x, t.z);
+  if (S.mined[t.i]) { await M_.shake(.5); return toast('🪨 오늘은 이미 캤어요'); }
+  S.mined[t.i] = 1; const rock = at(t.x, t.s * .6, t.z);
+  await CRAFT_MO.hammer(rock); burst('🪨', rock, 3, { up: 1.4, speed: 1.2, life: .6, size: .16 });
+  await gain('돌', 1 + (Math.random() < .25 ? 1 : 0), rock); ev('mine'); save();
 }
 function openShop() {
   let tab = 'sell';
   const SELL_NO = ['물'];
   const BUY = [['밀 씨앗', 15], ['토마토 씨앗', 25], ['당근 씨앗', 20], ['양배추 씨앗', 22], ['마시멜로', 20], ['새모이', 15]];
+  const shop = at(-8.6, 1.2, 7.4);
+  const coinFx = n => { for (let i = 0; i < Math.min(6, n); i++) setTimeout(() => fly('🪙', shop, head(1.6), .45, { h: .6, size: .25 }), i * 70); };
   const render = b => {
     const list = tab === 'sell' ? Object.entries(S.inv).filter(([k]) => !SELL_NO.includes(k)).map(([k, n]) => { const pr = (ITEMS[k] || FISHI(k) || ['🎁', 5])[1]; const ic = (ITEMS[k] || FISHI(k) || ['🎁'])[0];
       return row(ic, `${esc(k)} <small>×${n}</small>`, `개당 ₩${pr}`, `<button class="btn" data-a="sell" data-v="${esc(k)}">1개 팔기</button>${n > 1 ? ` <button class="btn sub" data-a="sellall" data-v="${esc(k)}">모두</button>` : ''}`); }).join('') || '<p>팔 수 있는 물건이 없어요. 낚시·채집을 해 보세요!</p>'
       : BUY.map(([k, pr]) => row(ITEMS[k][0], esc(k), `₩${pr} · ${esc(ITEMS[k][2])}`, `<button class="btn" data-a="buy" data-v="${esc(k)}" ${S.coins >= pr ? '' : 'disabled'}>사기</button>`)).join('');
     b.innerHTML = `<div class="tabs"><button data-a="tab" data-v="sell" class="${tab === 'sell' ? 'on' : ''}">팔기</button><button data-a="tab" data-v="buy" class="${tab === 'buy' ? 'on' : ''}">사기</button></div>${list}`;
     bindBtns(b, { tab: v => { tab = v; render(b); },
-      sell: k => { const pr = (ITEMS[k] || FISHI(k) || [0, 5])[1]; add(k, -1, true); S.coins += pr; coinsUI(); beep(1200, .06, 'square', .03); ev('sell'); save(); render(b); },
-      sellall: k => { const n = S.inv[k] || 0, pr = (ITEMS[k] || FISHI(k) || [0, 5])[1]; add(k, -n, true); S.coins += pr * n; coinsUI(); ding(); ev('sell', n); toast(`₩ ${(pr * n).toLocaleString()} 받았어요`); save(); render(b); },
-      buy: k => { const pr = BUY.find(x => x[0] === k)[1]; if (S.coins < pr) return; S.coins -= pr; coinsUI(); add(k, 1, true); beep(900, .06); save(); render(b); } });
+      sell: k => { const pr = (ITEMS[k] || FISHI(k) || [0, 5])[1]; add(k, -1, true); S.coins += pr; coinsUI(); beep(1200, .06, 'square', .03); coinFx(1); ev('sell'); save(); render(b); },
+      sellall: k => { const n = S.inv[k] || 0, pr = (ITEMS[k] || FISHI(k) || [0, 5])[1]; add(k, -n, true); S.coins += pr * n; coinsUI(); ding(); coinFx(n); ev('sell', n); toast(`₩ ${(pr * n).toLocaleString()} 받았어요`); save(); render(b); },
+      buy: k => { const pr = BUY.find(x => x[0] === k)[1]; if (S.coins < pr) return; S.coins -= pr; coinsUI(); add(k, 1, true); fly(ITEMS[k][0], shop, head(1.6), .45, { h: .6, size: .3 }); beep(900, .06); save(); render(b); } });
   };
   sheet('🛒', '잡화점', `가진 돈 ₩${S.coins.toLocaleString()}`, '', render);
 }
 const FISHI = k => { const f = FISH.find(x => x[0] === k); return f ? [f[1], f[3], f[4]] : null; };
 function openGacha() {
+  const mach = at(4.8, 1.3, 7.2);
   const render = b => {
     const free = S.freeGacha !== S.day, owned = Object.keys(S.gacha).length;
     b.innerHTML = `<p style="text-align:center;font-size:44px;margin:4px 0">🎁</p><p style="text-align:center">정보구출반 굿즈가 나와요! · 모은 것 ${owned}/${GACHA.length}</p>
       <div style="display:flex;gap:8px;justify-content:center;margin:10px 0"><button class="btn" data-a="spin" data-v="free" ${free ? '' : 'disabled'}>오늘의 무료 1회</button><button class="btn sub" data-a="spin" data-v="pay" ${S.coins >= 100 ? '' : 'disabled'}>₩100 뽑기</button></div>
       <div class="grid">${GACHA.map(([ic, nm, d, r]) => S.gacha[nm] ? `<div class="cell"><span class="ce">${ic}</span>${esc(nm)}<em>×${S.gacha[nm]}</em></div>` : `<div class="cell lock"><span class="ce">${ic}</span>???</div>`).join('')}</div>`;
-    bindBtns(b, { spin: v => {
+    bindBtns(b, { spin: async v => {
       if (v === 'free') S.freeGacha = S.day; else { if (S.coins < 100) return; S.coins -= 100; coinsUI(); }
       const pool = []; GACHA.forEach((g, i) => { for (let k = 0; k < [0, 10, 5, 2, 1][g[3]]; k++) pool.push(i); });
-      const g = GACHA[pool[Math.floor(Math.random() * pool.length)]], isNew = !S.gacha[g[1]]; S.gacha[g[1]] = (S.gacha[g[1]] || 0) + 1;
-      [0, 1, 2].forEach(k => beep(500 + k * 200, .1, 'triangle', .05, k * .12)); setTimeout(ding, 420); ev('gacha'); save();
-      b.innerHTML = `<p style="text-align:center;font-size:64px;margin:6px 0">${g[0]}</p><p style="text-align:center"><b style="font-size:17px">${esc(g[1])}</b>${isNew ? ' <span style="color:#ff6a5a;font-weight:800">NEW!</span>' : ''}<br><small style="color:#8a7462">${esc(g[2])}</small></p><p style="text-align:center;margin-top:12px"><button class="btn" data-a="back">확인</button></p>`;
-      bindBtns(b, { back: () => render(b) }); } });
+      const g = GACHA[pool[Math.floor(Math.random() * pool.length)]], isNew = !S.gacha[g[1]]; S.gacha[g[1]] = (S.gacha[g[1]] || 0) + 1; ev('gacha'); save();
+      closeSheet(); acting = true;
+      try { // 손잡이 돌리기 → 캡슐 데굴 → 펑!
+        for (let i = 0; i < 3; i++) { beep(500 + i * 200, .1, 'triangle', .05); await mo(.3, u => rigSet(0, 0, .06, .2, .35 * wave(u), 0)); }
+        const cap = mach.clone().add(V3(0, -.6, .5)); await fly('🔮', cap, head(1.4), .5, { h: .5, size: .32 });
+        burst('✨', head(1.6), 8, { up: 1.5, speed: 1.4, g: -1, life: .8, size: .22 }); burst('🎉', head(1.6), 3, { up: 2, speed: 1, life: 1, size: .3 }); ding();
+        fx(g[0], head(2), { life: 1.2, size: .6 }); await M_.raise(1.1);
+      } finally { acting = false; }
+      sheet('🎁', '캡슐 뽑기', '하루 1번 무료', `<p style="text-align:center;font-size:64px;margin:6px 0">${g[0]}</p><p style="text-align:center"><b style="font-size:17px">${esc(g[1])}</b>${isNew ? ' <span style="color:#ff6a5a;font-weight:800">NEW!</span>' : ''}<br><small style="color:#8a7462">${esc(g[2])}</small></p><p style="text-align:center;margin-top:12px"><button class="btn" data-a="back">확인</button></p>`,
+        b2 => bindBtns(b2, { back: () => { closeSheet(); openGacha(); } })); } });
   };
   sheet('🎁', '캡슐 뽑기', '하루 1번 무료', '', render);
 }
@@ -404,33 +572,54 @@ function openForge() {
   const render = b => { const nx = S.rod + 1, u = UP[nx];
     b.innerHTML = `<p>에스키모가 망치를 들고 있어요. "Да. (응) 고쳐 줄게. 안 부수겠다… 아마."</p>` + row('🎣', `낚싯대 Lv.${S.rod}`, S.rod === 1 ? '기본 낚싯대' : S.rod === 2 ? '물고기가 덜 도망가요' : '희귀한 물고기가 잘 잡혀요', '')
       + (u ? row('🔨', `Lv.${nx}로 강화`, need(u[0]) + ` · ₩${u[1]}`, `<button class="btn" data-a="up" ${canMake(u[0]) && S.coins >= u[1] ? '' : 'disabled'}>강화</button>`) : '<p>최고 레벨이에요!</p>');
-    bindBtns(b, { up: () => { take(u[0]); S.coins -= u[1]; coinsUI(); S.rod = nx; ding(); shake = .3; toast(`🔨 낚싯대가 Lv.${nx}이 됐어요!`); save(); render(b); } }); };
+    bindBtns(b, { up: async () => { take(u[0]); S.coins -= u[1]; coinsUI(); S.rod = nx; closeSheet(); acting = true;
+      try { const e = npcs.find(n => n.id === 'eskimo'); npcHop(e); await CRAFT_MO.hammer(at(-8.9, 1, -6.9)); burst('✨', head(2), 8, { up: 1.5, speed: 1.2, g: 0, life: .9, size: .24 }); fx('🎣', head(2.05), { life: 1.1, size: .55 }); ding(); await M_.raise(1); } finally { acting = false; }
+      toast(`🔨 낚싯대가 Lv.${nx}이 됐어요!`); save(); openForge(); } }); };
   sheet('🔨', '공방', '도구 강화', '', render);
 }
 function openFarm() {
+  const plotPos = i => [[17.8, 3], [22.6, 3], [17.8, 6.2], [22.6, 6.2]][i];
+  const goPlot = async i => { const [x, z] = plotPos(i), ax = x + (P.pos.x > x ? 1.5 : -1.5), az = Math.max(2, Math.min(7.2, P.pos.z));
+    // 밭 옆으로 통통 걸어가기
+    const a = P.pos.clone(), b = V3(ax, W.groundY(ax, az), az), d = a.distanceTo(b); P.root.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+    if (d > .3) await mo(Math.min(1.4, d / 4), u => { P.pos.lerpVectors(a, b, u); P.pos.y = W.groundY(P.pos.x, P.pos.z); P.phase += .3; rigSet(0, Math.abs(Math.sin(u * d * 3)) * .12, 0, .1); });
+    await turnTo(x, z); return at(x, .55, z); };
+  const reopen = () => openFarm();
   const render = b => {
     b.innerHTML = S.plots.map((p, i) => {
       if (!p) { const seeds = Object.keys(CROPS).filter(k => has(k)); return row('🟫', `${i + 1}번 밭 · 비어 있음`, seeds.length ? '씨앗을 골라 심어요' : '씨앗이 없어요 (잡화점에서 사요)', seeds.map(k => `<button class="btn sub" data-a="plant" data-v="${i}|${esc(k)}">${esc(k.replace(' 씨앗', ''))}</button>`).join(' ')); }
-      const [crop, n, grow] = CROPS[p.seed], need = grow / (p.wet ? 2 : 1), el = T() - p.at, ripe = el >= need;
-      return row(ripe ? (ITEMS[crop] || ['🌱'])[0] : el > need / 2 ? '🌿' : '🌱', `${i + 1}번 밭 · ${esc(crop)}`, ripe ? '다 자랐어요!' : `${Math.ceil((need - el) * 60)}분 남음${p.wet ? ' · 물 줌 💧' : ''}`,
+      const [crop, n, grow] = CROPS[p.seed], needT = grow / (p.wet ? 2 : 1), el = T() - p.at, ripe = el >= needT;
+      return row(ripe ? (ITEMS[crop] || ['🌱'])[0] : el > needT / 2 ? '🌿' : '🌱', `${i + 1}번 밭 · ${esc(crop)}`, ripe ? '다 자랐어요!' : `약 ${Math.max(1, Math.ceil(needT - el))}분 뒤 수확${p.wet ? ' · 물 줌 💧' : ''}`,
         ripe ? `<button class="btn" data-a="harv" data-v="${i}">수확</button>` : p.wet ? '' : `<button class="btn sub" data-a="water" data-v="${i}" ${has('물') ? '' : 'disabled'}>💧 물주기</button>`);
-    }).join('') + '<p style="font-size:12px;color:#9a8a78">물을 주면 두 배 빨리 자라요. 게임 속 1시간 = 실제 1분.</p>';
+    }).join('') + '<p style="font-size:12px;color:#9a8a78">물을 주면 두 배 빨리 자라요. (게임 속 1시간 = 실제 1분)</p>';
     bindBtns(b, {
-      plant: v => { const [i, k] = v.split('|'); if (!has(k)) return; add(k, -1, true); S.plots[+i] = { seed: k, at: T(), wet: false }; pop(); save(); render(b); },
-      water: v => { if (!has('물')) return; add('물', -1, true); S.plots[+v].wet = true; S.plots[+v].at = T() - (T() - S.plots[+v].at); beep(300, .2); save(); render(b); },
-      harv: v => { const p = S.plots[+v], [crop, n] = CROPS[p.seed]; const got = n + (Math.random() < .3 ? 1 : 0); add(crop, got); S.plots[+v] = null; ding(); ev('harvest', got); save(); render(b); } });
+      plant: async v => { const [i, k] = v.split('|'); if (!has(k)) return; add(k, -1, true); S.plots[+i] = { seed: k, at: T(), wet: false }; save(); closeSheet(); acting = true;
+        try { const spot = await goPlot(+i); await mo(.4, u => rigSet(0, -.05 * u, 0, .4 * ease(u), 0, 0, 1.06, 1 - .14 * u, 1.06));
+          for (let j = 0; j < 3; j++) { burst('🌱', spot, 1, { up: .6, speed: .5, life: .7, size: .22 }); beep(500 + j * 80, .05, 'triangle', .04); await mo(.3, u => rigSet(0, -.05, 0, .4 + .1 * wave(u), 0, .08 * wave(u), 1.06, .86, 1.06)); }
+          await mo(.3, u => rigSet(0, -.05 * (1 - u), 0, .4 * (1 - u))); } finally { acting = false; } reopen(); },
+      water: async v => { if (!has('물')) return; add('물', -1, true); S.plots[+v].wet = true; save(); closeSheet(); acting = true;
+        try { const spot = await goPlot(+v); const g = hold('can'); g.position.set(0, .05, .1);
+          await mo(1.4, u => { g.rotation.x = .9 * Math.min(1, u * 3); lean(.15); if (Math.random() < .5) fx('💧', spot.clone().add(V3((Math.random() - .5) * .8, .5, (Math.random() - .5) * .8)), { v: V3(0, -1.5, 0), life: .45, size: .18 }); });
+          beep(300, .3, 'sine', .04); drop(g); await mo(.2, u => lean(.15 * (1 - u))); } finally { acting = false; } reopen(); },
+      harv: async v => { const p = S.plots[+v], [crop, n] = CROPS[p.seed]; const got = n + (Math.random() < .3 ? 1 : 0); S.plots[+v] = null; closeSheet(); acting = true;
+        try { const spot = await goPlot(+v); await mo(.35, u => rigSet(0, -.05 * u, 0, .35 * ease(u), 0, 0, 1.05, 1 - .12 * u, 1.05));
+          await mo(.45, u => rigSet(0, -.05 + .1 * ease(u), 0, .35 - .6 * ease(u))); burst('🍃', spot, 3, { up: 1.2, speed: .8, life: .7, size: .2 });
+          await gain(crop, got, spot); ev('harvest', got); save(); } finally { acting = false; } reopen(); } });
   };
   sheet('🌱', '텃밭', '심기 · 물주기 · 수확', '', render);
 }
 function openAquarium() {
+  const door = at(-1, 1, -14.2);
   const render = b => {
     const donatable = FISH.filter(f => f[2] > 0 && has(f[0]) && !S.aqua[f[0]]), n = Object.keys(S.aqua).length;
     b.innerHTML = `<p>돔 안에서 ${n}종의 물고기가 헤엄치고 있어요. 새로운 종을 기증하면 전시돼요!</p>`
       + (donatable.length ? donatable.map(f => row(f[1], esc(f[0]), '아직 전시되지 않은 물고기', `<button class="btn" data-a="give" data-v="${esc(f[0])}">기증</button>`)).join('') : '<p style="color:#9a8a78">기증할 새 물고기가 없어요. 선착장에서 낚아 오세요!</p>')
       + `<div class="grid" style="margin-top:10px">${FISH.filter(f => f[2] > 0).map(f => S.aqua[f[0]] ? `<div class="cell"><span class="ce">${f[1]}</span>${esc(f[0])}</div>` : `<div class="cell lock"><span class="ce">${f[1]}</span>???</div>`).join('')}</div>`;
-    bindBtns(b, { give: k => { add(k, -1, true); S.aqua[k] = S.day; ding(); toast(`🐟 ${esc(k)}을(를) 기증했어요!`);
-      if (!S.mainDone && Object.keys(S.aqua).length >= 5) { S.mainDone = true; money(500); say('이미리', ['아쿠아리움에 다섯 종이 모였네요. 기록도 정확하고요.', '…잘했어요, 공유 씨. (보상 ₩500)']); closeSheet(); }
-      hud(); save(); render(b); } });
+    bindBtns(b, { give: async k => { add(k, -1, true); S.aqua[k] = S.day; save(); closeSheet(); acting = true;
+      try { const ic = FISHI(k)[0]; fx(ic, head(2), { life: .7, size: .5 }); await M_.raise(.6); await mo(.3, u => lean(.25 * u)); await fly(ic, head(1.6), door, .6, { h: 1 }); burst('💧', door, 6, { up: 1.5, speed: 1, life: .7, size: .2 }); ding(); await mo(.3, u => lean(.25 * (1 - u))); } finally { acting = false; }
+      toast(`🐟 ${esc(k)}을(를) 기증했어요!`);
+      if (!S.mainDone && Object.keys(S.aqua).length >= 5) { S.mainDone = true; money(500); const im = npcs.find(x => x.id === 'imiri'); npcHop(im); say('이미리', ['아쿠아리움에 다섯 종이 모였네요. 기록도 정확하고요.', '…잘했어요, 공유 씨. (보상 ₩500)']); hud(); save(); return; }
+      hud(); save(); openAquarium(); } });
   };
   sheet('🐟', '아쿠아리움', '물고기 기증 · 전시', '', render);
 }
@@ -448,40 +637,56 @@ function cellar() {
   const night = S.h >= 20 || S.h < 5;
   fade(() => {
     const lines = night ? ['…계단 아래가 생각보다 깊어요.', '어디선가 <b>통화 연결음</b>이 들려요. 뚜— 뚜—', '…', '불을 켜자 아무도 없어요. 바닥에 보랏빛 조각이 떨어져 있어요.'] : ['서늘한 지하실. 오래된 상자와 병이 쌓여 있어요.', '벽에 누군가 적어 둔 글씨: 「8번다리에는 무엇도 없었다」', '…위로 올라가요.'];
-    say('지하실', lines, () => { fade(() => { if (night && S.cellarDay !== S.day) { S.cellarDay = S.day; add('이상현상 조각', 1); save(); } }, 400, true); });
+    if (night) { beep(425, .8, 'sine', .04); beep(425, .8, 'sine', .04, 1.4); }
+    say('지하실', lines, () => { fade(async () => { P.pose = null; mo(.9, u => rigSet(0, -1.6 * (1 - ease(u)))); if (night && S.cellarDay !== S.day) { S.cellarDay = S.day; setTimeout(() => gain('이상현상 조각', 1), 1000); save(); } }, 400, true); });
   }, 700, true);
 }
 let busking = 0;
-function busk() {
-  if (T() - S.buskAt < 1) return toast('🎸 손가락이 조금 아파요. 잠시 뒤에 다시 연주해요');
-  S.buskAt = T(); busking = 3.2; faceTo(-15, -14); const notes = [523, 659, 784, 659, 698, 880, 784, 659, 587, 523];
-  notes.forEach((f, i) => { beep(f, .28, 'triangle', .07, i * .3); beep(f / 2, .3, 'sine', .04, i * .3); });
-  setTimeout(() => { const tip = 30 + Math.floor(Math.random() * 50) + Object.keys(S.friend).length * 5; say('', [`👏👏 지나가던 친구들이 박수를 쳐요!`], () => money(tip)); ev('busk'); save(); }, 3200);
+async function busk() {
+  if (T() - S.buskAt < 1) { await M_.shake(.5); return toast('🎸 손가락이 조금 아파요. 잠시 뒤에 다시 연주해요'); }
+  S.buskAt = T(); await turnTo(-14.2, -9.4); const g = hold('guitar'); g.position.set(-.3, .05, .12);
+  const notes = [523, 659, 784, 659, 698, 880, 784, 659, 587, 523];
+  notes.forEach((f, i) => { beep(f, .28, 'triangle', .07, i * .3); beep(f / 2, .3, 'sine', .04, i * .3); setTimeout(() => fx(i % 2 ? '🎵' : '🎶', head(1.7), { v: V3((Math.random() - .5) * .8, .9, (Math.random() - .5) * .8), life: 1.3, size: .3 }), i * 300); });
+  // 근처 친구들이 모여서 통통
+  npcs.forEach(n => { if (n.root.position.distanceTo(P.pos) < 14) { n.tgt = V3(P.pos.x + (Math.random() - .5) * 4, 0, P.pos.z + 2 + Math.random() * 2); n.wait = 9; } });
+  await mo(3.1, (u, t) => { rigSet(0, Math.abs(Math.sin(u * 30)) * .12, 0, 0, Math.sin(u * 15) * .35, Math.sin(u * 30) * .1); g.rotation.z = -1.1 + Math.sin(u * 60) * .08; });
+  npcs.forEach(n => { if (n.root.position.distanceTo(P.pos) < 6) npcHop(n); });
+  drop(g); const tip = 30 + Math.floor(Math.random() * 50) + Object.keys(S.friend).length * 5;
+  for (let i = 0; i < 6; i++) setTimeout(() => fx('🪙', head(2.4).add(V3((Math.random() - .5) * 1.4, 0, (Math.random() - .5) * 1.4)), { v: V3(0, 0, 0), g: -6, life: .6, size: .25 }), i * 90);
+  await M_.spin(.6); say('', [`👏👏 지나가던 친구들이 박수를 쳐요!`], () => money(tip)); ev('busk'); save();
 }
-function photo(title) {
-  $('#ui').style.visibility = 'hidden';
-  requestAnimationFrame(() => { render(); const url = canvas.toDataURL('image/jpeg', .8); $('#ui').style.visibility = '';
-    const im = new Image(); im.onload = () => { const c = document.createElement('canvas'), w = 360, h = Math.round(w * im.height / im.width); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h);
-      S.photos.unshift({ t: title, d: S.day, h: Math.floor(S.h), u: c.toDataURL('image/jpeg', .7) }); S.photos = S.photos.slice(0, 8); save(); }; im.src = url;
-    beep(1400, .05, 'square', .05); const f = $('#fade'); f.style.background = '#fff'; f.classList.add('on'); setTimeout(() => { f.classList.remove('on'); setTimeout(() => f.style.background = '', 600); }, 90);
-    ev('photo');
-    sheet('📷', title, `${S.day}일째 ${Math.floor(S.h)}시`, `<img src="${url}" style="width:100%;border-radius:14px;display:block"><p style="display:flex;gap:8px;margin-top:10px"><a class="btn" href="${url}" download="마이세카이_${S.day}일째.jpg" style="text-decoration:none">사진 저장</a><button class="btn sub" data-x>닫기</button></p><p style="font-size:12px;color:#9a8a78">⚙️설정 → 앨범에서 다시 볼 수 있어요.</p>`); });
+async function photo(title) {
+  const g = hold('camera'); g.position.set(-.36, .3, .1); await mo(.5, u => { g.position.y = .3 + .55 * ease(u); rigSet(0, 0, 0, -.1 * u); });
+  beep(1400, .05, 'square', .05); burst('✨', front(.6, 1.3), 4, { up: .5, speed: 1, g: 0, life: .4, size: .3 });
+  const keepUI = $('#ui').style.visibility; $('#ui').style.visibility = 'hidden'; drop(g); rigSet(); const pv = P.root.visible;
+  await new Promise(r => requestAnimationFrame(r)); render(); const url = canvas.toDataURL('image/jpeg', .8); $('#ui').style.visibility = keepUI;
+  const im = new Image(); im.onload = () => { const c = document.createElement('canvas'), w = 360, h = Math.round(w * im.height / im.width); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h);
+    S.photos.unshift({ t: title, d: S.day, h: Math.floor(S.h), u: c.toDataURL('image/jpeg', .7) }); S.photos = S.photos.slice(0, 8); save(); }; im.src = url;
+  const f = $('#fade'); f.style.background = '#fff'; f.classList.add('on'); setTimeout(() => { f.classList.remove('on'); setTimeout(() => f.style.background = '', 600); }, 90);
+  ev('photo'); await M_.hop(.35);
+  sheet('📷', title, `${S.day}일째 ${Math.floor(S.h)}시`, `<img src="${url}" style="width:100%;border-radius:14px;display:block"><p style="display:flex;gap:8px;margin-top:10px"><a class="btn" href="${url}" download="마이세카이_${S.day}일째.jpg" style="text-decoration:none">사진 저장</a><button class="btn sub" data-x>닫기</button></p><p style="font-size:12px;color:#9a8a78">⚙️설정 → 앨범에서 다시 볼 수 있어요.</p>`);
 }
 
 // ================= 낚시 =================
 let fishing = null, bobber = null, line = null;
-function startFishing() {
-  if (!W.onDock(P.pos.x, P.pos.z) && P.pos.distanceTo(new THREE.Vector3(-20.5, P.pos.y, 3.6)) > 2.2) { waypoint = null; P.pos.set(-20.5, W.groundY(-20.5, 3.6), 3.6); }
-  P.root.rotation.y = Math.PI; P.rod.visible = true; camS.tYaw = 0; camS.tPitch = .32; camS.tDist = 7;
+async function startFishing() {
+  if (!W.onDock(P.pos.x, P.pos.z) && P.pos.distanceTo(V3(-20.5, P.pos.y, 3.6)) > 2.2) { waypoint = null; P.pos.set(-20.5, W.groundY(-20.5, 3.6), 3.6); }
+  P.vel.set(0, 0, 0); P.speed = 0; await turnTo(-20.5, -2); camS.tYaw = .55; camS.tPitch = .36; camS.tDist = 6.8; camS.lastDrag = now(); P.rod.visible = true;
   if (!bobber) { bobber = new THREE.Group(); const a = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({ color: '#ff5a4a', roughness: .4 })); const b2 = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8, 0, 6.3, 0, 1.6), new THREE.MeshStandardMaterial({ color: '#ffffff' })); b2.position.y = .01; bobber.add(a, b2); scene.add(bobber);
     line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#f8f4ea', transparent: true, opacity: .8 })); scene.add(line); }
-  bobber.position.set(-20.5 + (Math.random() - .5) * 1.4, .06, 3.6 - 3.2 - Math.random()); bobber.visible = line.visible = true;
-  fishing = { st: 'wait', t: 0, bite: 1.6 + Math.random() * 4.5 }; beep(260, .2, 'sine', .05); beep(180, .3, 'sine', .04, .2);
+  // 던지기: 뒤로 젖혔다가 휙 → 찌가 포물선을 그리며 날아감
+  fishing = { st: 'cast', t: 0 }; fishUI('🎣', '던지는 중…', '');
+  bobber.visible = line.visible = true; const tip = () => { const v = V3(0, .8, 0); P.rod.children[0].localToWorld(v); return v; };
+  await mo(.45, u => { P.rod.rotation.x = .9 - 1.7 * ease(u); rigSet(0, 0, 0, -.18 * ease(u)); bobber.position.copy(tip()); });
+  beep(700, .12, 'sine', .04); const dest = V3(-20.5 + (Math.random() - .5) * 1.4, .06, 3.6 - 3.2 - Math.random());
+  let from = tip(); await mo(.55, u => { P.rod.rotation.x = -.8 + 2.1 * ease(Math.min(1, u * 2)); rigSet(0, 0, 0, .2 * Math.sin(u * Math.PI)); bobber.position.lerpVectors(from, dest, u); bobber.position.y += Math.sin(u * Math.PI) * 1.4; });
+  P.rod.rotation.x = 1.3; burst('💧', dest, 5, { up: 1.3, speed: .7, life: .6, size: .18 }); beep(260, .2, 'sine', .05); beep(180, .3, 'sine', .04, .1);
+  if (!fishing) return; fishing = { st: 'wait', t: 0, bite: 1.6 + Math.random() * 4.5 };
   fishUI('🎣', '찌를 던졌어요', '찌가 쏙 들어가면 탭! (F / Space)');
 }
 function fishUI(big, t, s, meter) {
   let el = $('#fishui'); if (!el) { el = document.createElement('div'); el.className = 'fish'; el.id = 'fishui'; el.addEventListener('pointerdown', e => { e.preventDefault(); fishTap(); }); $('#layer').append(el); }
-  el.innerHTML = `<div class="card"><div class="big">${big}</div><div class="t">${t}</div><small>${s || ''}</small>${meter != null ? `<div class="meter"><i style="width:${meter * 100}%"></i></div>` : ''}<p style="margin:10px 0 0"><button class="btn sub" id="fstop">그만하기</button></p></div>`;
+  el.innerHTML = `<div class="card"><div class="big">${big}</div><div class="mid"><div class="t">${t}</div><small>${s || ''}</small>${meter != null ? `<div class="meter"><i style="width:${meter * 100}%"></i></div>` : ''}</div><p><button class="btn sub" id="fstop">그만</button></p></div>`;
   $('#fstop').onpointerdown = e => { e.preventDefault(); e.stopPropagation(); endFishing(); };
 }
 function pickFish() {
@@ -490,28 +695,34 @@ function pickFish() {
   let s = pool.reduce((a, b) => a + b[1], 0) * Math.random(); for (const [i, w] of pool) { if ((s -= w) <= 0) return FISH[i]; } return FISH[0];
 }
 function fishTap() {
-  const f = fishing; if (!f) return;
-  if (f.st === 'wait') { f.st = 'wait'; f.t = 0; f.bite = 1.4 + Math.random() * 3.5; fishUI('💦', '너무 빨랐어요!', '물고기가 놀랐어요. 다시 기다려요…'); beep(200, .15, 'sine', .05); return; }
+  const f = fishing; if (!f || pm) return;
+  if (f.st === 'wait') { f.t = 0; f.bite = 1.4 + Math.random() * 3.5; fishUI('💦', '너무 빨랐어요!', '물고기가 놀랐어요. 다시 기다려요…'); beep(200, .15, 'sine', .05); mo(.3, u => { P.rod.rotation.x = 1.3 - .4 * Math.sin(u * Math.PI); }); return; }
   if (f.st === 'bite') { const fish = pickFish(); if (fish[2] >= 3) { f.st = 'reel'; f.fish = fish; f.pow = .35; f.t = 0; fishUI('❗', '대물이다!', '연타해서 끌어올려요!', f.pow); beep(880, .1, 'square', .05); return; } return catchFish(fish); }
   if (f.st === 'reel') { f.pow = Math.min(1, f.pow + .09 + S.rod * .015); beep(600 + f.pow * 500, .04, 'square', .03); fishUI('❗', '대물이다!', '연타! 연타!', f.pow); if (f.pow >= 1) catchFish(f.fish); return; }
-  if (f.st === 'done') { startFishing(); }
+  if (f.st === 'done') { $('#fishui') && $('#fishui').remove(); startFishing(); }
 }
-function catchFish(fish) {
-  const [nm, ic, r, pr, desc] = fish; const isNew = !S.dex[nm]; S.dex[nm] = (S.dex[nm] || 0) + 1; add(nm, 1, true); if (r > 0) ev('fish');
-  fishing.st = 'done'; bobber.visible = line.visible = false; ding(); if (r >= 3) setTimeout(ding, 200);
+async function catchFish(fish) {
+  const [nm, ic, r, pr, desc] = fish; const isNew = !S.dex[nm]; S.dex[nm] = (S.dex[nm] || 0) + 1; if (r > 0) ev('fish');
+  fishing.st = 'anim'; const el = $('#fishui'); el && el.remove();
+  // 휙 낚아채기 → 물고기가 날아와서 머리 위로
+  const from = bobber.position.clone(); bobber.visible = line.visible = false; burst('💦', from, 8, { up: 2, speed: 1, life: .7, size: .22 });
+  await mo(.3, u => { P.rod.rotation.x = 1.3 - 1.6 * ease(u); rigSet(0, 0, 0, -.2 * u); }); if (r >= 3) shake = .25;
+  await gain(nm, 1, from); P.rod.rotation.x = .9;
+  if (!fishing) return; fishing.st = 'done';
   fishUI(ic, `${esc(nm)}${isNew ? ' <span style="color:#ff6a5a">NEW!</span>' : ''}`, `${'★'.repeat(Math.max(1, r))} · ${esc(desc)}<br>한 번 더 하려면 탭`); save();
 }
-function endFishing() { fishing = null; const el = $('#fishui'); el && el.remove(); P.rod.visible = false; if (bobber) bobber.visible = line.visible = false; camS.tDist = 9; camS.tPitch = .42; }
+function endFishing() { fishing = null; const el = $('#fishui'); el && el.remove(); P.rod.visible = false; P.rod.rotation.x = .9; if (bobber) bobber.visible = line.visible = false; camS.tDist = CAM_D; camS.tPitch = .5; }
 function fishTick(dt, t) {
-  const f = fishing; if (!f) return; f.t += dt;
-  const bob = bobber.position; bob.y = .06 + Math.sin(t * 2.2) * .015;
-  if (f.st === 'wait' && f.t > f.bite) { f.st = 'bite'; f.t = 0; f.win = .75 + S.rod * .18; fishUI('❗', '지금이야!', '탭!'); beep(990, .08, 'square', .06); if (navigator.vibrate) navigator.vibrate(60); }
-  if (f.st === 'bite') { bob.y = -.06 + Math.sin(t * 30) * .03; if (f.t > f.win) { f.st = 'wait'; f.t = 0; f.bite = 1.5 + Math.random() * 4; fishUI('🫧', '놓쳤어요…', '물고기가 미끼만 먹고 갔어요. 다시 기다려요'); } }
-  if (f.st === 'reel') { f.pow -= dt * (.22 + (f.fish[2] - 2) * .08); bob.x += Math.sin(t * 9) * .01; if (f.pow <= 0) { f.st = 'done'; bobber.visible = line.visible = false; fishUI('💨', '도망갔어요…', '아쉬워요! 낚싯대를 강화하면 더 쉬워요 · 탭해서 다시'); } else if (Math.floor(f.t * 10) % 3 === 0) { const m = $('#fishui .meter i'); if (m) m.style.width = (f.pow * 100) + '%'; } }
-  const tip = new THREE.Vector3(0, 1.6, 0); P.rod.children[0].localToWorld(tip.set(0, .8, 0));
-  line.geometry.setFromPoints([tip, bob.clone().add(new THREE.Vector3(0, .08, 0))]);
+  const f = fishing; if (!f || !bobber || !bobber.visible) return; f.t += dt;
+  const bob = bobber.position;
+  if (f.st === 'wait') { bob.y = .06 + Math.sin(t * 2.2) * .015; if (f.t > f.bite) { f.st = 'bite'; f.t = 0; f.win = .75 + S.rod * .18; fishUI('❗', '지금이야!', '탭!'); beep(990, .08, 'square', .06); burst('💧', bob, 4, { up: 1, speed: .4, life: .5, size: .16 }); if (navigator.vibrate) navigator.vibrate(60); } }
+  if (f.st === 'bite') { bob.y = -.06 + Math.sin(t * 30) * .03; P.rod.rotation.x = 1.3 + Math.sin(t * 30) * .05; if (f.t > f.win) { f.st = 'wait'; f.t = 0; f.bite = 1.5 + Math.random() * 4; fishUI('🫧', '놓쳤어요…', '물고기가 미끼만 먹고 갔어요. 다시 기다려요'); } }
+  if (f.st === 'reel') { f.pow -= dt * (.22 + (f.fish[2] - 2) * .08); bob.x += Math.sin(t * 9) * .01; P.rod.rotation.x = 1.0 + Math.sin(t * 20) * .12; rigSet(0, 0, 0, -.15 + Math.sin(t * 20) * .04);
+    if (Math.random() < .2) burst('💦', bob, 1, { up: 1, speed: .5, life: .4, size: .16 });
+    if (f.pow <= 0) { f.st = 'done'; bobber.visible = line.visible = false; rigSet(); fishUI('💨', '도망갔어요…', '아쉬워요! 낚싯대를 강화하면 더 쉬워요 · 탭해서 다시'); } else if (Math.floor(f.t * 10) % 3 === 0) { const m = $('#fishui .meter i'); if (m) m.style.width = (f.pow * 100) + '%'; } }
+  const tip = V3(0, .8, 0); P.rod.children[0].localToWorld(tip);
+  line.geometry.setFromPoints([tip, bob.clone().add(V3(0, .08, 0))]);
 }
-
 // ================= 가방 · 도감 · 퀘스트 · 설정 =================
 function openBag() {
   const inv = Object.entries(S.inv);
@@ -556,64 +767,112 @@ function openMore() {
   sheet('⚙️', '설정', '마이세카이', '', render);
 }
 
+
 // ================= 움직임 · 카메라 · 루프 =================
-const fwd = new THREE.Vector3(), right = new THREE.Vector3(), mv = new THREE.Vector3(), tmp = new THREE.Vector3();
-let shake = 0, tAcc = 0, saveAcc = 0, hudAcc = 0;
+const fwd = new THREE.Vector3(), right = new THREE.Vector3(), want = new THREE.Vector3(), tmp = new THREE.Vector3(), camGoal = new THREE.Vector3();
+let shake = 0, tAcc = 0, saveAcc = 0, hudAcc = 0, dustAcc = 0;
+// 카메라를 가리는 것들 (나무 윗부분 = 구, 건물 = 원기둥)
+let BLOCK = null;
+function blockers() {
+  if (BLOCK) return BLOCK; BLOCK = { sph: [], cyl: [] };
+  W.COLS.forEach(c => { if (c.t === 'b' && (c.hw > 1 || c.hd > 1)) BLOCK.cyl.push([c.x, c.z, Math.max(c.hw, c.hd) * .9, 4.2]); else if (c.t === 'c' && c.r >= 1) BLOCK.cyl.push([c.x, c.z, c.r * .9, c.r > 5 ? 7.5 : 4.5]); });
+  return BLOCK;
+}
+// focus → camera 방향으로 가는 선이 처음 막히는 비율 (0~1)
+function camHit(f, dir, len) {
+  let best = 1; const B = blockers();
+  for (const [x, y, z, r] of B.sph) { const ox = f.x - x, oy = f.y - y, oz = f.z - z, b = ox * dir.x + oy * dir.y + oz * dir.z, c = ox * ox + oy * oy + oz * oz - r * r; if (c < 0) continue; const h = b * b - c; if (h < 0) continue; const t = -b - Math.sqrt(h); if (t > .3 && t / len < best) best = t / len; }
+  for (const [x, z, r, ht] of B.cyl) { const ox = f.x - x, oz = f.z - z, a = dir.x * dir.x + dir.z * dir.z; if (a < 1e-6) continue; const b = ox * dir.x + oz * dir.z, c = ox * ox + oz * oz - r * r; if (c < 0) continue; const h = b * b - a * c; if (h < 0) continue; const t = (-b - Math.sqrt(h)) / a; if (t > .3 && t / len < best && f.y + dir.y * t < ht) best = t / len; }
+  return best;
+}
 function update(dt, t) {
   // 시간 흐름: 실제 1분 = 게임 1시간
   S.h += dt / 60; if (S.h >= 24) { S.h -= 24; S.day++; ensureDaily(); hud(); }
-  const busy = sheetOpen || talking() || fishing;
-  // 이동 입력
-  mv.set(0, 0, 0);
+  const busy = sheetOpen || talking() || fishing || pm || acting;
+  // ---- 이동 입력 (카메라 기준) ----
+  want.set(0, 0, 0); let mag = 0;
   if (!busy && !P.pose) {
     const k = c => keys.has(c); const ix = (k('KeyD') || k('ArrowRight') ? 1 : 0) - (k('KeyA') || k('ArrowLeft') ? 1 : 0), iz = (k('KeyS') || k('ArrowDown') ? 1 : 0) - (k('KeyW') || k('ArrowUp') ? 1 : 0);
-    let ax = ix + joyV.x, az = iz + joyV.y; const m = Math.hypot(ax, az); if (m > 1) { ax /= m; az /= m; }
+    let ax = ix + joyV.x, az = iz + joyV.y; const l = Math.hypot(ax, az); mag = Math.min(1, l); if (l > 0) { ax /= l; az /= l; }
     fwd.set(-Math.sin(camS.yaw), 0, -Math.cos(camS.yaw)); right.set(-fwd.z, 0, fwd.x);
-    mv.addScaledVector(right, ax).addScaledVector(fwd, -az);
-  } else if (P.pose && (joyV.length() > .5 || ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(c => keys.has(c)))) P.pose = null;
-  const amt = Math.min(1, mv.length()), run = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || joyV.length() > .95;
-  const sp = amt * (run ? 7.2 : 4.2); P.speed += (sp - P.speed) * Math.min(1, dt * 10);
-  if (amt > .05) { mv.normalize(); const want = Math.atan2(mv.x, mv.z); let d = want - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * Math.min(1, dt * 12); P.pos.addScaledVector(mv, P.speed * dt); }
-  else if (P.speed > .1) P.pos.addScaledVector(tmp.set(Math.sin(P.root.rotation.y), 0, Math.cos(P.root.rotation.y)), P.speed * dt);
-  W.collide(P.pos, .38);
-  for (const n of npcs) { const dx = P.pos.x - n.root.position.x, dz = P.pos.z - n.root.position.z, d = Math.hypot(dx, dz); if (d < .8 && d > 1e-4) { P.pos.x = n.root.position.x + dx / d * .8; P.pos.z = n.root.position.z + dz / d * .8; } }
+    want.addScaledVector(right, ax).addScaledVector(fwd, -az); if (want.lengthSq() > 0) want.normalize();
+  } else if (P.pose && !pm && (joyV.length() > .5 || MOVE_KEYS.some(c => keys.has(c)))) { P.pose = null; }
+  if (camSave && !busy && mag > .1) actionCam(false);   // 다시 걷기 시작하면 카메라 원래대로
+  const run = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joyId !== null && mag > .94);
+  const top = (run ? 6.8 : 3.8) * (joyId !== null && !run ? Math.min(1, mag / .8) : mag > 0 ? 1 : 0);
+  // 가속·감속 (미끄럽지 않게 빠르게 붙되, 방향 전환은 부드럽게)
+  const accel = top > P.vel.length() ? 18 : 24, tv = tmp.copy(want).multiplyScalar(top);
+  P.vel.x += (tv.x - P.vel.x) * Math.min(1, dt * accel * .5); P.vel.z += (tv.z - P.vel.z) * Math.min(1, dt * accel * .5);
+  P.speed = Math.hypot(P.vel.x, P.vel.z);
+  if (P.speed > .05) { P.pos.x += P.vel.x * dt; P.pos.z += P.vel.z * dt;
+    if (mag > .05) { const wa = Math.atan2(want.x, want.z); let d = wa - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * Math.min(1, dt * 14); } }
+  const bx = P.pos.x, bz = P.pos.z; W.collide(P.pos, .36);
+  for (const n of npcs) { const dx = P.pos.x - n.root.position.x, dz = P.pos.z - n.root.position.z, d = Math.hypot(dx, dz); if (d < .75 && d > 1e-4) { P.pos.x = n.root.position.x + dx / d * .75; P.pos.z = n.root.position.z + dz / d * .75; } }
+  if (dt > 0) { const cx = (P.pos.x - bx) / dt, cz = (P.pos.z - bz) / dt; P.vel.x += cx * .5; P.vel.z += cz * .5; }   // 벽에 닿으면 그 방향 속도 줄이기 (미끄러지듯)
+  // ---- 점프 (코요테 타임 · 입력 버퍼) ----
   const gy = W.groundY(P.pos.x, P.pos.z);
-  P.vy -= 18 * dt; P.pos.y += P.vy * dt; if (P.pos.y <= gy) { if (!P.ground && P.vy < -4) shake = .08; P.pos.y = gy; P.vy = 0; P.ground = true; } else if (P.pos.y > gy + .05) P.ground = false;
+  P.jbuf -= dt; P.air += dt;
+  if (P.jbuf > 0 && P.air < .12 && !P.pose && !busy) { P.vy = 7.0; P.ground = false; P.air = 1; P.jbuf = 0; beep(420, .08, 'triangle', .05); burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .3, speed: .8, g: 0, life: .4, size: .2, grow: 1 }); }
+  P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt;
+  if (P.pos.y <= gy) { if (!P.ground && P.vy < -3) { P.land = .18; burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .2, speed: 1, g: 0, life: .35, size: .2, grow: 1 }); } P.pos.y = gy; P.vy = 0; P.ground = true; P.air = 0; }
+  else if (P.pos.y > gy + .08) P.ground = false; else { P.pos.y += (gy - P.pos.y) * Math.min(1, dt * 20); P.air = 0; }
   P.root.position.copy(P.pos);
-  // 캐릭터 애니메이션 (통통 걷기 · 숨쉬기 · 앉기)
-  const s01 = Math.min(1, P.speed / 4.2); P.phase += dt * (6 + P.speed * 2.2);
-  const hop = Math.abs(Math.sin(P.phase)) * .14 * s01, br = Math.sin(t * 2.4) * .012;
-  if (P.pose === 'sit') { P.rig.position.set(0, -.05, 0); P.rig.scale.set(1.06, .9, 1.06); P.rig.rotation.set(-.1, 0, 0); }
-  else if (P.pose === 'lie') { P.rig.position.set(0, .35, 0); P.rig.rotation.set(-1.45, 0, 0); P.rig.scale.set(1, 1, 1); }
-  else if (busking > 0) { busking -= dt; P.rig.position.set(0, Math.abs(Math.sin(t * 8)) * .18, 0); P.rig.rotation.set(0, Math.sin(t * 4) * .5, Math.sin(t * 8) * .12); P.rig.scale.set(1, 1, 1); }
-  else { P.rig.position.set(0, P.ground ? hop : 0, 0); P.rig.rotation.set(s01 * .12, 0, Math.sin(P.phase) * .07 * s01); const sq = P.ground ? 1 - Math.cos(P.phase * 2) * .035 * s01 + br : 1.06; P.rig.scale.set(1 + (1 - sq) * .5, sq, 1 + (1 - sq) * .5); }
-  // NPC: 집 근처를 천천히 산책
+  // ---- 캐릭터 몸짓 ----
+  if (pm) { pm.t += dt; const u = Math.min(1, pm.t / pm.dur); pm.fn(u, pm.t, dt); if (u >= 1) { const r = pm.res; pm = null; r(); } }
+  else if (!fishing) {
+    const s01 = Math.min(1, P.speed / 3.8); P.phase += dt * (5 + P.speed * 2.4); P.land = Math.max(0, (P.land || 0) - dt);
+    const br = Math.sin(t * 2.4) * .012;
+    if (P.pose === 'sit') rigSet(0, -.06, 0, -.08, 0, 0, 1.07, .88 + br, 1.07);
+    else if (P.pose === 'lie') rigSet(0, .3, 0, -1.45, 0, 0);
+    else if (P.pose === 'under') rigSet(0, -1.6);
+    else if (!P.ground) { const k = THREE.MathUtils.clamp(P.vy / 7, -1, 1); rigSet(0, 0, 0, .1 * s01, 0, 0, 1 - .06 * k, 1 + .1 * k, 1 - .06 * k); }
+    else if (P.land > 0) { const k = P.land / .18; rigSet(0, 0, 0, 0, 0, 0, 1 + .12 * k, 1 - .2 * k, 1 + .12 * k); }
+    else if (s01 > .05) { const hop = Math.abs(Math.sin(P.phase)) * (run ? .18 : .12) * s01, sq = 1 - Math.cos(P.phase * 2) * .04 * s01;
+      rigSet(0, hop, 0, s01 * (run ? .2 : .12), 0, Math.sin(P.phase) * .07 * s01, 1 + (1 - sq) * .5, sq, 1 + (1 - sq) * .5); P.idle = 0;
+      dustAcc += dt; if (run && dustAcc > .18) { dustAcc = 0; fx('💨', P.pos.clone().add(V3(-P.vel.x * .05, .08, -P.vel.z * .05)), { v: V3(0, .3, 0), life: .45, size: .16, grow: 1.2 }); } }
+    else { P.idle += dt; const look = P.idle > 6 ? Math.sin((P.idle - 6) * .9) * .35 * Math.min(1, (P.idle - 6)) : 0; rigSet(0, 0, 0, 0, look, 0, 1 - br * .5, 1 + br, 1 - br * .5);
+      if (P.idle > 14 && Math.floor(P.idle) % 9 === 0 && P.idle % 1 < dt) fx('🎵', head(1.8), { v: V3(.2, .5, 0), life: 1.2, size: .25 }); }
+  }
+  // ---- NPC: 집 근처를 산책 · 말 걸면 통통 ----
   for (const n of npcs) {
     const p = n.root.position; n.wait -= dt;
     if (!n.tgt && n.wait <= 0 && !talking()) { const a = Math.random() * 6.28, r = Math.random() * 2.4; n.tgt = new THREE.Vector3(n.home.x + Math.cos(a) * r, 0, n.home.z + Math.sin(a) * r); }
     let spd = 0;
-    if (n.tgt) { const dx = n.tgt.x - p.x, dz = n.tgt.z - p.z, d = Math.hypot(dx, dz); if (d < .1) { n.tgt = null; n.wait = 2 + Math.random() * 5; } else { spd = 1.3; const want = Math.atan2(dx, dz); let da = want - n.root.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); n.root.rotation.y += da * Math.min(1, dt * 6); p.x += dx / d * spd * dt; p.z += dz / d * spd * dt; const q = new THREE.Vector3(p.x, 0, p.z); W.collide(q, .35); p.x = q.x; p.z = q.z; } }
+    if (n.tgt) { const dx = n.tgt.x - p.x, dz = n.tgt.z - p.z, d = Math.hypot(dx, dz); if (d < .15) { n.tgt = null; n.wait = 2 + Math.random() * 5; } else { spd = d > 3 ? 2.6 : 1.3; const wa = Math.atan2(dx, dz); let da = wa - n.root.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); n.root.rotation.y += da * Math.min(1, dt * 6); p.x += dx / d * spd * dt; p.z += dz / d * spd * dt; const q = new THREE.Vector3(p.x, 0, p.z); W.collide(q, .35); p.x = q.x; p.z = q.z; } }
+    else if (p.distanceTo(P.pos) < 3.2 && !busy) { const wa = Math.atan2(P.pos.x - p.x, P.pos.z - p.z); let da = wa - n.root.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); n.root.rotation.y += da * Math.min(1, dt * 3); }   // 가까이 가면 쳐다봄
     p.y = W.groundY(p.x, p.z); n.phase += dt * (spd ? 9 : 0);
-    n.rig.position.y = spd ? Math.abs(Math.sin(n.phase)) * .1 : 0; n.rig.rotation.z = spd ? Math.sin(n.phase) * .06 : 0; const sq = 1 + Math.sin(t * 2.4 + n.home.x) * .012; n.rig.scale.set(1, sq, 1);
-    n.lb.visible = p.distanceTo(P.pos) < 11;
+    if (n.hop > 0) { n.hop -= dt * 1.6; const k = Math.max(0, n.hop), h = Math.abs(Math.sin((1 - k) * Math.PI * 2)) * .3; n.rig.position.y = h; n.rig.scale.set(1, 1 + h * .3, 1); }
+    else { n.rig.position.y = spd ? Math.abs(Math.sin(n.phase)) * .1 : 0; n.rig.rotation.z = spd ? Math.sin(n.phase) * .06 : 0; const sq = 1 + Math.sin(t * 2.4 + n.home.x) * .012; n.rig.scale.set(1, sq, 1); }
+    n.lb.visible = p.distanceTo(P.pos) < 10;
   }
-  // 카메라 (부드럽게 따라가기)
-  const k = 1 - Math.exp(-dt * 8); camS.yaw += (camS.tYaw - camS.yaw) * k; camS.pitch += (camS.tPitch - camS.pitch) * k; camS.dist += (camS.tDist - camS.dist) * k;
-  const focus = tmp.set(P.pos.x, P.pos.y + 1.05, P.pos.z);
-  cam.position.set(focus.x + Math.sin(camS.yaw) * Math.cos(camS.pitch) * camS.dist, focus.y + Math.sin(camS.pitch) * camS.dist, focus.z + Math.cos(camS.yaw) * Math.cos(camS.pitch) * camS.dist);
-  const cg = W.hgt(cam.position.x, cam.position.z) + .4; if (cam.position.y < cg) cam.position.y = cg;
+  // ---- 카메라 ----
+  const dragging = ptrs.size > 0, sinceDrag = now() - camS.lastDrag;
+  if (!dragging && (Math.abs(camS.vYaw) > .01 || Math.abs(camS.vPitch) > .01)) { camS.tYaw += camS.vYaw * dt; camS.tPitch = THREE.MathUtils.clamp(camS.tPitch + camS.vPitch * dt, .05, 1.2); const dec = Math.exp(-dt * 6); camS.vYaw *= dec; camS.vPitch *= dec; }
+  // 걸을 때 카메라가 천천히 등 뒤로 돌아감 (직접 돌린 직후에는 안 함)
+  if (!busy && P.speed > .5 && sinceDrag > 1.2 && !dragging) { const behind = P.root.rotation.y + Math.PI; let d = behind - camS.tYaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+    if (Math.abs(d) < 2.4) camS.tYaw += d * Math.min(1, dt * 1.1 * Math.min(1, P.speed / 3.8)); }
+  const k = 1 - Math.exp(-dt * 10); camS.yaw += (camS.tYaw - camS.yaw) * k; camS.pitch += (camS.tPitch - camS.pitch) * k; camS.dist += (camS.tDist - camS.dist) * (1 - Math.exp(-dt * 6));
+  const focus = V3(P.pos.x, P.pos.y + 1.1, P.pos.z);
+  // 가려지면: 먼저 위·아래로 각도를 바꿔 피해 보고, 그래도 막히면 조금만 다가감 (너무 붙지 않게)
+  const tryDir = p => V3(Math.sin(camS.yaw) * Math.cos(p), Math.sin(p), Math.cos(camS.yaw) * Math.cos(p));
+  let bestP = camS.pitch, bestK = 0;
+  for (const dp of [0, .2, -.15, .4]) { const pp = THREE.MathUtils.clamp(camS.pitch + dp, .02, 1.35), kk = camHit(focus, tryDir(pp), camS.dist); if (kk > bestK + .05) { bestK = kk; bestP = pp; } if (kk >= .999) break; }
+  camS.avoid = (camS.avoid ?? camS.pitch) + (bestP - (camS.avoid ?? camS.pitch)) * (1 - Math.exp(-dt * 4));
+  const dir = tryDir(camS.avoid), goalD = Math.max(4.2, camS.dist * camHit(focus, dir, camS.dist) - .3);   // 너무 붙지 않고, 남은 가림은 망점으로 뚫어 보여줌
+  camS.real += (goalD - camS.real) * (1 - Math.exp(-dt * (goalD < camS.real ? 10 : 2.5)));
+  camGoal.copy(focus).addScaledVector(dir, camS.real);
+  const cg = W.hgt(camGoal.x, camGoal.z) + .45; if (camGoal.y < cg) camGoal.y = cg;
+  cam.position.copy(camGoal);
   if (shake > 0) { shake -= dt; cam.position.x += (Math.random() - .5) * shake * .5; cam.position.y += (Math.random() - .5) * shake * .5; }
-  cam.lookAt(focus);
-  // 하늘 · 빛
-  W.setTime(S.h, P.pos); W.tick(t, dt); fishTick(dt, t);
-  // 길 안내 도착
+  cam.lookAt(focus); W.SEE.uCam.value.copy(cam.position); W.SEE.uFocus.value.copy(focus);
+  // ---- 하늘 · 빛 · 효과 ----
+  W.setTime(S.h, P.pos); W.tick(t, dt); fishTick(dt, t); fxTick(dt);
   if (waypoint && Math.hypot(P.pos.x - waypoint.p[0], P.pos.z - waypoint.p[1]) < 2.2) { toast(`📍 ${esc(waypoint.nm)}에 도착했어요`); waypoint = null; }
-  // 화면 정보 (가끔만 갱신)
-  tAcc += dt; if (tAcc > .15) { tAcc = 0; target = busy ? null : findTarget(); showPrompt(); drawMini(); }
+  tAcc += dt; if (tAcc > .12) { tAcc = 0; target = busy ? null : findTarget(); showPrompt(); drawMini(); }
   hudAcc += dt; if (hudAcc > 1) { hudAcc = 0; const h = Math.floor(S.h), mi = Math.floor(S.h % 1 * 60 / 10) * 10;
     const ic = h < 5 || h >= 21 ? '🌙' : h < 7 ? '🌄' : h < 17 ? '☀️' : h < 19.5 ? '🌅' : '🌆';
     $('#pic').textContent = ic; $('#pname').textContent = nearArea(); $('#ptime').textContent = `${S.day}일째 · ${h < 12 ? '오전' : '오후'} ${((h + 11) % 12) + 1}:${String(mi).padStart(2, '0')}${waypoint ? ` · 📍${waypoint.nm} ${Math.round(Math.hypot(P.pos.x - waypoint.p[0], P.pos.z - waypoint.p[1]))}m` : ''}`;
-    $('#vig').style.background = h < 5 || h >= 21 ? 'radial-gradient(ellipse 80% 75% at 50% 55%,transparent 50%,rgba(5,8,25,.45))' : ''; }
+    $('#vig').style.background = h < 5 || h >= 21 ? 'radial-gradient(ellipse 80% 75% at 50% 55%,transparent 55%,rgba(5,8,25,.38))' : ''; }
   saveAcc += dt; if (saveAcc > 8) { saveAcc = 0; save(); }
 }
 function nearArea() {
@@ -628,5 +887,5 @@ function loop() {
   render();
 }
 window.__save = save;
-if (location.hash.includes('debug')) window.__ms = { get S() { return S; }, get P() { return P; }, act, get target() { return target; }, ACTS, fishTap, openMap, W: () => W };
+if (location.hash.includes('debug')) window.__ms = { get S() { return S; }, get P() { return P; }, act, get target() { return target; }, ACTS, fishTap, openMap, W: () => W, get pm() { return pm; } };
 document.addEventListener('visibilitychange', () => { if (document.hidden && ready) save(); });

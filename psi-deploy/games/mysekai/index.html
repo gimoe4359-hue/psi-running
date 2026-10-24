@@ -10,7 +10,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#f3dcc0;font-family:'P
 canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 #ui{position:fixed;inset:0;pointer-events:none}
 #ui .p{pointer-events:auto}
-.vig{position:absolute;inset:0;background:radial-gradient(ellipse 80% 75% at 50% 55%,transparent 60%,rgba(70,40,20,.22));transition:background 1s}
+.vig{position:absolute;inset:0;background:radial-gradient(ellipse 85% 80% at 50% 55%,transparent 65%,rgba(70,40,20,.14));transition:background 1s}
 .top{position:absolute;left:calc(14px + env(safe-area-inset-left));top:calc(12px + env(safe-area-inset-top));display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;max-width:calc(100% - 170px)}
 .place{display:flex;align-items:center;gap:10px;background:var(--cream);padding:6px 16px 6px 6px;border-radius:22px;box-shadow:var(--shadow)}
 .place .ic{width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#f6c27a,#e8956a);display:grid;place-items:center;font-size:20px}
@@ -78,10 +78,11 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 .fmap .cl{position:absolute;right:12px;top:12px;border:0;background:var(--cream);width:40px;height:40px;border-radius:50%;font-size:18px;cursor:pointer}
 .fmap .tt{position:absolute;left:12px;top:12px;background:var(--cream);border-radius:14px;padding:6px 12px;font-weight:800;font-size:13px}
 .fmap .info{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--cream);border-radius:16px;padding:8px 10px 8px 14px;display:flex;gap:10px;align-items:center;font-size:13px;font-weight:700;white-space:nowrap}
-.fish{position:absolute;inset:0;display:grid;place-items:center;pointer-events:auto}
-.fish .card{background:rgba(255,250,240,.96);border-radius:22px;padding:16px 22px;text-align:center;box-shadow:0 10px 30px rgba(60,30,10,.3);min-width:240px}
-.fish .big{font-size:44px;margin:4px 0}.fish .t{font-weight:800;font-size:16px}.fish small{color:var(--sub);font-size:12.5px}
-.fish .meter{height:12px;border-radius:7px;background:#eadccb;margin:10px 0 4px;overflow:hidden}.fish .meter i{display:block;height:100%;background:linear-gradient(90deg,#9ccf6a,#f6c27a,#ff7a5a);width:0}
+.fish{position:absolute;left:0;right:0;bottom:calc(118px + env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
+.fish .card{pointer-events:auto;background:rgba(255,250,240,.94);border-radius:20px;padding:8px 14px 8px 10px;box-shadow:0 8px 24px rgba(60,30,10,.25);display:flex;align-items:center;gap:10px;text-align:left;max-width:92vw}
+.fish .big{font-size:30px;margin:0}.fish .t{font-weight:800;font-size:15px}.fish small{color:var(--sub);font-size:12px;display:block}
+.fish .card p{margin:0!important}.fish .mid{min-width:150px}
+.fish .meter{height:9px;border-radius:6px;background:#eadccb;margin:5px 0 0;overflow:hidden}.fish .meter i{display:block;height:100%;background:linear-gradient(90deg,#9ccf6a,#f6c27a,#ff7a5a);width:0}
 .fade{position:absolute;inset:0;background:#120c08;opacity:0;transition:opacity .6s;pointer-events:none}
 .fade.on{opacity:1}
 .fade.dark{background:#05060c}
@@ -95,12 +96,13 @@ canvas#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
 @keyframes up{to{transform:translateY(-70px) scale(1.3);opacity:0}}
 @media (max-width:640px){.quest{display:none}.quest.show{display:block;top:calc(64px + env(safe-area-inset-top))}.place small{display:none}.mini{width:96px;height:96px}.menu{top:calc(124px + env(safe-area-inset-top))}.mb{width:42px;height:42px;font-size:18px}.top{max-width:calc(100% - 130px)}}
 @media (pointer:fine){.joyhint,.act.jump,.act.run{display:none}}
+@media (pointer:coarse){.quest{display:none}.mini{width:100px;height:100px}.menu{top:calc(128px + env(safe-area-inset-top))}}
 </style></head>
 <body>
 <canvas id="gl"></canvas>
 <div id="ui"></div>
 <div class="load" id="load"><div class="c"><h1>마이세카이</h1><p>정보구출반의 작은 세계</p><div class="bar"><i id="lbar"></i></div><p id="lmsg" style="font-size:13px">세계를 짓는 중…</p><button id="lgo">들어가기</button>
-<small>PC: WASD/방향키 이동 · Shift 달리기 · Space 점프 · F 상호작용 · M 지도 · 드래그 시야 · 휠 확대<br>폰·패드: 왼쪽 엄지로 이동 · 오른쪽 드래그 시야 · 두 손가락 확대</small></div></div>
+<small>PC: WASD/방향키 이동 · Shift 달리기 · Space 점프 · F 상호작용 · M 지도 · Q 카메라 뒤로 · 드래그 시야 · 휠 확대<br>폰·패드: 왼쪽 엄지로 이동(끝까지 밀면 달리기) · 오른쪽 드래그 시야 · 두 손가락 확대</small></div></div>
 <a class="back" href="../../index.html#/games">← 싸이 사이트로</a>
 <script type="importmap">{"imports":{"three":"./lib/three.module.min.js"}}</script>
 <script type="module" src="./game.js"></script>
