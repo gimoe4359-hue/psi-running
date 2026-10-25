@@ -6,6 +6,8 @@ import { RenderPass } from './lib/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from './lib/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from './lib/jsm/postprocessing/OutputPass.js';
 import { buildWorld } from './world.js';
+import { FISH as PFISH, startPond, fishCanvas } from './fishing.js';
+import { buildAquarium, buildCellar } from './interiors.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,7 +26,8 @@ const scene = new THREE.Scene();
 const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, .1, 320);
 const fitFov = () => { const a = innerWidth / innerHeight; cam.fov = a < 1 ? Math.min(68, 45 / Math.max(.6, a) * .9) : 45; cam.aspect = a; cam.updateProjectionMatrix(); }; fitFov();
 let composer = null;
-if (!LOW) { composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, cam)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .32, .55, .86)); composer.addPass(new OutputPass()); }
+let rpass = null, curScene = scene;
+if (!LOW) { composer = new EffectComposer(renderer); composer.addPass(rpass = new RenderPass(scene, cam)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .32, .55, .86)); composer.addPass(new OutputPass()); }
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); fitFov(); composer && composer.setSize(innerWidth, innerHeight); });
 
 // ================= 저장 =================
@@ -44,11 +47,11 @@ const ITEMS = {
   '마시멜로': ['☁️', 10, '잡화점에서 팔아요'], '새모이': ['🌰', 8, '새집에 넣어 주기'], '깃털': ['🪶', 45, '새가 두고 간 선물'], '이상현상 조각': ['🔮', 220, '지하실에서 주운 이상한 조각'],
   '밀 씨앗': ['🌱', 6, '심으면 밀'], '토마토 씨앗': ['🌱', 10, '심으면 토마토'], '당근 씨앗': ['🌱', 8, '심으면 당근'], '양배추 씨앗': ['🌱', 9, '심으면 양배추']
 };
-const FISH = [
-  ['송사리', '🐟', 1, 10, '작고 재빠른 물고기', 0], ['붕어', '🐟', 1, 25, '호수의 터줏대감', 0], ['피라미', '🐟', 1, 20, '반짝이는 은빛 비늘', 0], ['잉어', '🐠', 2, 55, '느긋하게 헤엄친다', 0],
-  ['메기', '🐟', 2, 70, '수염이 멋있다 · 밤에 잘 잡힘', 1], ['무지개송어', '🐠', 2, 90, '빛을 받으면 무지갯빛', 0], ['가재', '🦞', 2, 60, '집게 조심', 0], ['민물새우', '🦐', 1, 30, '톡톡 튄다', 0],
-  ['금붕어', '🐠', 2, 80, '누가 풀어 준 걸까?', 0], ['뱀장어', '🐍', 3, 150, '밤에만 나온다', 2], ['황금잉어', '✨', 4, 500, '보면 행운이 온다는 전설', 0], ['이상현상 물고기', '👁️', 4, 777, '눈이… 하나 더 있다. 정보구출반에 보고할 것', 2],
-  ['낡은 장화', '👢', 0, 1, '…누구 거지?', 0], ['빈 캔', '🥫', 0, 1, '쓰레기는 분리수거', 0]];
+// 물고기는 송천동 숲 연못 물고기 그대로 (이름, 아이콘, 희귀도, 값, 설명)
+const fishEmo = f => f.shape === 'shark' ? '🦈' : f.shape === 'whale' ? '🐋' : f.shape === 'eel' ? '🐍' : f.shape === 'jelly' ? '🪼' : f.shape === 'ray' ? '🍃' : f.r >= 3 ? '🐠' : '🐟';
+const FISH = PFISH.map(f => [f.name, fishEmo(f), f.r, [0, 20, 45, 90, 260, 700][f.r], f.desc, 0, f]);
+// 예전 버전에서 잡아 둔 물고기 (팔기용)
+const OLD_FISH = [['송사리', '🐟', 1, 10, ''], ['붕어', '🐟', 1, 25, ''], ['피라미', '🐟', 1, 20, ''], ['잉어', '🐠', 2, 55, ''], ['메기', '🐟', 2, 70, ''], ['무지개송어', '🐠', 2, 90, ''], ['가재', '🦞', 2, 60, ''], ['민물새우', '🦐', 1, 30, ''], ['금붕어', '🐠', 2, 80, ''], ['뱀장어', '🐍', 3, 150, ''], ['황금잉어', '✨', 4, 500, ''], ['이상현상 물고기', '👁️', 4, 777, ''], ['낡은 장화', '👢', 0, 1, ''], ['빈 캔', '🥫', 0, 1, '']];
 const GACHA = [
   ['☕', '컴포즈 커피 컵', '장세진 대리의 최애 · 리필은 셀프', 1], ['🍜', '짜장면 미니어처', '차강면 차장 추천^^', 1], ['💾', 'Ctrl+S 키캡', '안경수 대리: 저장하게나, 허허', 1], ['📋', '오탈자 없는 보고서', '이미리 과장 검수 완료', 2],
   ['📣', '굿잡 확성기', '유모자 팀장: oh my ong!', 1], ['☕', '부서진 머그 조각', '에스키모가 또… Извините (죄송합니다)', 1], ['🪪', '정보구출반 사원증', '목에 거는 시늉도 가능', 1], ['📱', '주운 핸드폰 키링', '대롱대롱', 2],
@@ -70,7 +73,7 @@ const LETTERS = [['이미리', '공유 씨, 아쿠아리움 물고기 기록 잘
 const BOOK = ['「정보구출반은 야근 수당을 이상현상으로 분류하지 않습니다.」', '「점심 메뉴 투표 결과: 늘 하던 대로 새콤.」', '「분실물 안내: 어제의 의욕을 찾습니다.」', '「오늘의 능력 사용 지침: 쓸데없이, 하지만 성실하게.」',
   '「퇴근은 결재 사항입니다 — 결재선을 확인해 주세요.」', '「송천동행 막차가 정시에 도착했습니다. 탑승 여부는 개인 판단.」', '「정보구출반 회의실은 늘 예약 중입니다. 유령 예약 의심.」', '「이상현상 접수 건수, 오늘도 정상(이상) 범위.」'];
 const TRAVEL = [['🏠', '오두막 앞', [1, 1.6]], ['🌱', '텃밭', [20.2, 9]], ['🎣', '호숫가 선착장', [-20.5, 8.6]], ['🐟', '아쿠아리움', [-1, -12.6]], ['🔭', '전망대', [8.5, -11.9]], ['🌾', '풍차 방앗간', [9.6, -6.4]], ['📖', '정자', [-6.5, -9.6]], ['🎸', '버스킹 무대', [-12.6, -10]], ['🪧', '처음 자리', [.2, 12.6]]];
-const REACH = { '아쿠아리움': [-1, -13.4, 1.6], '오두막': [.9, 1, 1.6], '풍차 방앗간': [10.1, -7.2, 1.8], '공방': [-8.2, -6.2, 1.8], '전망대': [8.5, -12.4, 1.4], '정자': [-6.5, -10.5, 1.6], '버스킹 무대': [-13.4, -10.6, 1.8], '화덕': [14.5, 2.7, 1.6],
+const REACH = { '아쿠아리움': [-1, -13.4, 1.6], '전망대': [8.5, -11.9, 1.5], '오두막': [.9, 1, 1.6], '풍차 방앗간': [10.1, -7.2, 1.8], '공방': [-8.2, -6.2, 1.8], '전망대': [8.5, -12.4, 1.4], '정자': [-6.5, -10.5, 1.6], '버스킹 무대': [-13.4, -10.6, 1.8], '화덕': [14.5, 2.7, 1.6],
   '텃밭': [20.2, 4.6, 2.6], '작업대': [15.4, 6.4, 1.6], '벌통': [29.6, 10.7, 1.6], '선착장': [-20.5, 4, 1.8], '모닥불': [-15.2, 6.5, 1.6], '텐트': [-14.2, 3.9, 1.6], '지하실': [2.6, -7.2, 1.6], '퀘스트 게시판': [4.6, 11.6, 1.6],
   '잡화점': [-8, 8.4, 1.7], '포토 스팟': [10.6, 3.2, 1.7], '해먹': [10.7, 10.3, 1.8], '피크닉': [-4.2, 5.6, 1.8], '우물': [-7.2, -.2, 1.6] };
 
@@ -80,7 +83,7 @@ ui.innerHTML = `<div class="vig" id="vig"></div>
 <div class="top"><div class="place"><span class="ic" id="pic">🌅</span><span><b id="pname">마이세카이</b><small id="ptime"></small></span></div><div class="pill"><i>₩</i><span id="coins">0</span></div></div>
 <div class="quest" id="qhud"></div>
 <div class="mini p" id="mini"><canvas width="220" height="220"></canvas><span>지도 M</span></div>
-<div class="menu p"><button class="mb" id="bBag" title="가방">🎒</button><button class="mb" id="bDex" title="도감">📘</button><button class="mb" id="bQuest" title="퀘스트">📜</button><button class="mb" id="bMore" title="설정">⚙️</button></div>
+<div class="menu p"><button class="mb" id="bBag" title="가방">🎒</button><button class="mb" id="bDex" title="도감">📘</button><button class="mb" id="bQuest" title="퀘스트">📜</button><button class="mb" id="bPose" title="포즈 (G)">🙂</button><button class="mb" id="bMore" title="설정">⚙️</button></div><div class="poses p" id="poses" hidden></div>
 <div class="joyhint" id="joyhint">이동</div><div class="joy" id="joy"><span></span></div>
 <div class="acts p"><button class="act big off" id="bAct"><span class="e" id="actE">✋</span><span id="actT">상호작용</span></button><button class="act jump" id="bJump"><span class="e">⤴️</span>점프</button><button class="act run" id="bRun"><span class="e">💨</span>달리기</button></div>
 <div id="prompt"></div><div class="toasts" id="toasts"></div><div id="layer"></div><div class="fade" id="fade"></div>`;
@@ -172,7 +175,7 @@ function emojiTex(e) {
 }
 const FX = [];
 function fx(e, pos, o = {}) {
-  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex(e), transparent: true, depthWrite: false })); s.position.copy(pos); const sz = o.size || .35; s.scale.setScalar(sz); s.renderOrder = 12; scene.add(s);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTex(e), transparent: true, depthWrite: false })); s.position.copy(pos); const sz = o.size || .35; s.scale.setScalar(sz); s.renderOrder = 12; curScene.add(s);
   const p = { s, v: o.v ? o.v.clone() : new THREE.Vector3(), g: o.g ?? 0, life: 0, max: o.life || 1, sz, grow: o.grow ?? 0, fade: o.fade ?? .35, drag: o.drag ?? 0, spin: o.spin || 0, follow: o.follow || null, upd: o.upd || null };
   FX.push(p); return p;
 }
@@ -181,7 +184,7 @@ function fxTick(dt) {
   for (let i = FX.length - 1; i >= 0; i--) { const p = FX[i]; p.life += dt; const u = p.life / p.max;
     if (p.upd) p.upd(p, u, dt); else { p.v.y += p.g * dt; if (p.drag) p.v.multiplyScalar(1 - p.drag * dt); p.s.position.addScaledVector(p.v, dt); }
     p.s.scale.setScalar(p.sz * (1 + p.grow * u)); p.s.material.opacity = u > 1 - p.fade ? Math.max(0, (1 - u) / p.fade) : 1; p.s.material.rotation += p.spin * dt;
-    if (u >= 1) { scene.remove(p.s); p.s.material.dispose(); FX.splice(i, 1); } }
+    if (u >= 1) { p.s.parent && p.s.parent.remove(p.s); p.s.material.dispose(); FX.splice(i, 1); } }
 }
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const head = (dy = 1.9) => V3(P.pos.x, P.pos.y + dy, P.pos.z);
@@ -307,6 +310,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyF' || e.code === 'KeyE') { e.preventDefault(); act(); return; }
   if (e.code === 'KeyM') { openMap(); return; }
   if (e.code === 'KeyI' || e.code === 'KeyB') { openBag(); return; }
+  if (e.code === 'KeyG') { togglePoses(); return; }
   if (e.code === 'KeyQ') { camS.tYaw = P.root.rotation.y + Math.PI; return; }     // 카메라를 등 뒤로
   if (e.code === 'Space') { e.preventDefault(); jump(); return; }
   keys.add(e.code);
@@ -348,13 +352,79 @@ canvas.addEventListener('wheel', e => { e.preventDefault(); camS.tDist = THREE.M
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 const tap = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (ready) fn(); });
 tap('#bAct', () => fishing ? fishTap() : talking() ? nextSay() : act()); tap('#bJump', () => jump()); tap('#bRun', () => { runToggle = !runToggle; $('#bRun').classList.toggle('on', runToggle); });
-tap('#mini', () => openMap()); tap('#bBag', () => openBag()); tap('#bDex', () => openDex()); tap('#bQuest', () => openQuests()); tap('#bMore', () => openMore());
+tap('#mini', () => openMap()); tap('#bBag', () => openBag()); tap('#bDex', () => openDex()); tap('#bQuest', () => openQuests()); tap('#bMore', () => openMore()); tap('#bPose', () => togglePoses());
 function jump() { if (pm || sheetOpen || talking() || fishing) return; if (P.pose) { P.pose = null; return; } P.jbuf = .16; }
+
+// ================= 장소: 바깥 세상 · 전망대 꼭대기 · 아쿠아리움 안 · 지하실 =================
+let AREA = null; const INS = {};
+const WORLD = { world: true, ground: (x, z, y) => W.groundY(x, z, y), collide: (p, r, f) => W.collide(p, r, f), cam: c => { const cg = W.hgt(c.x, c.z) + .45; if (c.y < cg) c.y = cg; } };
+const A = () => AREA || WORLD;
+function towerArea() {
+  const T = W.TOWER;
+  return { world: true, tower: true, name: '전망대 꼭대기', icon: '🔭',
+    ground: () => T.deck, collide(p, r) { const dx = p.x - T.x, dz = p.z - T.z, d = Math.hypot(dx, dz), m = T.r - r; if (d > m) { p.x = T.x + dx / d * m; p.z = T.z + dz / d * m; } },
+    camD: 4.4, camP: .22, cam: c => { if (c.y < T.deck + .6) c.y = T.deck + .6; if (c.y > T.deck + 2.3) c.y = T.deck + 2.3; },
+    spots: [['🔭', '망원경', '경치 보기', T.scope[0], T.scope[1], 1.3, 'scope'], ['🪜', '계단', '내려가기', T.x + .2, T.z + 1.9, 1.2, 'down']] };
+}
+function setArea(key, pos, ry) {
+  if (key === 'aqua') { INS.aqua = INS.aqua || buildAquarium(); AREA = INS.aqua; INS.aqua.setDonated(FISH.filter(f => S.aqua[f[0]]).map(f => f[6]), fishCanvas); }
+  else if (key === 'cellar') { INS.cellar = INS.cellar || buildCellar(); AREA = INS.cellar; INS.cellar.frag.visible = (S.h >= 20 || S.h < 5) && S.cellarDay !== S.day; }
+  else if (key === 'tower') AREA = towerArea();
+  else AREA = null;
+  const sc = AREA && AREA.scene ? AREA.scene : scene; curScene = sc; sc.add(P.root);
+  const sp = pos || (AREA && AREA.spawn) || [0, 0]; P.pos.set(sp[0], 0, sp[1]); P.pos.y = A().ground(P.pos.x, P.pos.z); P.vel.set(0, 0, 0); P.vy = 0; P.seat = null; P.pose = null;
+  P.root.rotation.y = ry ?? (AREA && AREA.spawn ? AREA.spawn[2] : 0); camS.tYaw = camS.yaw = P.root.rotation.y + Math.PI; camSave = null;
+  camS.tDist = camS.dist = AREA ? (AREA.camD || 4.4) : CAM_D; camS.real = camS.dist; camS.tPitch = camS.pitch = AREA ? (AREA.camP ?? .3) : .5;
+  $('#vig').style.background = AREA && AREA.dark ? 'radial-gradient(ellipse 70% 70% at 50% 50%,transparent 35%,rgba(0,0,0,.75))' : AREA && AREA.scene ? 'radial-gradient(ellipse 80% 75% at 50% 45%,transparent 55%,rgba(0,10,30,.45))' : '';
+  hudAcc = 9;
+  if (AREA && AREA.scene) { const cv = $('#mini canvas'), x = cv.getContext('2d'), N = cv.width; x.clearRect(0, 0, N, N); x.fillStyle = AREA.dark ? '#1a1612' : '#0e2a48'; x.beginPath(); x.arc(N / 2, N / 2, N / 2, 0, 7); x.fill(); x.font = '80px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(AREA.icon, N / 2, N / 2 - 8); x.fillStyle = '#fff8ec'; x.font = '800 22px sans-serif'; x.fillText('실내', N / 2, N / 2 + 58); }
+}
+const goArea = (key, pos, ry, dark) => new Promise(res => fade(() => { setArea(key, pos, ry); res(); }, 550, dark));
+// 실내 · 전망대에서 할 수 있는 것
+const SPOT = {
+  exit: async () => { const back = { '아쿠아리움 · 바다 터널': [[-1, -12.6], 0], '집 지하 · ???': [[2.6, -7.4], Math.PI] }[A().name]; await goArea(null, back[0], back[1], A().dark); M_.hop(.35); },
+  down: async () => { await goArea(null, [W.TOWER.x, W.TOWER.z + 2.75], 0); M_.hop(.35); },
+  scope: async () => { const T = W.TOWER, a = Math.atan2(0 - T.x, 2 - T.z); await turnTo(T.x + Math.sin(a) * 5, T.z + Math.cos(a) * 5); camSave = { d: camS.tDist, p: camS.tPitch }; camS.tYaw = P.root.rotation.y + Math.PI; camS.tDist = 3.2; camS.tPitch = .12; camS.lastDrag = now();
+    fx('🔭', front(.5, 1.5), { life: 1.4, size: .3 }); await mo(.6, u => lean(.25 * ease(u)));
+    await new Promise(r => say('', ['마을이 한눈에 보여요. 오두막 굴뚝, 반짝이는 호수, 돌아가는 풍차…', S.h >= 19.5 || S.h < 5 ? '밤하늘에 별이 쏟아질 것 같아요.' : '바람이 기분 좋게 불어요.'], r));
+    await mo(.3, u => lean(.25 * (1 - u))); await photo('전망대 꼭대기에서 본 풍경'); },
+  bench: async () => { const b = A().bench; await sitAt(b[0], b[1], b[2], .6); toast('🪑 앉아서 물고기를 구경해요'); },
+  donate: async () => openAquarium(),
+  watch: async () => { const n = Object.keys(S.aqua).length; await M_.nod(.6); say('', n ? [`터널 밖에서 내가 기증한 물고기 ${n}종이 헤엄치고 있어요.`, '…가오리가 계속 이쪽을 쳐다보는 것 같아요.'] : ['아직 내가 기증한 물고기는 없어요. 선착장에서 낚아서 기증해 보세요!']); },
+  desk: async () => { await mo(.4, u => lean(.3 * ease(u))); const notes = ['「의자는 원래 하나였다.」', '「사원증을 두고 내려오지 말 것.」', '「밤 9시 이후 통화 연결음이 들리면 대답하지 마세요.」', '「8번다리에는 무엇도 없었다. 정말로.」'];
+    S.stats.desk = (S.stats.desk || 0) + 1; await new Promise(r => say('낡은 쪽지', [notes[(S.day + S.stats.desk) % notes.length]], r)); await mo(.3, u => lean(.3 * (1 - u))); },
+  chair: async () => { const c = A().chairs.chair; await sitAt(c[0], c[1], c[2], .59); beep(200, .4, 'sine', .03); toast('🪑 …의자가 삐걱거려요'); },
+  frag: async () => { if (!A().frag.visible) return toast('…아무것도 없어요. 밤에 다시 와 볼까요?'); A().frag.visible = false; S.cellarDay = S.day; await M_.crouch(.4); await gain('이상현상 조각', 1, A().frag.position.clone().add(V3(0, .2, 0))); save(); }
+};
+// 앉기: 자리로 통 뛰어올라 앉음
+async function sitAt(x, z, ry, y) {
+  const a = P.pos.clone(), b = V3(x, y, z); P.vel.set(0, 0, 0);
+  await mo(.45, u => { P.pos.lerpVectors(a, b, ease(u)); P.pos.y += Math.sin(u * Math.PI) * .5; let d = ry - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * u; rigSet(); });
+  P.root.rotation.y = ry; P.seat = { y }; P.pose = 'sit';
+}
+// 포즈
+const POSES = [['👋', '인사'], ['🪑', '앉기'], ['😴', '자기'], ['🎉', '기뻐하기'], ['💃', '춤추기'], ['🤔', '생각하기'], ['🙇', '꾸벅'], ['😲', '깜짝']];
+async function doPose(nm) {
+  $('#poses').hidden = true; if (pm || acting || sheetOpen || fishing) return; acting = true; P.vel.set(0, 0, 0);
+  try {
+    if (nm === '앉기') { P.pose = 'sit'; await M_.crouch(.25); P.pose = 'sit'; }
+    else if (nm === '자기') { P.pose = 'lie'; }
+    else if (nm === '인사') { P.pose = null; fx('👋', head(1.95), { life: 1.2, size: .38, v: V3(0, .2, 0) }); await mo(1.2, u => rigSet(0, .08 * Math.abs(wave(u, 2)), 0, 0, 0, .22 * wave(u, 3))); }
+    else if (nm === '기뻐하기') { P.pose = null; burst('🎉', head(1.8), 4, { up: 1.6, speed: .9, life: 1, size: .3 }); await M_.hop(.4); await M_.spin(.55); await M_.hop(.35); }
+    else if (nm === '춤추기') { P.pose = null; for (let i = 0; i < 6; i++) setTimeout(() => fx(i % 2 ? '🎵' : '🎶', head(1.7), { v: V3((Math.random() - .5) * .8, .9, 0), life: 1.2, size: .28 }), i * 400); await mo(2.6, u => rigSet(0, Math.abs(Math.sin(u * 26)) * .14, 0, 0, Math.sin(u * 13) * .5, Math.sin(u * 26) * .14)); }
+    else if (nm === '생각하기') { P.pose = null; fx('💭', head(2.05), { life: 1.8, size: .45, v: V3(.1, .15, 0) }); await mo(1.8, u => rigSet(0, 0, 0, 0, Math.sin(u * 4) * .2, .2 * Math.min(1, u * 4) * (1 - Math.max(0, u - .8) * 5))); }
+    else if (nm === '꾸벅') { P.pose = null; for (let i = 0; i < 2; i++) await mo(.5, u => lean(.5 * Math.sin(u * Math.PI))); }
+    else if (nm === '깜짝') { P.pose = null; fx('❗', head(2.05), { life: 1, size: .45 }); beep(900, .1, 'square', .05); await mo(.6, u => rigSet(0, .45 * Math.sin(u * Math.PI), 0, -.2 * Math.sin(u * Math.PI), 0, 0, 1 - .1 * Math.sin(u * Math.PI), 1 + .15 * Math.sin(u * Math.PI), 1)); }
+  } finally { acting = false; }
+}
+function togglePoses() { const el = $('#poses'); if (!el.hidden) { el.hidden = true; return; } el.innerHTML = POSES.map(([ic, nm]) => `<button data-p="${nm}"><span>${ic}</span>${nm}</button>`).join(''); el.hidden = false;
+  el.querySelectorAll('[data-p]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); doPose(b.dataset.p); })); }
 
 // ================= 상호작용 대상 찾기 =================
 let target = null;
 function findTarget() {
   if (!P) return null; const px = P.pos.x, pz = P.pos.z, fx_ = Math.sin(P.root.rotation.y), fz_ = Math.cos(P.root.rotation.y); let best = null, bd = 1e9;
+  if (A().spots) { for (const [ic, nm, ac, x, z, rr, k] of A().spots) { const d = Math.hypot(px - x, pz - z) - rr; if (d < 0 && d < bd) { bd = d; best = { k: 'spot', ic, nm, ac, x, z, fn: k }; } } if (A().scene || A().tower) return best; }
   // 바라보는 방향에 있는 것을 조금 더 우선
   const score = (tx, tz, d) => { const dx = tx - px, dz = tz - pz, l = Math.hypot(dx, dz) || 1; return d - ((dx * fx_ + dz * fz_) / l) * .6; };
   const consider = (o, s) => { if (s < bd) { bd = s; best = o; } };
@@ -386,10 +456,11 @@ function actionCam(on) {
 }
 async function act() {
   if (sheetOpen || talking() || pm || acting) return;
-  if (P.pose) { P.pose = null; await M_.hop(.35); return; }
+  if (P.pose) { P.pose = null; if (P.seat) { P.seat = null; P.pos.addScaledVector(V3(Math.sin(P.root.rotation.y), 0, Math.cos(P.root.rotation.y)), .55); } await M_.hop(.35); return; }
   const t = target; if (!t) return; pop(); acting = true;
   try {
-    if (t.k === 'npc') { actionCam(true); await talkNPC(t.n); }
+    if (t.k === 'spot') { if (t.fn !== 'exit' && t.fn !== 'down' && t.fn !== 'bench' && t.fn !== 'chair') await turnTo(t.x, t.z); await SPOT[t.fn](t); }
+    else if (t.k === 'npc') { actionCam(true); await talkNPC(t.n); }
     else if (t.k === 'tree') { await turnTo(t.x, t.z); actionCam(true); await shakeTree(t); }
     else if (t.k === 'rock') { await turnTo(t.x, t.z); actionCam(true); await mineRock(t); }
     else { const fn = ACTS[t.nm]; if (t.x != null && t.nm !== '선착장') await turnTo(t.x, t.z); if (t.nm !== '선착장') actionCam(true); if (fn) await fn(t); else toast(`${t.ic} ${esc(t.nm)} — 준비 중이에요`); }
@@ -421,8 +492,8 @@ const CRAFT_MO = {
     drop(g); }
 };
 function craftSheet(ic, title, sub, recipes, onMake, opt = {}) {
-  const fishKinds = ['붕어', '송사리', '피라미', '민물새우'];
-  const fishReq = () => { const k = fishKinds.find(f => has(f)); return k ? { [k]: 1 } : { '붕어': 1 }; };
+  const fishKinds = ['이끼붕어', '반딧불송사리', '꽃잎베타', '유리비늘피라미', '붕어', '송사리', '피라미', '민물새우'];
+  const fishReq = () => { const k = fishKinds.find(f => has(f)); return k ? { [k]: 1 } : { '이끼붕어': 1 }; };
   const render = b => {
     b.innerHTML = recipes.map(([ric, nm, req, note, decor], i) => { const rq = opt.anyFish && nm === '생선구이' ? fishReq() : req;
       return row(ric, esc(nm) + (S.inv[nm] ? ` <small>(${S.inv[nm]}개 있음)</small>` : decor && S.decor[nm] ? ` <small>(${S.decor[nm]}개 장식)</small>` : ''), (note ? esc(note) + ' · ' : '') + need(rq), `<button class="btn" data-a="mk" data-v="${i}" ${canMake(rq) ? '' : 'disabled'}>만들기</button>`); }).join('')
@@ -449,7 +520,7 @@ const ACTS = {
   '캡슐 뽑기': async () => { openGacha(); },
   '풍차 방앗간': () => craftSheet('🌾', '풍차 방앗간', '밀 2개 → 밀가루 1개', [['🥣', '밀가루', { '밀': 2 }]], () => ev('mill'), { mo: 'mill', spot: at(10.4, 1.6, -7.6) }),
   '화덕': () => craftSheet('🍞', '화덕', '따끈하게 굽기 · 요리하면 퀘스트 진행', [['🍞', '빵', { '밀가루': 1, '물': 1 }], ['🍕', '토마토 피자', { '밀가루': 1, '토마토': 2, '물': 1 }], ['🥧', '사과파이', { '밀가루': 1, '사과': 2 }], ['🍯', '꿀빵', { '빵': 1, '꿀': 1 }]], () => ev('bake'), { mo: 'cook', spot: at(14.5, .8, 2.2) }),
-  '모닥불': () => craftSheet('🔥', '모닥불', '생선을 굽거나 마시멜로를 구워요', [['🍢', '생선구이', { '붕어': 1 }, '붕어·송사리·피라미 아무거나'], ['🍡', '구운 마시멜로', { '마시멜로': 1 }]], () => ev('bake'), { anyFish: true, mo: 'fire', spot: at(-15.2, .7, 5.4) }),
+  '모닥불': () => craftSheet('🔥', '모닥불', '생선을 굽거나 마시멜로를 구워요', [['🍢', '생선구이', { '이끼붕어': 1 }, '흔한 물고기 아무거나'], ['🍡', '구운 마시멜로', { '마시멜로': 1 }]], () => ev('bake'), { anyFish: true, mo: 'fire', spot: at(-15.2, .7, 5.4) }),
   '작업대': () => craftSheet('🛠', '작업대', '모은 재료로 가구 만들기 → 오두막에 장식돼요', CRAFT.map(([ic, nm, req, item]) => [ic, nm, req, item ? '' : '오두막 장식', !item]), null, { mo: 'hammer', spot: at(15, 1.2, 5) }),
   '공방': async () => openForge(),
   '벌통': async () => { const left = S.honeyAt + 3 - T(); const hive = at(29.6, 1.1, 9.6);
@@ -464,8 +535,8 @@ const ACTS = {
     sleep: async () => { closeSheet(); P.pose = 'lie'; const z = setInterval(() => fx('💤', head(1.2), { v: V3(.2, .5, 0), life: 1.4, size: .3, grow: .6 }), 500);
       await M_.wait(1.6); fade(() => { clearInterval(z); S.h = 7; S.day++; ensureDaily(); W.setTime(S.h, P.pos); P.pose = null; save(); hud(); toast(`🌤 ${S.day}일째 아침이에요. 잘 잤다!`); M_.hop(.4); }, 900, true); },
     save: () => { save(); toast('💾 저장했어요'); closeSheet(); } })),
-  '아쿠아리움': async () => openAquarium(),
-  '지하실': async () => { await mo(1.1, u => { rigSet(0, -1.6 * ease(u), 0, .15 * u); }); P.pose = 'under'; cellar(); },
+  '아쿠아리움': async () => { await mo(.5, u => rigSet(0, .1 * Math.abs(wave(u, 2)), .3 * u)); await goArea('aqua'); burst('🫧', head(1.2), 6, { up: 1.2, speed: .6, g: 0, life: 1.2, size: .25 }); },
+  '지하실': async () => { await mo(1.0, u => { rigSet(0, -1.4 * ease(u), 0, .15 * u); }); await goArea('cellar', null, null, true); if (S.h >= 20 || S.h < 5) { beep(425, .8, 'sine', .04); beep(425, .8, 'sine', .04, 1.4); toast('…어디선가 통화 연결음이 들려요'); } },
   '오두막': async () => { await mo(.6, u => rigSet(0, .1 * Math.abs(wave(u, 2)), .25 * u)); fade(() => openHouse(), 450); },
   '우체통': async () => { const box = at(3.6, 1.2, 1.6); await mo(.4, u => lean(.2 * ease(u))); await fly('✉️', box, head(1.95), .5, { h: .5 }); fx('✉️', head(2), { life: .9, size: .45 }); await M_.raise(.9); openMail(); },
   '고양이': async () => { const cat = at(-2.9, .4, 2.2); await M_.crouch(.35);
@@ -490,7 +561,8 @@ const ACTS = {
   '정자': async () => sheet('📖', '정자', '책 읽기 · 낮잠', `<p>바람이 솔솔 부는 정자. 책장에 「정보구출반 사내 소식지」가 꽂혀 있어요.</p><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-a="read">책 읽기</button><button class="btn sub" data-a="nap">낮잠 (3시간)</button></div>`, b => bindBtns(b, {
     read: async () => { closeSheet(); P.pose = 'sit'; const g = hold('book'); g.position.set(-.36, .1, .1); g.rotation.x = -.6; await M_.wait(.6); say('사내 소식지', [BOOK[Math.floor(Math.random() * BOOK.length)], '…피식 웃음이 나요.'], () => { drop(g); fx('😆', head(1.7), { life: 1, size: .35, v: V3(0, .4, 0) }); }); },
     nap: async () => { closeSheet(); P.pose = 'lie'; const z = setInterval(() => fx('💤', head(1), { v: V3(.2, .5, 0), life: 1.4, size: .3, grow: .6 }), 500); await M_.wait(1.6); fade(() => { clearInterval(z); S.h += 3; toast('😴 낮잠을 푹 잤어요 (+3시간)'); P.pose = null; }, 900, true); } })),
-  '전망대': async () => { await mo(.5, u => lean(.22 * ease(u))); fx('🔭', front(.5, 1.5), { life: 1.2, size: .3 }); await M_.wait(.8); await mo(.3, u => lean(.22 * (1 - u))); await photo('전망대에서 본 풍경'); },
+  '전망대': async () => { await mo(.5, u => rigSet(0, .1 * Math.abs(wave(u, 2)), .3 * u)); await goArea('tower', [W.TOWER.x + .3, W.TOWER.z + 1.2], 0); toast('🔭 전망대 꼭대기! 망원경으로 경치를 볼 수 있어요'); burst('🍃', head(1.6), 5, { up: .6, speed: 1.4, g: -.5, life: 1.4, size: .25 }); },
+  '벤치': async t => { const b = W.BENCHES.slice().sort((a, c) => Math.hypot(a[0] - P.pos.x, a[1] - P.pos.z) - Math.hypot(c[0] - P.pos.x, c[1] - P.pos.z))[0]; await sitAt(b[0], b[1], b[2], W.hgt(b[0], b[1]) + .5); toast('🪑 벤치에 앉았어요. 움직이면 일어나요'); },
   '포토 스팟': async () => { await photo('포토 스팟에서 한 컷'); },
   '버스킹 무대': () => busk(),
   '텃밭': async () => openFarm()
@@ -543,7 +615,7 @@ function openShop() {
   };
   sheet('🛒', '잡화점', `가진 돈 ₩${S.coins.toLocaleString()}`, '', render);
 }
-const FISHI = k => { const f = FISH.find(x => x[0] === k); return f ? [f[1], f[3], f[4]] : null; };
+const FISHI = k => { const f = FISH.find(x => x[0] === k) || OLD_FISH.find(x => x[0] === k); return f ? [f[1], f[3], f[4]] : null; };
 function openGacha() {
   const mach = at(4.8, 1.3, 7.2);
   const render = b => {
@@ -619,7 +691,7 @@ function openAquarium() {
       try { const ic = FISHI(k)[0]; fx(ic, head(2), { life: .7, size: .5 }); await M_.raise(.6); await mo(.3, u => lean(.25 * u)); await fly(ic, head(1.6), door, .6, { h: 1 }); burst('💧', door, 6, { up: 1.5, speed: 1, life: .7, size: .2 }); ding(); await mo(.3, u => lean(.25 * (1 - u))); } finally { acting = false; }
       toast(`🐟 ${esc(k)}을(를) 기증했어요!`);
       if (!S.mainDone && Object.keys(S.aqua).length >= 5) { S.mainDone = true; money(500); const im = npcs.find(x => x.id === 'imiri'); npcHop(im); say('이미리', ['아쿠아리움에 다섯 종이 모였네요. 기록도 정확하고요.', '…잘했어요, 공유 씨. (보상 ₩500)']); hud(); save(); return; }
-      hud(); save(); openAquarium(); } });
+      hud(); save(); if (AREA === INS.aqua && INS.aqua) INS.aqua.setDonated(FISH.filter(f => S.aqua[f[0]]).map(f => f[6]), fishCanvas); openAquarium(); } });
   };
   sheet('🐟', '아쿠아리움', '물고기 기증 · 전시', '', render);
 }
@@ -632,14 +704,6 @@ function openHouse() {
 function openMail() {
   S.letters.forEach(l => l.read = true); save(); hud();
   sheet('💌', '우체통', `편지 ${S.letters.length}통`, S.letters.map(l => row('✉️', esc(l.from) + ` <small>· ${l.day}일째</small>`, esc(l.text))).join('') || '<p>편지가 없어요.</p>');
-}
-function cellar() {
-  const night = S.h >= 20 || S.h < 5;
-  fade(() => {
-    const lines = night ? ['…계단 아래가 생각보다 깊어요.', '어디선가 <b>통화 연결음</b>이 들려요. 뚜— 뚜—', '…', '불을 켜자 아무도 없어요. 바닥에 보랏빛 조각이 떨어져 있어요.'] : ['서늘한 지하실. 오래된 상자와 병이 쌓여 있어요.', '벽에 누군가 적어 둔 글씨: 「8번다리에는 무엇도 없었다」', '…위로 올라가요.'];
-    if (night) { beep(425, .8, 'sine', .04); beep(425, .8, 'sine', .04, 1.4); }
-    say('지하실', lines, () => { fade(async () => { P.pose = null; mo(.9, u => rigSet(0, -1.6 * (1 - ease(u)))); if (night && S.cellarDay !== S.day) { S.cellarDay = S.day; setTimeout(() => gain('이상현상 조각', 1), 1000); save(); } }, 400, true); });
-  }, 700, true);
 }
 let busking = 0;
 async function busk() {
@@ -668,76 +732,46 @@ async function photo(title) {
 }
 
 // ================= 낚시 =================
-let fishing = null, bobber = null, line = null;
+let fishing = null;
+const pondPreset = () => S.h >= 20 || S.h < 5 ? 'night' : S.h >= 17.5 || S.h < 6.5 ? 'dusk' : 'day';
 async function startFishing() {
   if (!W.onDock(P.pos.x, P.pos.z) && P.pos.distanceTo(V3(-20.5, P.pos.y, 3.6)) > 2.2) { waypoint = null; P.pos.set(-20.5, W.groundY(-20.5, 3.6), 3.6); }
-  P.vel.set(0, 0, 0); P.speed = 0; await turnTo(-20.5, -2); camS.tYaw = .55; camS.tPitch = .36; camS.tDist = 6.8; camS.lastDrag = now(); P.rod.visible = true;
-  if (!bobber) { bobber = new THREE.Group(); const a = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8), new THREE.MeshStandardMaterial({ color: '#ff5a4a', roughness: .4 })); const b2 = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 8, 0, 6.3, 0, 1.6), new THREE.MeshStandardMaterial({ color: '#ffffff' })); b2.position.y = .01; bobber.add(a, b2); scene.add(bobber);
-    line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#f8f4ea', transparent: true, opacity: .8 })); scene.add(line); }
-  // 던지기: 뒤로 젖혔다가 휙 → 찌가 포물선을 그리며 날아감
-  fishing = { st: 'cast', t: 0 }; fishUI('🎣', '던지는 중…', '');
-  bobber.visible = line.visible = true; const tip = () => { const v = V3(0, .8, 0); P.rod.children[0].localToWorld(v); return v; };
-  await mo(.45, u => { P.rod.rotation.x = .9 - 1.7 * ease(u); rigSet(0, 0, 0, -.18 * ease(u)); bobber.position.copy(tip()); });
-  beep(700, .12, 'sine', .04); const dest = V3(-20.5 + (Math.random() - .5) * 1.4, .06, 3.6 - 3.2 - Math.random());
-  let from = tip(); await mo(.55, u => { P.rod.rotation.x = -.8 + 2.1 * ease(Math.min(1, u * 2)); rigSet(0, 0, 0, .2 * Math.sin(u * Math.PI)); bobber.position.lerpVectors(from, dest, u); bobber.position.y += Math.sin(u * Math.PI) * 1.4; });
-  P.rod.rotation.x = 1.3; burst('💧', dest, 5, { up: 1.3, speed: .7, life: .6, size: .18 }); beep(260, .2, 'sine', .05); beep(180, .3, 'sine', .04, .1);
-  if (!fishing) return; fishing = { st: 'wait', t: 0, bite: 1.6 + Math.random() * 4.5 };
-  fishUI('🎣', '찌를 던졌어요', '찌가 쏙 들어가면 탭! (F / Space)');
+  P.vel.set(0, 0, 0); P.speed = 0; await turnTo(-20.5, -2); actionCam(true); P.rod.visible = true;
+  // 던지기: 뒤로 젖혔다가 휙
+  await mo(.45, u => { P.rod.rotation.x = .9 - 1.7 * ease(u); rigSet(0, 0, 0, -.18 * ease(u)); });
+  beep(700, .12, 'sine', .04); await mo(.4, u => { P.rod.rotation.x = -.8 + 2.1 * ease(u); rigSet(0, 0, 0, .2 * Math.sin(u * Math.PI)); });
+  burst('💧', front(3, .1), 6, { up: 1.3, speed: .7, life: .6, size: .2 });
+  fishing = { caught: [] };
+  await new Promise(r => setTimeout(r, 250));
+  startPond({ toast: s => toast(esc(s)), preset: pondPreset,
+    onCatch: (f, cm, first) => { add(f.name, 1, true); S.dex[f.name] = (S.dex[f.name] || 0) + 1; ev('fish'); fishing && fishing.caught.push([f, cm, first]); save(); },
+    onClose: () => endFishing() });
 }
-function fishUI(big, t, s, meter) {
-  let el = $('#fishui'); if (!el) { el = document.createElement('div'); el.className = 'fish'; el.id = 'fishui'; el.addEventListener('pointerdown', e => { e.preventDefault(); fishTap(); }); $('#layer').append(el); }
-  el.innerHTML = `<div class="card"><div class="big">${big}</div><div class="mid"><div class="t">${t}</div><small>${s || ''}</small>${meter != null ? `<div class="meter"><i style="width:${meter * 100}%"></i></div>` : ''}</div><p><button class="btn sub" id="fstop">그만</button></p></div>`;
-  $('#fstop').onpointerdown = e => { e.preventDefault(); e.stopPropagation(); endFishing(); };
+async function endFishing() {
+  const got = fishing ? fishing.caught : []; fishing = null;
+  if (got.length) { const best = got.slice().sort((a, b) => b[0].r - a[0].r)[0]; acting = true; try { await gain(best[0].name, 0, front(3, .2)); } finally { acting = false; }
+    toast(`🎣 ${got.length}마리 낚았어요! 가장 귀한 건 ${esc(best[0].name)} (${best[1]}cm)`, 3200); }
+  await mo(.3, u => { P.rod.rotation.x = 1.3 - .4 * u; }); P.rod.visible = false; P.rod.rotation.x = .9;
 }
-function pickFish() {
-  const night = S.h >= 20 || S.h < 5, pool = [];
-  FISH.forEach((f, i) => { const [, , r, , , when] = f; if (when === 2 && !night) return; let w = [6, 30, 12, 3, .4][r]; if (when === 1 && night) w *= 2.5; if (r >= 3) w *= S.rod; if (r === 0) w /= S.rod; pool.push([i, w]); });
-  let s = pool.reduce((a, b) => a + b[1], 0) * Math.random(); for (const [i, w] of pool) { if ((s -= w) <= 0) return FISH[i]; } return FISH[0];
-}
-function fishTap() {
-  const f = fishing; if (!f || pm) return;
-  if (f.st === 'wait') { f.t = 0; f.bite = 1.4 + Math.random() * 3.5; fishUI('💦', '너무 빨랐어요!', '물고기가 놀랐어요. 다시 기다려요…'); beep(200, .15, 'sine', .05); mo(.3, u => { P.rod.rotation.x = 1.3 - .4 * Math.sin(u * Math.PI); }); return; }
-  if (f.st === 'bite') { const fish = pickFish(); if (fish[2] >= 3) { f.st = 'reel'; f.fish = fish; f.pow = .35; f.t = 0; fishUI('❗', '대물이다!', '연타해서 끌어올려요!', f.pow); beep(880, .1, 'square', .05); return; } return catchFish(fish); }
-  if (f.st === 'reel') { f.pow = Math.min(1, f.pow + .09 + S.rod * .015); beep(600 + f.pow * 500, .04, 'square', .03); fishUI('❗', '대물이다!', '연타! 연타!', f.pow); if (f.pow >= 1) catchFish(f.fish); return; }
-  if (f.st === 'done') { $('#fishui') && $('#fishui').remove(); startFishing(); }
-}
-async function catchFish(fish) {
-  const [nm, ic, r, pr, desc] = fish; const isNew = !S.dex[nm]; S.dex[nm] = (S.dex[nm] || 0) + 1; if (r > 0) ev('fish');
-  fishing.st = 'anim'; const el = $('#fishui'); el && el.remove();
-  // 휙 낚아채기 → 물고기가 날아와서 머리 위로
-  const from = bobber.position.clone(); bobber.visible = line.visible = false; burst('💦', from, 8, { up: 2, speed: 1, life: .7, size: .22 });
-  await mo(.3, u => { P.rod.rotation.x = 1.3 - 1.6 * ease(u); rigSet(0, 0, 0, -.2 * u); }); if (r >= 3) shake = .25;
-  await gain(nm, 1, from); P.rod.rotation.x = .9;
-  if (!fishing) return; fishing.st = 'done';
-  fishUI(ic, `${esc(nm)}${isNew ? ' <span style="color:#ff6a5a">NEW!</span>' : ''}`, `${'★'.repeat(Math.max(1, r))} · ${esc(desc)}<br>한 번 더 하려면 탭`); save();
-}
-function endFishing() { fishing = null; const el = $('#fishui'); el && el.remove(); P.rod.visible = false; P.rod.rotation.x = .9; if (bobber) bobber.visible = line.visible = false; camS.tDist = CAM_D; camS.tPitch = .5; }
-function fishTick(dt, t) {
-  const f = fishing; if (!f || !bobber || !bobber.visible) return; f.t += dt;
-  const bob = bobber.position;
-  if (f.st === 'wait') { bob.y = .06 + Math.sin(t * 2.2) * .015; if (f.t > f.bite) { f.st = 'bite'; f.t = 0; f.win = .75 + S.rod * .18; fishUI('❗', '지금이야!', '탭!'); beep(990, .08, 'square', .06); burst('💧', bob, 4, { up: 1, speed: .4, life: .5, size: .16 }); if (navigator.vibrate) navigator.vibrate(60); } }
-  if (f.st === 'bite') { bob.y = -.06 + Math.sin(t * 30) * .03; P.rod.rotation.x = 1.3 + Math.sin(t * 30) * .05; if (f.t > f.win) { f.st = 'wait'; f.t = 0; f.bite = 1.5 + Math.random() * 4; fishUI('🫧', '놓쳤어요…', '물고기가 미끼만 먹고 갔어요. 다시 기다려요'); } }
-  if (f.st === 'reel') { f.pow -= dt * (.22 + (f.fish[2] - 2) * .08); bob.x += Math.sin(t * 9) * .01; P.rod.rotation.x = 1.0 + Math.sin(t * 20) * .12; rigSet(0, 0, 0, -.15 + Math.sin(t * 20) * .04);
-    if (Math.random() < .2) burst('💦', bob, 1, { up: 1, speed: .5, life: .4, size: .16 });
-    if (f.pow <= 0) { f.st = 'done'; bobber.visible = line.visible = false; rigSet(); fishUI('💨', '도망갔어요…', '아쉬워요! 낚싯대를 강화하면 더 쉬워요 · 탭해서 다시'); } else if (Math.floor(f.t * 10) % 3 === 0) { const m = $('#fishui .meter i'); if (m) m.style.width = (f.pow * 100) + '%'; } }
-  const tip = V3(0, .8, 0); P.rod.children[0].localToWorld(tip);
-  line.geometry.setFromPoints([tip, bob.clone().add(V3(0, .08, 0))]);
-}
+function fishTap() {}
+function fishTick() {}
+
 // ================= 가방 · 도감 · 퀘스트 · 설정 =================
 function openBag() {
   const inv = Object.entries(S.inv);
   sheet('🎒', '가방', `₩${S.coins.toLocaleString()} · ${inv.length}종`, inv.length ? `<div class="grid">${inv.map(([k, n]) => { const it = ITEMS[k] || FISHI(k) || ['🎁', 0, '']; return `<div class="cell" title="${esc(it[2] || '')}"><span class="ce">${it[0]}</span>${esc(k)}<em>×${n}</em></div>`; }).join('')}</div>` : '<p>비어 있어요.</p>');
 }
+const picCache = {}; const fishPic = i => picCache[i] || (picCache[i] = fishCanvas(FISH[i][6], 200, 120).toDataURL());
 function openDex() {
   let tab = 'fish';
   const render = b => {
     const tabs = `<div class="tabs"><button data-a="t" data-v="fish" class="${tab === 'fish' ? 'on' : ''}">물고기 ${Object.keys(S.dex).length}/${FISH.length}</button><button data-a="t" data-v="gacha" class="${tab === 'gacha' ? 'on' : ''}">굿즈 ${Object.keys(S.gacha).length}/${GACHA.length}</button><button data-a="t" data-v="friend" class="${tab === 'friend' ? 'on' : ''}">친구</button></div>`;
     let body = '';
-    if (tab === 'fish') body = `<div class="grid">${FISH.map((f, i) => S.dex[f[0]] ? `<div class="cell" data-a="f" data-v="${i}"><span class="ce">${f[1]}</span>${esc(f[0])}<em>×${S.dex[f[0]]}</em></div>` : `<div class="cell lock"><span class="ce">❓</span>???</div>`).join('')}</div><div id="fdesc" style="margin-top:10px"></div>`;
+    if (tab === 'fish') body = `<div class="grid">${FISH.map((f, i) => S.dex[f[0]] ? `<div class="cell" data-a="f" data-v="${i}"><img src="${fishPic(i)}" style="width:100%;display:block">${esc(f[0])}<em>×${S.dex[f[0]]}</em></div>` : `<div class="cell lock"><span class="ce">❓</span>???</div>`).join('')}</div><div id="fdesc" style="margin-top:10px"></div>`;
     if (tab === 'gacha') body = `<div class="grid">${GACHA.map(g => S.gacha[g[1]] ? `<div class="cell"><span class="ce">${g[0]}</span>${esc(g[1])}</div>` : `<div class="cell lock"><span class="ce">❓</span>???</div>`).join('')}</div>`;
     if (tab === 'friend') body = NPCS.map(n => row('🙂', esc(n.name), '💗'.repeat(Math.min(10, S.friend[n.id] || 0)) || '아직 서먹해요')).join('') + row('🐈', '고양이', '💗'.repeat(Math.min(10, S.friend.cat || 0)) || '쓰다듬어 주세요');
     b.innerHTML = tabs + body;
-    bindBtns(b, { t: v => { tab = v; render(b); }, f: v => { const f = FISH[+v]; $('#fdesc').innerHTML = row(f[1], esc(f[0]) + ' ' + '★'.repeat(Math.max(1, f[2])), `${esc(f[4])} · ₩${f[3]} · 잡은 수 ${S.dex[f[0]]}`); pop(); } });
+    bindBtns(b, { t: v => { tab = v; render(b); }, f: v => { const f = FISH[+v]; $('#fdesc').innerHTML = `<div class="row" style="flex-direction:column;align-items:stretch"><img src="${fishPic(+v)}" style="width:60%;margin:0 auto;display:block"><b>${esc(f[0])} ${'★'.repeat(Math.max(1, f[2]))}</b><small>${esc(f[4])} · ₩${f[3]} · 잡은 수 ${S.dex[f[0]]}</small></div>`; pop(); } });
   };
   sheet('📘', '도감', '잡은 물고기만 보여요', '', render);
 }
@@ -775,7 +809,7 @@ let shake = 0, tAcc = 0, saveAcc = 0, hudAcc = 0, dustAcc = 0;
 let BLOCK = null;
 function blockers() {
   if (BLOCK) return BLOCK; BLOCK = { sph: [], cyl: [] };
-  W.COLS.forEach(c => { if (c.t === 'b' && (c.hw > 1 || c.hd > 1)) BLOCK.cyl.push([c.x, c.z, Math.max(c.hw, c.hd) * .9, 4.2]); else if (c.t === 'c' && c.r >= 1) BLOCK.cyl.push([c.x, c.z, c.r * .9, c.r > 5 ? 7.5 : 4.5]); });
+  W.COLS.filter(c => c.h >= 50).forEach(c => { if (c.t === 'b' && (c.hw > 1 || c.hd > 1)) BLOCK.cyl.push([c.x, c.z, Math.max(c.hw, c.hd) * .9, 4.2]); else if (c.t === 'c' && c.r >= 1) BLOCK.cyl.push([c.x, c.z, c.r * .9, c.r > 5 ? 7.5 : 4.5]); });
   return BLOCK;
 }
 // focus → camera 방향으로 가는 선이 처음 막히는 비율 (0~1)
@@ -796,7 +830,7 @@ function update(dt, t) {
     let ax = ix + joyV.x, az = iz + joyV.y; const l = Math.hypot(ax, az); mag = Math.min(1, l); if (l > 0) { ax /= l; az /= l; }
     fwd.set(-Math.sin(camS.yaw), 0, -Math.cos(camS.yaw)); right.set(-fwd.z, 0, fwd.x);
     want.addScaledVector(right, ax).addScaledVector(fwd, -az); if (want.lengthSq() > 0) want.normalize();
-  } else if (P.pose && !pm && (joyV.length() > .5 || MOVE_KEYS.some(c => keys.has(c)))) { P.pose = null; }
+  } else if (P.pose && !pm && !acting && (joyV.length() > .5 || MOVE_KEYS.some(c => keys.has(c)))) { P.pose = null; if (P.seat) { P.seat = null; P.pos.addScaledVector(V3(Math.sin(P.root.rotation.y), 0, Math.cos(P.root.rotation.y)), .55); } }
   if (camSave && !busy && mag > .1) actionCam(false);   // 다시 걷기 시작하면 카메라 원래대로
   const run = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joyId !== null && mag > .94);
   const top = (run ? 6.8 : 3.8) * (joyId !== null && !run ? Math.min(1, mag / .8) : mag > 0 ? 1 : 0);
@@ -806,14 +840,14 @@ function update(dt, t) {
   P.speed = Math.hypot(P.vel.x, P.vel.z);
   if (P.speed > .05) { P.pos.x += P.vel.x * dt; P.pos.z += P.vel.z * dt;
     if (mag > .05) { const wa = Math.atan2(want.x, want.z); let d = wa - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * Math.min(1, dt * 14); } }
-  const bx = P.pos.x, bz = P.pos.z; W.collide(P.pos, .36);
-  for (const n of npcs) { const dx = P.pos.x - n.root.position.x, dz = P.pos.z - n.root.position.z, d = Math.hypot(dx, dz); if (d < .75 && d > 1e-4) { P.pos.x = n.root.position.x + dx / d * .75; P.pos.z = n.root.position.z + dz / d * .75; } }
+  const bx = P.pos.x, bz = P.pos.z; if (!P.seat) A().collide(P.pos, .36, P.pos.y);
+  if (!AREA) for (const n of npcs) { const dx = P.pos.x - n.root.position.x, dz = P.pos.z - n.root.position.z, d = Math.hypot(dx, dz); if (d < .75 && d > 1e-4) { P.pos.x = n.root.position.x + dx / d * .75; P.pos.z = n.root.position.z + dz / d * .75; } }
   if (dt > 0) { const cx = (P.pos.x - bx) / dt, cz = (P.pos.z - bz) / dt; P.vel.x += cx * .5; P.vel.z += cz * .5; }   // 벽에 닿으면 그 방향 속도 줄이기 (미끄러지듯)
   // ---- 점프 (코요테 타임 · 입력 버퍼) ----
-  const gy = W.groundY(P.pos.x, P.pos.z);
+  const gy = P.seat ? P.seat.y : A().ground(P.pos.x, P.pos.z, P.pos.y);
   P.jbuf -= dt; P.air += dt;
   if (P.jbuf > 0 && P.air < .12 && !P.pose && !busy) { P.vy = 7.0; P.ground = false; P.air = 1; P.jbuf = 0; beep(420, .08, 'triangle', .05); burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .3, speed: .8, g: 0, life: .4, size: .2, grow: 1 }); }
-  P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt;
+  if (P.seat) { P.vy = 0; P.pos.y = P.seat.y; } else { P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt; }
   if (P.pos.y <= gy) { if (!P.ground && P.vy < -3) { P.land = .18; burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .2, speed: 1, g: 0, life: .35, size: .2, grow: 1 }); } P.pos.y = gy; P.vy = 0; P.ground = true; P.air = 0; }
   else if (P.pos.y > gy + .08) P.ground = false; else { P.pos.y += (gy - P.pos.y) * Math.min(1, dt * 20); P.air = 0; }
   P.root.position.copy(P.pos);
@@ -822,8 +856,8 @@ function update(dt, t) {
   else if (!fishing) {
     const s01 = Math.min(1, P.speed / 3.8); P.phase += dt * (5 + P.speed * 2.4); P.land = Math.max(0, (P.land || 0) - dt);
     const br = Math.sin(t * 2.4) * .012;
-    if (P.pose === 'sit') rigSet(0, -.06, 0, -.08, 0, 0, 1.07, .88 + br, 1.07);
-    else if (P.pose === 'lie') rigSet(0, .3, 0, -1.45, 0, 0);
+    if (P.pose === 'sit') rigSet(0, P.seat ? -.05 : -.06, 0, -.08, 0, 0, 1.07, .88 + br, 1.07);
+    else if (P.pose === 'lie') { rigSet(0, .3, 0, -1.45, 0, 0); P.zz = (P.zz || 0) + dt; if (P.zz > 1.3) { P.zz = 0; fx('💤', head(.9), { v: V3(.2, .5, 0), life: 1.4, size: .28, grow: .6 }); } }
     else if (P.pose === 'under') rigSet(0, -1.6);
     else if (!P.ground) { const k = THREE.MathUtils.clamp(P.vy / 7, -1, 1); rigSet(0, 0, 0, .1 * s01, 0, 0, 1 - .06 * k, 1 + .1 * k, 1 - .06 * k); }
     else if (P.land > 0) { const k = P.land / .18; rigSet(0, 0, 0, 0, 0, 0, 1 + .12 * k, 1 - .2 * k, 1 + .12 * k); }
@@ -856,30 +890,30 @@ function update(dt, t) {
   // 가려지면: 먼저 위·아래로 각도를 바꿔 피해 보고, 그래도 막히면 조금만 다가감 (너무 붙지 않게)
   const tryDir = p => V3(Math.sin(camS.yaw) * Math.cos(p), Math.sin(p), Math.cos(camS.yaw) * Math.cos(p));
   let bestP = camS.pitch, bestK = 0;
-  for (const dp of [0, .2, -.15, .4]) { const pp = THREE.MathUtils.clamp(camS.pitch + dp, .02, 1.35), kk = camHit(focus, tryDir(pp), camS.dist); if (kk > bestK + .05) { bestK = kk; bestP = pp; } if (kk >= .999) break; }
+  for (const dp of (A().scene ? [0] : [0, .2, -.15, .4])) { const pp = THREE.MathUtils.clamp(camS.pitch + dp, .02, 1.35), kk = camHit(focus, tryDir(pp), camS.dist); if (kk > bestK + .05) { bestK = kk; bestP = pp; } if (kk >= .999) break; }
   camS.avoid = (camS.avoid ?? camS.pitch) + (bestP - (camS.avoid ?? camS.pitch)) * (1 - Math.exp(-dt * 4));
-  const dir = tryDir(camS.avoid), goalD = Math.max(4.2, camS.dist * camHit(focus, dir, camS.dist) - .3);   // 너무 붙지 않고, 남은 가림은 망점으로 뚫어 보여줌
+  const dir = tryDir(camS.avoid), goalD = A().scene ? camS.dist : Math.max(4.2, camS.dist * camHit(focus, dir, camS.dist) - .3);   // 너무 붙지 않고, 남은 가림은 망점으로 뚫어 보여줌
   camS.real += (goalD - camS.real) * (1 - Math.exp(-dt * (goalD < camS.real ? 10 : 2.5)));
   camGoal.copy(focus).addScaledVector(dir, camS.real);
-  const cg = W.hgt(camGoal.x, camGoal.z) + .45; if (camGoal.y < cg) camGoal.y = cg;
+  A().cam(camGoal);
   cam.position.copy(camGoal);
   if (shake > 0) { shake -= dt; cam.position.x += (Math.random() - .5) * shake * .5; cam.position.y += (Math.random() - .5) * shake * .5; }
   cam.lookAt(focus); W.SEE.uCam.value.copy(cam.position); W.SEE.uFocus.value.copy(focus);
   // ---- 하늘 · 빛 · 효과 ----
-  W.setTime(S.h, P.pos); W.tick(t, dt); fishTick(dt, t); fxTick(dt);
+  if (A().scene) A().tick(t, dt); else { W.setTime(S.h, P.pos); W.tick(t, dt); } fxTick(dt);
   if (waypoint && Math.hypot(P.pos.x - waypoint.p[0], P.pos.z - waypoint.p[1]) < 2.2) { toast(`📍 ${esc(waypoint.nm)}에 도착했어요`); waypoint = null; }
-  tAcc += dt; if (tAcc > .12) { tAcc = 0; target = busy ? null : findTarget(); showPrompt(); drawMini(); }
+  tAcc += dt; if (tAcc > .12) { tAcc = 0; target = busy ? null : findTarget(); showPrompt(); if (!A().scene) drawMini(); }
   hudAcc += dt; if (hudAcc > 1) { hudAcc = 0; const h = Math.floor(S.h), mi = Math.floor(S.h % 1 * 60 / 10) * 10;
     const ic = h < 5 || h >= 21 ? '🌙' : h < 7 ? '🌄' : h < 17 ? '☀️' : h < 19.5 ? '🌅' : '🌆';
-    $('#pic').textContent = ic; $('#pname').textContent = nearArea(); $('#ptime').textContent = `${S.day}일째 · ${h < 12 ? '오전' : '오후'} ${((h + 11) % 12) + 1}:${String(mi).padStart(2, '0')}${waypoint ? ` · 📍${waypoint.nm} ${Math.round(Math.hypot(P.pos.x - waypoint.p[0], P.pos.z - waypoint.p[1]))}m` : ''}`;
-    $('#vig').style.background = h < 5 || h >= 21 ? 'radial-gradient(ellipse 80% 75% at 50% 55%,transparent 55%,rgba(5,8,25,.38))' : ''; }
+    $('#pic').textContent = AREA && AREA.icon || ic; $('#pname').textContent = AREA ? AREA.name : nearArea(); $('#ptime').textContent = `${S.day}일째 · ${h < 12 ? '오전' : '오후'} ${((h + 11) % 12) + 1}:${String(mi).padStart(2, '0')}${waypoint ? ` · 📍${waypoint.nm} ${Math.round(Math.hypot(P.pos.x - waypoint.p[0], P.pos.z - waypoint.p[1]))}m` : ''}`;
+    if (!AREA || AREA.tower) $('#vig').style.background = h < 5 || h >= 21 ? 'radial-gradient(ellipse 80% 75% at 50% 55%,transparent 55%,rgba(5,8,25,.38))' : ''; }
   saveAcc += dt; if (saveAcc > 8) { saveAcc = 0; save(); }
 }
 function nearArea() {
   const x = P.pos.x, z = P.pos.z, A = [['오두막 마당', 1, 2, 9], ['텃밭', 22, 4, 10], ['호숫가', -22, 1, 11], ['아쿠아리움', -1, -20, 10], ['풍차 언덕', 11, -10, 6], ['정자 숲', -8, -11, 6]];
   let best = '마이세카이 숲길', bd = 1e9; A.forEach(([n, ax, az, r]) => { const d = Math.hypot(x - ax, z - az) - r; if (d < 0 && d < bd) { bd = d; best = n; } }); return best;
 }
-function render() { composer ? composer.render() : renderer.render(scene, cam); }
+function render() { if (composer) { rpass.scene = curScene; composer.render(); } else renderer.render(curScene, cam); }
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(.05, clock.getDelta()), t = clock.elapsedTime;
@@ -887,5 +921,5 @@ function loop() {
   render();
 }
 window.__save = save;
-if (location.hash.includes('debug')) window.__ms = { get S() { return S; }, get P() { return P; }, act, get target() { return target; }, ACTS, fishTap, openMap, W: () => W, get pm() { return pm; } };
+if (location.hash.includes('debug')) window.__ms = { setArea, doPose, get AREA() { return AREA; }, get S() { return S; }, get P() { return P; }, act, get target() { return target; }, ACTS, fishTap, openMap, W: () => W, get pm() { return pm; } };
 document.addEventListener('visibilitychange', () => { if (document.hidden && ready) save(); });

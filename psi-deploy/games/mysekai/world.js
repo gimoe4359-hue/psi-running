@@ -5,13 +5,13 @@ import { mergeGeometries } from './lib/jsm/utils/BufferGeometryUtils.js';
 export function buildWorld(sc, opt = {}) {
 const NIGHT = false;
 const DYN = [], LAMPS = [], COLS = [], TREES = [], ROCKS = [];
-let FIRE = null;
+let FIRE = null, TOWER = null; const BENCHES = [];
 // 원래 맵의 점조명은 위치만 기억 (밤에 가까운 몇 개만 실제 빛으로 켬 → 폰·아이패드도 가볍게)
 const PL = (color, power) => { const o = new THREE.Object3D(); o.userData.lamp = { color, power }; LAMPS.push(o); return o; };
 // 충돌: 원 [x, z, r] / 회전 상자 {x, z, hw, hd, ry}
-const hit = (x, z, r) => COLS.push({ t: 'c', x, z, r });
-const box = (x, z, hw, hd, ry = 0) => COLS.push({ t: 'b', x, z, hw, hd, ry });
-const ell = (x, z, rx, rz) => COLS.push({ t: 'e', x, z, rx, rz });
+const hit = (x, z, r, h = 99) => COLS.push({ t: 'c', x, z, r, h, y0: hgt(x, z) });
+const box = (x, z, hw, hd, ry = 0, h = 99) => COLS.push({ t: 'b', x, z, hw, hd, ry, h, y0: hgt(x, z) });
+const ell = (x, z, rx, rz) => COLS.push({ t: 'e', x, z, rx, rz, h: 99, y0: 0 });
 const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .9, ...o });
 const add = (geo, mat, x, y, z, o = {}) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = o.cast !== false; m.receiveShadow = true; if (o.ry) m.rotation.y = o.ry; if (o.rx) m.rotation.x = o.rx; if (o.rz) m.rotation.z = o.rz; if (o.s) m.scale.set(...o.s); (o.p || sc).add(m); return m; };
 function rbox(w, h, d, rad = .12) { const s = new THREE.Shape(), x = -w / 2, y = -h / 2; s.moveTo(x + rad, y); s.lineTo(x + w - rad, y); s.quadraticCurveTo(x + w, y, x + w, y + rad); s.lineTo(x + w, y + h - rad); s.quadraticCurveTo(x + w, y + h, x + w - rad, y + h); s.lineTo(x + rad, y + h); s.quadraticCurveTo(x, y + h, x, y + h - rad); s.lineTo(x, y + rad); s.quadraticCurveTo(x, y, x + rad, y);
@@ -71,7 +71,7 @@ add(rbox(3.4, .2, 1.4, .05), M('#a87a52'), -.3, .55, 2.5, { p: house }); for (le
 const hedgeM = [M('#5f8a3e'), M('#6c9646'), M('#577f38')];
 for (let k = 0; k < 40; k++) { const a = -Math.PI * .95 + k / 40 * Math.PI * 1.25, d = 10.5 + R() * 1.2; const x = Math.cos(a) * d * 1.1, z = 1 + Math.sin(a) * d; if (z > 9) continue; if (z < -5 && x > -6 && x < 7) continue;
   add(blob(.9 + R() * .5, 2), hedgeM[k % 3], x, hgt(x, z) + .55, z, { s: [1.2, .8, 1] }); hit(x, z, 1.05); }
-function tree(x, z, s = 1, cA = '#6c9646', cB = '#88a852') { hit(x, z, .45 * s); TREES.push([x, z, s, cA]); const t = new THREE.Group(); t.position.set(x, hgt(x, z), z); t.scale.setScalar(s); sc.add(t);
+function tree(x, z, s = 1, cA = '#6c9646', cB = '#88a852') { hit(x, z, .3 * s); TREES.push([x, z, s, cA]); const t = new THREE.Group(); t.position.set(x, hgt(x, z), z); t.scale.setScalar(s); sc.add(t);
   add(new THREE.CylinderGeometry(.2, .32, 2.2, 8), M('#7a5638'), 0, 1.1, 0, { p: t });
   [[0, 2.9, 0, 1.35, cA], [.75, 2.5, .35, 1, cB], [-.75, 2.55, .2, 1.05, cA], [.15, 3.6, -.15, .95, cB], [-.3, 2.7, -.75, .95, cA]].forEach(([a, b, c2, rr, cl]) => add(blob(rr, 3), M(cl), a, b, c2, { p: t })); }
 [[-8.5, -4, 1.3], [-5, -8, 1.4], [-12, -9, 1.5], [10, -1, 1.2], [-11, 3, 1.4], [9.5, 6, 1.1], [-9, 9, 1.0], [13, -9, 1.6], [-14, -6, 1.7], [8.5, -12, 1.6], [-9, -13, 1.7]].forEach(([x, z, s], i) => tree(x, z, s, i % 2 ? '#6c9646' : '#7a9e4c', i % 3 ? '#8faa56' : '#a3b85e'));
@@ -258,10 +258,10 @@ for (let k = 0; k < 40; k++) add(new THREE.SphereGeometry(.035, 6, 5), M('#fff2b
   // 둥근 덤불 (일부는 꽃 피는 덤불)
   const BC = ['#6f9a44', '#86ad52', '#7aa84e', '#93b65a'];
   for (let k = 0; k < 150; k++) { const a = R() * 6.28, d = 4 + R() * 30, x = Math.cos(a) * d * 1.05, z = 2 + Math.sin(a) * d * .9; if (!free(x, z, true)) continue;
-    const s = .45 + R() * .5, y = hgt(x, z); hit(x, z, s * .85); add(blob(s, 2), M(BC[k % 4]), x, y + s * .6, z, { s: [1.25, .85, 1.1] }); if (R() < .5) add(blob(s * .7, 2), M(BC[(k + 1) % 4]), x + s * .7, y + s * .45, z + .2, { s: [1.2, .8, 1] });
+    const s = .45 + R() * .5, y = hgt(x, z); add(blob(s, 2), M(BC[k % 4]), x, y + s * .6, z, { s: [1.25, .85, 1.1] }); if (R() < .5) add(blob(s * .7, 2), M(BC[(k + 1) % 4]), x + s * .7, y + s * .45, z + .2, { s: [1.2, .8, 1] });
   }
   // 이끼 낀 바위
-  for (let k = 0; k < 45; k++) { const a = R() * 6.28, d = 5 + R() * 30, x = Math.cos(a) * d, z = 2 + Math.sin(a) * d * .9; if (!free(x, z)) continue; const s = .25 + R() * .45, y = hgt(x, z); if (s > .35) { hit(x, z, s * .9); ROCKS.push([x, z, s]); }
+  for (let k = 0; k < 45; k++) { const a = R() * 6.28, d = 5 + R() * 30, x = Math.cos(a) * d, z = 2 + Math.sin(a) * d * .9; if (!free(x, z)) continue; const s = .25 + R() * .45, y = hgt(x, z); if (s > .35) { hit(x, z, s * .9, s * .72); ROCKS.push([x, z, s]); }
     add(blob(s, 1), M(['#c8bca8', '#b8ad98', '#d6ccb8'][k % 3]), x, y + s * .35, z, { s: [1.2, .7, 1] }); if (R() < .6) add(blob(s * .6, 1), M('#7a9e4c'), x, y + s * .7, z, { s: [1.2, .35, 1] }); }
   // 버섯 무리
   for (let k = 0; k < 22; k++) { const a = R() * 6.28, d = 8 + R() * 26, cx = Math.cos(a) * d, cz = 2 + Math.sin(a) * d * .9; if (!free(cx, cz)) continue;
@@ -348,12 +348,24 @@ const W8 = (c) => M(c, { roughness: .8 });
     const fl = PL('#ff8a40', 3, 4, 1.8); fl.position.set(x, y + .9, z + .4); sc.add(fl);
     add(new THREE.BoxGeometry(.8, .35, .4), M('#4a4a52', { metalness: .5, roughness: .4 }), .7, .95, .2, { p: g }); add(new THREE.CylinderGeometry(.18, .22, .6, 10), W8('#8a6040'), .7, .45, .2, { p: g });
     mark('🔨', '공방', '도구 강화', x, y + 4, z); }
-  // ⑦ 언덕 위 전망대 + 망원경
-  { const x = 8.5, z = -14.5, y = hgt(x, z);
-    add(new THREE.CylinderGeometry(1.6, 1.8, .4, 16), M('#c8bca8'), x, y + .2, z); for (let k = 0; k < 10; k++) { const a = k / 10 * 6.28; add(new THREE.BoxGeometry(.08, .7, .08), W8('#8a6040'), x + Math.cos(a) * 1.5, y + .75, z + Math.sin(a) * 1.5); }
-    add(new THREE.TorusGeometry(1.5, .05, 6, 30), W8('#8a6040'), x, y + 1.1, z, { rx: Math.PI / 2 });
-    add(new THREE.CylinderGeometry(.05, .05, 1.1), M('#4a4a52'), x, y + .95, z); add(new THREE.CylinderGeometry(.11, .16, .8, 12), M('#c8a060', { metalness: .6, roughness: .3 }), x + .2, y + 1.55, z, { rz: -1.1 });
-    mark('🔭', '전망대', '풍경 사진 찍기', x, y + 2.4, z); }
+  // ⑦ 언덕 위 높은 전망대 — 계단으로 올라가 꼭대기 전망 데크에서 경치 보기
+  { const x = 8.5, z = -14.5, y = hgt(x, z), TH = 8;
+    add(new THREE.CylinderGeometry(1.45, 1.75, TH, 22), M('#e6dcc8'), x, y + TH / 2, z);
+    for (let k = 1; k < 4; k++) add(new THREE.TorusGeometry(1.6 - k * .07, .08, 6, 26), M('#c8b898'), x, y + k * 2.1, z, { rx: Math.PI / 2, cast: false });
+    for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28 + .5, yy = y + 2 + (k % 3) * 2; add(rbox(.34, .5, .1, .05), M('#ffd28a', { emissive: '#ffb860', emissiveIntensity: .8 }), x + Math.cos(a) * 1.55, yy, z + Math.sin(a) * 1.55, { ry: -a + Math.PI / 2, cast: false }); }
+    add(rbox(.95, 1.7, .25, .3), W8('#7a5236'), x, y + .85, z + 1.68); add(new THREE.SphereGeometry(.06), M('#e8c070', { metalness: .5 }), x + .3, y + .85, z + 1.83);
+    // 바깥을 감고 올라가는 나무 계단
+    for (let k = 0; k < 30; k++) { const a = Math.PI / 2 + .45 + k / 30 * Math.PI * 2 * 1.15, yy = y + .25 + k * (TH - .1) / 30; add(new THREE.BoxGeometry(.75, .1, .38), W8(k % 2 ? '#a87a52' : '#9a6e48'), x + Math.cos(a) * 2.05, yy, z + Math.sin(a) * 2.05, { ry: -a }); }
+    // 꼭대기 데크 · 난간 · 지붕 · 망원경
+    add(new THREE.CylinderGeometry(2.75, 2.5, .35, 28), W8('#b88a5a'), x, y + TH + .12, z);
+    for (let k = 0; k < 20; k++) { const a = k / 20 * 6.28; add(new THREE.BoxGeometry(.08, .9, .08), W8('#8a6040'), x + Math.cos(a) * 2.6, y + TH + .75, z + Math.sin(a) * 2.6); }
+    add(new THREE.TorusGeometry(2.6, .06, 6, 40), W8('#8a6040'), x, y + TH + 1.2, z, { rx: Math.PI / 2 });
+    [0, 1, 2, 3].forEach(k => { const a = k / 4 * 6.28 + .785; add(new THREE.CylinderGeometry(.07, .07, 2.4), W8('#8a6040'), x + Math.cos(a) * 2.35, y + TH + 1.5, z + Math.sin(a) * 2.35); });
+    add(new THREE.ConeGeometry(3, 1.4, 8), M('#c86a4a'), x, y + TH + 3.3, z); add(new THREE.SphereGeometry(.18, 10, 8), M('#e8c070'), x, y + TH + 4.05, z);
+    add(new THREE.CylinderGeometry(.03, .03, 1.2), M('#6a6a6a'), x, y + TH + 4.6, z); add(new THREE.BoxGeometry(.6, .35, .02), M('#ff8a6a'), x + .3, y + TH + 5, z, { cast: false });
+    add(new THREE.CylinderGeometry(.05, .05, 1.1), M('#4a4a52'), x - 1.5, y + TH + .85, z); add(new THREE.CylinderGeometry(.11, .16, .8, 12), M('#c8a060', { metalness: .6, roughness: .3 }), x - 1.75, y + TH + 1.45, z, { rz: 1.1 });
+    TOWER = { x, z, base: y, deck: y + TH + .3, r: 2.35, scope: [x - 1.5, z] };
+    mark('🔭', '전망대', '올라가기', x, y + TH + 5.6, z); }
   // ⑧ 정자 — 책 읽기 · 낮잠
   { const x = -6.5, z = -12.5, y = hgt(x, z), g = new THREE.Group(); g.position.set(x, y, z); sc.add(g);
     add(new THREE.CylinderGeometry(2, 2.1, .3, 6), W8('#b88a5a'), 0, .15, 0, { p: g }); for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28; add(new THREE.CylinderGeometry(.1, .12, 2.4, 8), M('#c86a4a'), Math.cos(a) * 1.7, 1.4, Math.sin(a) * 1.7, { p: g }); }
@@ -384,32 +396,44 @@ mark('🌱', '텃밭', '수확 3 · 물주기', 22, 1.8, 4); mark('🛠', '작�
 mark('⛺', '텐트', '저장 · 잠자기', -14.2, 2.6, 2); mark('🐟', '아쿠아리움', '들어가기', -1, 8.8, -20); mark('🕳', '지하실', '내려가기', 2.6, 1.8, -5.6); mark('🏠', '오두막', '들어가기 · 꾸미기', 1.5, 6.6, -2.6);
 mark('💌', '우체통', '편지 2통', 3.6, 1.9, 1.6); mark('🐈', '고양이', '쓰다듬기', -2.9, 1, 2.2); mark('🧺', '피크닉', '앉기 · 간식', -4.2, 1, 5.6); mark('🌿', '해먹', '쉬기', 10.7, 2, 10.3); mark('🐦', '새집', '먹이 주기', -6.8, 3.6, .6); mark('🪧', '이정표', '빠른 이동', 2.2, 2.6, 12.2);
 
+// ================= 벤치 (앉을 수 있음) =================
+function bench(x, z, ry) { const y = hgt(x, z), g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; sc.add(g);
+  for (let k = 0; k < 3; k++) add(rbox(1.7, .07, .16, .03), W8(k % 2 ? '#c8946a' : '#b88458'), 0, .46, -.16 + k * .17, { p: g });
+  for (let k = 0; k < 2; k++) add(rbox(1.7, .07, .14, .03), W8('#b88458'), 0, .72 + k * .2, -.3, { p: g, rx: -.18 });
+  [-.7, .7].forEach(dx => { add(new THREE.BoxGeometry(.08, .46, .45), M('#4a4a52', { metalness: .5, roughness: .4 }), dx, .23, 0, { p: g }); add(new THREE.BoxGeometry(.08, .5, .06), M('#4a4a52', { metalness: .5, roughness: .4 }), dx, .72, -.3, { p: g, rx: -.18 }); });
+  box(x, z, .9, .3, ry, .5); BENCHES.push([x, z, ry]); mark('🪑', '벤치', '앉기', x, y + 1.6, z); }
+[[8.9, 5.7, Math.atan2(-2.7, -1.9)], [-15.6, 9.6, Math.atan2(-6.4, -9.6)], [3, -11.4, Math.atan2(-4, .9)], [19.4, 10.9, Math.atan2(.6, -5.8)], [5.6, -11.2, .3], [-2.6, 11.4, Math.atan2(2.6, -2)]].forEach(b => bench(...b));
 // ================= 충돌 (건물 · 시설) =================
 box(1.5, -2.6, 2.6, 1.9); hit(2.6, -5.6, 1.2);                          // 오두막 · 지하실
 hit(-1, -20, 6.5); box(-1, -14.2, 1.3, .5); hit(-1, -10.4, 1.35);       // 아쿠아리움 · 입구 · 분수
-ell(6.2, 3.8, 2.7, 2.15); box(6.2, 8.4, 3.1, .12);                       // 연못 · 울타리
-hit(3.6, 1.6, .35); hit(4.8, -1.2, .7); [[-2.6, 3.2], [-2.6, -.2], [4.6, 1.2]].forEach(([x, z]) => hit(x, z, .18));
+ell(6.2, 3.8, 2.7, 2.15); box(6.2, 8.4, 3.1, .12, 0, .75);                       // 연못 · 울타리
+hit(3.6, 1.6, .35, 1.4); hit(4.8, -1.2, .7, .6); [[-2.6, 3.2], [-2.6, -.2], [4.6, 1.2]].forEach(([x, z]) => hit(x, z, .18));
 [[-1.3, 10.2], [2.2, 5.5], [1.9, 12.4], [-1.8, 3.2], [2.4, 9]].forEach(([x, z]) => hit(x, z, .18));
 hit(-1.6, 7.4, .2); hit(1.0, 7.4, .2);                                   // 아치 기둥
-[[17.8, 3], [22.6, 3], [17.8, 6.2], [22.6, 6.2]].forEach(([x, z]) => box(x, z, 1.05, 1.25));   // 텃밭 틀
-box(27.5, .5, 1.85, 2.35, -.35); hit(15, 5, 1.2); hit(25, 9.1, .8); hit(21.8, -.8, .35); box(21.6, -2.8, 6.8, .12);
+[[17.8, 3], [22.6, 3], [17.8, 6.2], [22.6, 6.2]].forEach(([x, z]) => box(x, z, 1.05, 1.25, 0, .5));   // 텃밭 틀
+box(27.5, .5, 1.85, 2.35, -.35); hit(15, 5, 1.2, 1.15); hit(25, 9.1, .8, 1.05); hit(21.8, -.8, .35); box(21.6, -2.8, 6.8, .12, 0, .7);
 hit(20.4, 10.4, .3);
 ell(-22, 0, 8.4, 6.8);                                                   // 호수 (선착장은 따로 걸을 수 있음)
-hit(-28.5, 5.5, .7); hit(-15.2, 5.4, .8); hit(-16.6, 5.7, .5); hit(-13.9, 4.9, .5); hit(-13.9, 2.4, 1.4);
+hit(-28.5, 5.5, .7); hit(-15.2, 5.4, .8, .5); hit(-16.6, 5.7, .5, .6); hit(-13.9, 4.9, .5, .6); hit(-13.9, 2.4, 1.4);
 hit(-7.2, -1.6, 1.05); box(4.2, 10.8, 1.1, .25, -.5); box(-8.6, 7.4, 1.35, .65, .6); hit(4.8, 7.2, .6);
-hit(11.5, -8.5, 2.1); box(-9.5, -7.5, 1.75, 1.45, .7); hit(8.5, -14.5, 1.85);
+hit(11.5, -8.5, 2.1); box(-9.5, -7.5, 1.75, 1.45, .7); hit(8.5, -14.5, 2.3);
 for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28; hit(-6.5 + Math.cos(a) * 1.7, -12.5 + Math.sin(a) * 1.7, .2); } hit(-6.5, -12.5, .85);
 box(9.6, 3.6, 1.05, .2, -1.2); box(-15, -12, 1.85, 1.25, .9); hit(14.5, 1.2, 1.3);
-[[29, 9.5], [30.2, 9.8]].forEach(([x, z]) => hit(x, z, .5)); hit(15.6, 10.5, .65); hit(16.6, 9.6, .65); box(17.5, -2, 1.05, 1.1);
-hit(-6.8, .6, .15); hit(5.2, .6, .4); hit(5.6, -.6, .55); hit(-2.9, 2.2, .45); hit(-3.6, 5.3, .4);
+[[29, 9.5], [30.2, 9.8]].forEach(([x, z]) => hit(x, z, .5, 1.4)); hit(15.6, 10.5, .65, .95); hit(16.6, 9.6, .65, .95); box(17.5, -2, 1.05, 1.1, 0, .95);
+hit(-6.8, .6, .15); hit(5.2, .6, .4, .75); hit(5.6, -.6, .55, 1.0); hit(-2.9, 2.2, .45, .45); hit(-3.6, 5.3, .4, .45);
 // 걸을 수 있는 발판 (높이)
 const PLAT = [{ x0: -21.45, x1: -19.55, z0: 2.6, z1: 7.65, y: .37 }, { x0: -.5, x1: 2.9, z0: -.75, z1: .55, y: .65 }];
-const groundY = (x, z) => { for (const p of PLAT) if (x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) return p.y; return hgt(x, z); };
+const inside = (c, x, z, m = 0) => { if (c.t === 'c') return Math.hypot(x - c.x, z - c.z) < c.r * .92 - m; const cs = Math.cos(c.ry), sn = Math.sin(c.ry), dx = x - c.x, dz = z - c.z; return Math.abs(dx * cs - dz * sn) < c.hw - m && Math.abs(dx * sn + dz * cs) < c.hd - m; };
+const LOW = COLS.filter(c => c.h < 50);
+// y(발 높이)를 주면 낮은 물체 위에 올라설 수 있음
+const groundY = (x, z, y) => { for (const p of PLAT) if (x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) return p.y; let g = hgt(x, z);
+  if (y != null) for (const c of LOW) { const top = c.y0 + c.h; if (top > g && y >= top - .3 && inside(c, x, z)) g = top; } return g; };
 const onDock = (x, z) => x > -21.45 && x < -19.55 && z > 2.6 && z < 7.65;
 // 충돌 밀어내기 (반지름 rad 캐릭터)
-function collide(p, rad) {
+function collide(p, rad, feet) {
   const lim = 43, d0 = Math.hypot(p.x, p.z - 2); if (d0 > lim) { p.x *= lim / d0; p.z = 2 + (p.z - 2) * lim / d0; }
   for (const c of COLS) {
+    if (feet != null && c.h < 50 && feet >= c.y0 + c.h - .08) continue;   // 위로 뛰어넘는 중
     if (c.t === 'c') { const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + rad; if (d < m && d > 1e-5) { p.x = c.x + dx / d * m; p.z = c.z + dz / d * m; } }
     else if (c.t === 'e') { if (onDock(p.x, p.z)) continue; const dx = (p.x - c.x) / (c.rx + rad), dz = (p.z - c.z) / (c.rz + rad), d = Math.hypot(dx, dz); if (d < 1 && d > 1e-5) { p.x = c.x + dx / d * (c.rx + rad); p.z = c.z + dz / d * (c.rz + rad); } }
     else { const cs = Math.cos(c.ry), sn = Math.sin(c.ry), dx = p.x - c.x, dz = p.z - c.z, lx = dx * cs - dz * sn, lz = dx * sn + dz * cs, hw = c.hw + rad, hd = c.hd + rad;
@@ -519,5 +543,5 @@ function tick(t, dt) {
   if (flies.visible) flies.children.forEach(f => { const [x, y, z, ph] = f.userData.o; f.position.set(x + Math.sin(t * .6 + ph) * .8, y + Math.sin(t * 1.1 + ph * 2) * .4, z + Math.cos(t * .5 + ph) * .8); });
   if (FIRE) FIRE.emissiveIntensity *= .92 + Math.random() * .16;
 }
-return { hgt, groundY, collide, INTER, setTime, tick, onDock, COLS, AREAS, TREES, ROCKS, DYN, SEE };
+return { hgt, groundY, collide, INTER, setTime, tick, onDock, COLS, AREAS, TREES, ROCKS, DYN, SEE, TOWER, BENCHES };
 }
