@@ -144,7 +144,7 @@ function drawShark(g, x, y, L, open, t, col = '#5a6a7a') {
    낚시 2: 넓은 연못을 끌어서 둘러보고, 멀리 던질수록 깊은 물 · 상어 주의
    ========================================================= */
 function openFishing() {
-  if (ov) return; E.ac(); const d = ov = overlay('fish'), c = $q(d, 'canvas'), hint = $q(d, '.fz-hint');
+  if (ov) return; E.ac(); const d = ov = overlay('pond'), c = $q(d, 'canvas'), hint = $q(d, '.fz-hint');
   d.insertAdjacentHTML('beforeend', '<button type="button" class="fz-book">도감</button><div class="fz-card" hidden></div><div class="fz-warn" hidden>상어가 다가와요! 빨리 감아요!</div>');
   let [W, H, D] = fitCanvas(c); const g = c.getContext('2d');
   const pr = E.preset, night = pr === 'night', dusk = pr === 'dusk';

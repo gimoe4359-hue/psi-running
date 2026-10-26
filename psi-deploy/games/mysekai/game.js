@@ -7,7 +7,8 @@ import { UnrealBloomPass } from './lib/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from './lib/jsm/postprocessing/OutputPass.js';
 import { buildWorld } from './world.js';
 import { FISH as PFISH, startPond, fishCanvas } from './fishing.js';
-import { buildAquarium, buildCellar } from './interiors.js';
+import { buildAquarium, buildCellar, GouacheShader } from './interiors.js';
+import { ShaderPass } from './lib/jsm/postprocessing/ShaderPass.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,8 +28,9 @@ const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, .1, 320);
 const fitFov = () => { const a = innerWidth / innerHeight; cam.fov = a < 1 ? Math.min(68, 45 / Math.max(.6, a) * .9) : 45; cam.aspect = a; cam.updateProjectionMatrix(); }; fitFov();
 let composer = null;
 let rpass = null, curScene = scene;
-if (!LOW) { composer = new EffectComposer(renderer); composer.addPass(rpass = new RenderPass(scene, cam)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .32, .55, .86)); composer.addPass(new OutputPass()); }
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); fitFov(); composer && composer.setSize(innerWidth, innerHeight); });
+{ composer = new EffectComposer(renderer); composer.addPass(rpass = new RenderPass(scene, cam)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .32, .55, .86)); composer.addPass(new OutputPass()); }
+let gouache = null; if (composer) { gouache = new ShaderPass(GouacheShader); gouache.uniforms.res.value.set(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio()); gouache.enabled = false; composer.addPass(gouache); }
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); fitFov(); composer && composer.setSize(innerWidth, innerHeight); gouache && gouache.uniforms.res.value.set(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio()); });
 
 // ================= 저장 =================
 const KEY = 'psi.mysekai.v1';
@@ -155,7 +157,9 @@ function label(text) {
   x.fillStyle = '#fff8ec'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(text, 128, 33);
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true })); sp.scale.set(1.05, .26, 1); sp.renderOrder = 10; return sp;
 }
+let CHAR_SRC = null;
 function makeChars(src) {
+  CHAR_SRC = src;
   P = charFrom(src); P.pos = new THREE.Vector3(S.pos[0], 0, S.pos[1]); P.vel = new THREE.Vector3(); P.vy = 0; P.ground = true; P.air = 0; P.jbuf = 0; P.phase = 0; P.speed = 0; P.idle = 0;
   P.root.rotation.y = S.ry; P.pose = null; P.pos.y = W.groundY(P.pos.x, P.pos.z); P.hand = new THREE.Group(); P.hand.position.set(.36, .62, .32); P.rig.add(P.hand);
   // 낚싯대 (낚시할 때만 보임)
@@ -367,8 +371,10 @@ function towerArea() {
     spots: [['🔭', '망원경', '경치 보기', T.scope[0], T.scope[1], 1.3, 'scope'], ['🪜', '계단', '내려가기', T.x + .2, T.z + 1.9, 1.2, 'down']] };
 }
 function setArea(key, pos, ry) {
-  if (key === 'aqua') { INS.aqua = INS.aqua || buildAquarium(); AREA = INS.aqua; INS.aqua.setDonated(FISH.filter(f => S.aqua[f[0]]).map(f => f[6]), fishCanvas); }
-  else if (key === 'cellar') { INS.cellar = INS.cellar || buildCellar(); AREA = INS.cellar; INS.cellar.frag.visible = (S.h >= 20 || S.h < 5) && S.cellarDay !== S.day; }
+  if (key === 'aqua') { if (!INS.aqua) { INS.aqua = buildAquarium(renderer); const c = charFrom(CHAR_SRC, '#d8c8f0'); scene.remove(c.root); INS.aqua.scene.add(c.root); c.root.position.set(-2.4, 0, 2.2); c.root.rotation.y = Math.PI - .25; INS.aqua.mimi = c;
+      const lb = label('이미리'); lb.position.y = 1.85; c.root.add(lb); INS.aqua.spots.push(['💬', '이미리', '이야기하기', -2.4, 2.2, 1.6, 'mimi']); }
+    AREA = INS.aqua; INS.aqua.setDonated(Object.keys(S.aqua)); }
+  else if (key === 'cellar') { INS.cellar = INS.cellar || buildCellar(); AREA = INS.cellar; const nt = S.h >= 20 || S.h < 5; INS.cellar.frag.visible = nt && S.cellarDay !== S.day; INS.cellar.setRing(nt && S.phoneDay !== S.day); }
   else if (key === 'tower') AREA = towerArea();
   else AREA = null;
   const sc = AREA && AREA.scene ? AREA.scene : scene; curScene = sc; sc.add(P.root);
@@ -376,19 +382,27 @@ function setArea(key, pos, ry) {
   P.root.rotation.y = ry ?? (AREA && AREA.spawn ? AREA.spawn[2] : 0); camS.tYaw = camS.yaw = P.root.rotation.y + Math.PI; camSave = null;
   camS.tDist = camS.dist = AREA ? (AREA.camD || 4.4) : CAM_D; camS.real = camS.dist; camS.tPitch = camS.pitch = AREA ? (AREA.camP ?? .3) : .5;
   $('#vig').style.background = AREA && AREA.dark ? 'radial-gradient(ellipse 70% 70% at 50% 50%,transparent 35%,rgba(0,0,0,.75))' : AREA && AREA.scene ? 'radial-gradient(ellipse 80% 75% at 50% 45%,transparent 55%,rgba(0,10,30,.45))' : '';
-  hudAcc = 9;
+  hudAcc = 9; renderer.toneMappingExposure = AREA && AREA.exposure || 1; if (gouache) gouache.enabled = !!(AREA && AREA.gouache);
   if (AREA && AREA.scene) { const cv = $('#mini canvas'), x = cv.getContext('2d'), N = cv.width; x.clearRect(0, 0, N, N); x.fillStyle = AREA.dark ? '#1a1612' : '#0e2a48'; x.beginPath(); x.arc(N / 2, N / 2, N / 2, 0, 7); x.fill(); x.font = '80px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(AREA.icon, N / 2, N / 2 - 8); x.fillStyle = '#fff8ec'; x.font = '800 22px sans-serif'; x.fillText('실내', N / 2, N / 2 + 58); }
 }
 const goArea = (key, pos, ry, dark) => new Promise(res => fade(() => { setArea(key, pos, ry); res(); }, 550, dark));
 // 실내 · 전망대에서 할 수 있는 것
 const SPOT = {
-  exit: async () => { const back = { '아쿠아리움 · 바다 터널': [[-1, -12.6], 0], '집 지하 · ???': [[2.6, -7.4], Math.PI] }[A().name]; await goArea(null, back[0], back[1], A().dark); M_.hop(.35); },
+  exit: async () => { const back = { '아쿠아리움 · 송천동 연못관': [[-1, -12.6], 0], '집 지하 · ???': [[2.6, -7.4], Math.PI] }[A().name]; await goArea(null, back[0], back[1], A().dark); M_.hop(.35); },
   down: async () => { await goArea(null, [W.TOWER.x, W.TOWER.z + 2.75], 0); M_.hop(.35); },
   scope: async () => { const T = W.TOWER, a = Math.atan2(0 - T.x, 2 - T.z); await turnTo(T.x + Math.sin(a) * 5, T.z + Math.cos(a) * 5); camSave = { d: camS.tDist, p: camS.tPitch }; camS.tYaw = P.root.rotation.y + Math.PI; camS.tDist = 3.2; camS.tPitch = .12; camS.lastDrag = now();
     fx('🔭', front(.5, 1.5), { life: 1.4, size: .3 }); await mo(.6, u => lean(.25 * ease(u)));
     await new Promise(r => say('', ['마을이 한눈에 보여요. 오두막 굴뚝, 반짝이는 호수, 돌아가는 풍차…', S.h >= 19.5 || S.h < 5 ? '밤하늘에 별이 쏟아질 것 같아요.' : '바람이 기분 좋게 불어요.'], r));
     await mo(.3, u => lean(.25 * (1 - u))); await photo('전망대 꼭대기에서 본 풍경'); },
   bench: async () => { const b = A().bench; await sitAt(b[0], b[1], b[2], .6); toast('🪑 앉아서 물고기를 구경해요'); },
+  bench2: async () => { const b = A().bench2; await sitAt(b[0], b[1], b[2], .6); toast('🪑 앉아서 물고기를 구경해요'); },
+  feed: async () => { const n = Object.keys(S.aqua).length; await mo(.35, u => lean(-.15 * u)); for (let i = 0; i < 8; i++) setTimeout(() => fly('🟤', front(.4, 1.2), V3(P.pos.x + (Math.random() - .5) * 3, 2 + Math.random() * 2, -1.6), .6, { h: .8, size: .14 }), i * 60);
+    await mo(.35, u => lean(-.15 + .35 * u)); A().feed(); await mo(.3, u => lean(.2 * (1 - u))); toast(n ? '🐟 물고기들이 먹이를 먹으러 몰려와요!' : '작은 물고기 떼만 먹이를 쫓아가요. 내 물고기를 기증해 보세요!'); },
+  mimi: async () => { const c = A().mimi; c.root.rotation.y = Math.atan2(P.pos.x - c.root.position.x, P.pos.z - c.root.position.z); await new Promise(r => say('이미리', [S.aqua['이끼상어'] ? '저기 이끼상어… 저번에 저거한테 잡아먹힐 뻔했잖아요.' : '송천동 물고기가 여기 다 모이면… 꽤 볼만하겠네요.', `지금 ${Object.keys(S.aqua).length}종 전시 중이에요. 근거: 안내판.`], r)); c.root.rotation.y = Math.PI - .25; },
+  chair2: async () => { const c = A().chairs.chair2; await sitAt(c[0], c[1], c[2], .59); beep(200, .4, 'sine', .03); toast('🪑 …맞은편 의자가 비어 있어요'); },
+  phone: async () => { const C = A(); if (C.ringing) { C.setRing(false); S.phoneDay = S.day; await mo(.4, u => rigSet(0, 0, 0, 0, 0, .3 * ease(u))); await new Promise(r => say('수화기 너머', ['…………', '「지하실 의자는… 왜 두 개일까요?」', '뚝. 전화가 끊겼어요.'], r)); await mo(.3, u => rigSet(0, 0, 0, 0, 0, .3 * (1 - u))); fx('😨', head(1.9), { life: 1.2, size: .4 }); save(); }
+    else { await mo(.4, u => lean(.25 * ease(u))); toast('☎️ 뚜— 아무 소리도 안 나요. (밤에 다시 와 볼까요?)'); await mo(.3, u => lean(.25 * (1 - u))); } },
+  shelf: async () => { await mo(.4, u => lean(.2 * ease(u))); const j = ['초록색 병… 안에서 뭔가 움직인 것 같아요.', '라벨: 「송천동 하천수 · 채취 금지」', '빈 병에 쪽지: 「다음은 너」… 장난이겠죠?']; await new Promise(r => say('', [j[Math.floor(Math.random() * j.length)]], r)); await mo(.3, u => lean(.2 * (1 - u))); },
   donate: async () => openAquarium(),
   watch: async () => { const n = Object.keys(S.aqua).length; await M_.nod(.6); say('', n ? [`터널 밖에서 내가 기증한 물고기 ${n}종이 헤엄치고 있어요.`, '…가오리가 계속 이쪽을 쳐다보는 것 같아요.'] : ['아직 내가 기증한 물고기는 없어요. 선착장에서 낚아서 기증해 보세요!']); },
   desk: async () => { await mo(.4, u => lean(.3 * ease(u))); const notes = ['「의자는 원래 하나였다.」', '「사원증을 두고 내려오지 말 것.」', '「밤 9시 이후 통화 연결음이 들리면 대답하지 마세요.」', '「8번다리에는 무엇도 없었다. 정말로.」'];
@@ -398,9 +412,9 @@ const SPOT = {
 };
 // 앉기: 자리로 통 뛰어올라 앉음
 async function sitAt(x, z, ry, y) {
-  const a = P.pos.clone(), b = V3(x, y, z); P.vel.set(0, 0, 0);
+  const a = P.pos.clone(), b = V3(x, y, z); P.vel.set(0, 0, 0); P.seat = { y, moving: true };
   await mo(.45, u => { P.pos.lerpVectors(a, b, ease(u)); P.pos.y += Math.sin(u * Math.PI) * .5; let d = ry - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * u; rigSet(); });
-  P.root.rotation.y = ry; P.seat = { y }; P.pose = 'sit';
+  P.root.rotation.y = ry; P.pos.copy(b); P.seat = { y }; P.pose = 'sit';
 }
 // 포즈
 const POSES = [['👋', '인사'], ['🪑', '앉기'], ['😴', '자기'], ['🎉', '기뻐하기'], ['💃', '춤추기'], ['🤔', '생각하기'], ['🙇', '꾸벅'], ['😲', '깜짝']];
@@ -691,7 +705,7 @@ function openAquarium() {
       try { const ic = FISHI(k)[0]; fx(ic, head(2), { life: .7, size: .5 }); await M_.raise(.6); await mo(.3, u => lean(.25 * u)); await fly(ic, head(1.6), door, .6, { h: 1 }); burst('💧', door, 6, { up: 1.5, speed: 1, life: .7, size: .2 }); ding(); await mo(.3, u => lean(.25 * (1 - u))); } finally { acting = false; }
       toast(`🐟 ${esc(k)}을(를) 기증했어요!`);
       if (!S.mainDone && Object.keys(S.aqua).length >= 5) { S.mainDone = true; money(500); const im = npcs.find(x => x.id === 'imiri'); npcHop(im); say('이미리', ['아쿠아리움에 다섯 종이 모였네요. 기록도 정확하고요.', '…잘했어요, 공유 씨. (보상 ₩500)']); hud(); save(); return; }
-      hud(); save(); if (AREA === INS.aqua && INS.aqua) INS.aqua.setDonated(FISH.filter(f => S.aqua[f[0]]).map(f => f[6]), fishCanvas); openAquarium(); } });
+      hud(); save(); if (AREA === INS.aqua && INS.aqua) INS.aqua.setDonated(Object.keys(S.aqua)); openAquarium(); } });
   };
   sheet('🐟', '아쿠아리움', '물고기 기증 · 전시', '', render);
 }
@@ -844,10 +858,10 @@ function update(dt, t) {
   if (!AREA) for (const n of npcs) { const dx = P.pos.x - n.root.position.x, dz = P.pos.z - n.root.position.z, d = Math.hypot(dx, dz); if (d < .75 && d > 1e-4) { P.pos.x = n.root.position.x + dx / d * .75; P.pos.z = n.root.position.z + dz / d * .75; } }
   if (dt > 0) { const cx = (P.pos.x - bx) / dt, cz = (P.pos.z - bz) / dt; P.vel.x += cx * .5; P.vel.z += cz * .5; }   // 벽에 닿으면 그 방향 속도 줄이기 (미끄러지듯)
   // ---- 점프 (코요테 타임 · 입력 버퍼) ----
-  const gy = P.seat ? P.seat.y : A().ground(P.pos.x, P.pos.z, P.pos.y);
+  const gy = P.seat ? (P.seat.moving ? P.pos.y : P.seat.y) : A().ground(P.pos.x, P.pos.z, P.pos.y);
   P.jbuf -= dt; P.air += dt;
   if (P.jbuf > 0 && P.air < .12 && !P.pose && !busy) { P.vy = 7.0; P.ground = false; P.air = 1; P.jbuf = 0; beep(420, .08, 'triangle', .05); burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .3, speed: .8, g: 0, life: .4, size: .2, grow: 1 }); }
-  if (P.seat) { P.vy = 0; P.pos.y = P.seat.y; } else { P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt; }
+  if (P.seat) { P.vy = 0; if (!P.seat.moving) P.pos.y = P.seat.y; } else { P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt; }
   if (P.pos.y <= gy) { if (!P.ground && P.vy < -3) { P.land = .18; burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .2, speed: 1, g: 0, life: .35, size: .2, grow: 1 }); } P.pos.y = gy; P.vy = 0; P.ground = true; P.air = 0; }
   else if (P.pos.y > gy + .08) P.ground = false; else { P.pos.y += (gy - P.pos.y) * Math.min(1, dt * 20); P.air = 0; }
   P.root.position.copy(P.pos);
@@ -886,7 +900,7 @@ function update(dt, t) {
   if (!busy && P.speed > .5 && sinceDrag > 1.2 && !dragging) { const behind = P.root.rotation.y + Math.PI; let d = behind - camS.tYaw; d = Math.atan2(Math.sin(d), Math.cos(d));
     if (Math.abs(d) < 2.4) camS.tYaw += d * Math.min(1, dt * 1.1 * Math.min(1, P.speed / 3.8)); }
   const k = 1 - Math.exp(-dt * 10); camS.yaw += (camS.tYaw - camS.yaw) * k; camS.pitch += (camS.tPitch - camS.pitch) * k; camS.dist += (camS.tDist - camS.dist) * (1 - Math.exp(-dt * 6));
-  const focus = V3(P.pos.x, P.pos.y + 1.1, P.pos.z);
+  const focus = V3(P.pos.x, P.pos.y + (A().focusY || 1.1), P.pos.z);
   // 가려지면: 먼저 위·아래로 각도를 바꿔 피해 보고, 그래도 막히면 조금만 다가감 (너무 붙지 않게)
   const tryDir = p => V3(Math.sin(camS.yaw) * Math.cos(p), Math.sin(p), Math.cos(camS.yaw) * Math.cos(p));
   let bestP = camS.pitch, bestK = 0;
@@ -913,7 +927,8 @@ function nearArea() {
   const x = P.pos.x, z = P.pos.z, A = [['오두막 마당', 1, 2, 9], ['텃밭', 22, 4, 10], ['호숫가', -22, 1, 11], ['아쿠아리움', -1, -20, 10], ['풍차 언덕', 11, -10, 6], ['정자 숲', -8, -11, 6]];
   let best = '마이세카이 숲길', bd = 1e9; A.forEach(([n, ax, az, r]) => { const d = Math.hypot(x - ax, z - az) - r; if (d < 0 && d < bd) { bd = d; best = n; } }); return best;
 }
-function render() { if (composer) { rpass.scene = curScene; composer.render(); } else renderer.render(curScene, cam); }
+// 폰·패드는 평소엔 가볍게, 아쿠아리움에서만 수채화 필터 켜기
+function render() { if (composer && (!LOW || (AREA && AREA.gouache))) { rpass.scene = curScene; composer.render(); } else renderer.render(curScene, cam); }
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(.05, clock.getDelta()), t = clock.elapsedTime;
