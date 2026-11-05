@@ -1,0 +1,364 @@
+<title>PSI 88층 탈출 맵</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: full-screen 3D canvas, floor directory panel on the left like a building's lobby board, HUD floating top-right. */
+:root {
+  --bg: #120c0e;
+  --panel: #1b1316ee;
+  --panel-solid: #1b1316;
+  --line: #3a262b;
+  --fg: #ecdcd6;
+  --muted: #a48d88;
+  --accent: #ff2a3a;
+  --accent-soft: #ff2a3a33;
+  --gold: #f2c84a;
+  --display: "Black Han Sans", "Noto Sans KR", system-ui, sans-serif;
+  --body: "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); overflow: hidden; }
+#view { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#view:active { cursor: grabbing; }
+
+.panel {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px));
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: 248px; display: flex; flex-direction: column;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(6px); z-index: 5;
+}
+.brand { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 10px; }
+.brand h1 { font-family: var(--display); font-weight: 400; font-size: 26px; letter-spacing: .02em; margin: 0; color: var(--accent); }
+.brand span { font-size: 12px; color: var(--muted); }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.btn {
+  font: 600 13px var(--body); color: var(--fg); background: transparent; border: 1px solid var(--line);
+  border-radius: 7px; padding: 8px 6px; cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: #fff; }
+.btn:focus-visible, .floor:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.dir-head { padding: 10px 16px 4px; font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+.floors { list-style: none; margin: 0; padding: 0 8px 10px; overflow-y: auto; flex: 1; min-height: 0; }
+.floor {
+  width: 100%; display: grid; grid-template-columns: 46px 1fr; align-items: baseline; gap: 8px; text-align: left;
+  background: none; border: 0; border-radius: 6px; color: var(--fg); padding: 6px 8px; cursor: pointer; font: 400 13px var(--body);
+}
+.floor:hover { background: #ffffff0d; }
+.floor b { font-family: var(--mono); font-weight: 500; font-size: 13px; color: var(--gold); font-variant-numeric: tabular-nums; text-align: right; }
+.floor.on { background: var(--accent-soft); }
+.floor.on b { color: #fff; }
+.floor.sep { margin-top: 6px; border-top: 1px dashed var(--line); border-radius: 0 0 6px 6px; padding-top: 10px; }
+
+.hud {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; z-index: 5; max-width: 300px;
+}
+.hud .where { font-family: var(--display); font-size: 30px; line-height: 1; color: #fff; }
+.hud .where small { font-family: var(--body); font-size: 13px; color: var(--muted); margin-left: 8px; font-weight: 600; }
+.hud .keys { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.hud kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--fg); }
+.toggle { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--fg); cursor: pointer; }
+.toggle input { accent-color: var(--accent); }
+
+.loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 10; background: var(--bg); }
+.loading p { font-family: var(--display); font-size: 22px; color: var(--accent); margin: 0; }
+
+.touch { display: none; }
+.stick {
+  position: fixed; left: max(24px, env(safe-area-inset-left, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  width: 120px; height: 120px; border-radius: 50%; border: 1px solid var(--line); background: #00000055; z-index: 6; touch-action: none;
+}
+.stick i { position: absolute; left: 40px; top: 40px; width: 40px; height: 40px; border-radius: 50%; background: var(--accent-soft); border: 1px solid var(--accent); }
+.updown { position: fixed; right: max(24px, env(safe-area-inset-right, 0px)); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); gap: 8px; z-index: 6; }
+.updown .btn { width: 52px; height: 44px; background: #00000066; font-size: 16px; }
+.menu { display: none; }
+
+@media (max-width: 720px), (pointer: coarse) {
+  .touch { display: block; }
+  .updown.touch { display: grid; }
+  .hud .keys { display: none; }
+}
+@media (max-width: 720px) {
+  .panel { width: auto; right: max(12px, env(safe-area-inset-right, 0px)); bottom: auto; max-height: 62vh; }
+  .panel[data-open="false"] .modes, .panel[data-open="false"] .dir-head, .panel[data-open="false"] .floors { display: none; }
+  .menu { display: inline-block; margin-left: auto; padding: 6px 10px; }
+  .hud { top: auto; bottom: calc(160px + env(safe-area-inset-bottom, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); padding: 8px 12px; }
+  .hud .where { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<canvas id="view" aria-label="PSI 건물 3D 탐방 화면"></canvas>
+<div class="loading" id="loading"><p>PSI 건물 불러오는 중…</p></div>
+
+<nav class="panel" id="panel" data-open="false" aria-label="층 선택">
+  <div class="brand"><h1>PSI</h1><span>88층 탈출 · 맵 탐방</span>
+    <button class="btn menu" id="menuBtn" aria-expanded="false" aria-controls="floorList">층 목록</button></div>
+  <div class="modes">
+    <button class="btn" id="walkBtn" aria-pressed="true">걸어 다니기</button>
+    <button class="btn" id="orbitBtn" aria-pressed="false">건물 전체</button>
+  </div>
+  <div class="dir-head">층별 안내 · 누르면 이동</div>
+  <ul class="floors" id="floorList"></ul>
+</nav>
+
+<div class="hud" id="hud">
+  <div class="where" id="where">88F<small>공유 하우스</small></div>
+  <label class="toggle"><input type="checkbox" id="cutBox" checked> 지금 층만 보기 (천장 없이)</label>
+  <div class="keys" id="keys">
+    <kbd>W A S D</kbd> 이동 · 마우스 끌기로 둘러보기<br>
+    <kbd>Q</kbd> <kbd>E</kbd> 아래 / 위 · <kbd>Shift</kbd> 빠르게<br>
+    벽은 통과할 수 있어요 (구경용)
+  </div>
+</div>
+
+<div class="stick touch" id="stick" aria-hidden="true"><i id="knob"></i></div>
+<div class="updown touch" aria-label="높이 조절">
+  <button class="btn" id="upBtn" aria-label="위로">▲</button>
+  <button class="btn" id="downBtn" aria-label="아래로">▼</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(async function () {
+  const canvas = document.getElementById('view');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.localClippingEnabled = true;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1a0d10);
+  scene.fog = new THREE.Fog(0x1a0d10, 120, 900);
+  const camera = new THREE.PerspectiveCamera(70, 1, 0.3, 4000);
+  scene.add(new THREE.HemisphereLight(0xfff2ea, 0x3a2a2a, 1.05));
+  const sun = new THREE.DirectionalLight(0xffd8c8, 0.65); sun.position.set(0.5, 1, -0.4); scene.add(sun);
+
+  let data;
+  try { data = await (await fetch('map.json')).json(); }
+  catch (e) { document.querySelector('#loading p').textContent = '맵 데이터를 불러오지 못했어요. 새로고침해 주세요.'; return; }
+  const FL = data.floors;
+
+  // ---------- geometry
+  const geos = {
+    B: new THREE.BoxGeometry(1, 1, 1),
+    S: new THREE.SphereGeometry(0.5, 14, 10),
+    C: new THREE.CylinderGeometry(0.5, 0.5, 1, 16).rotateZ(-Math.PI / 2),
+  };
+  const wg = new THREE.BufferGeometry();
+  wg.setAttribute('position', new THREE.Float32BufferAttribute([-.5,-.5,-.5, .5,-.5,-.5, .5,-.5,.5, -.5,-.5,.5, -.5,.5,.5, .5,.5,.5], 3));
+  wg.setIndex([0,2,1,0,3,2, 3,4,5,3,5,2, 0,1,5,0,5,4, 0,4,3, 1,2,5]); wg.computeVertexNormals(); geos.W = wg;
+
+  const clipTop = new THREE.Plane(new THREE.Vector3(0, -1, 0), 1e6);
+  const clipBot = new THREE.Plane(new THREE.Vector3(0, 1, 0), 1e6);
+  const clips = [clipTop, clipBot];
+  const groups = {};
+  for (const d of data.parts) {
+    const key = d[0] + (d[5] > 0.05 ? 't' : '') + (d[6] ? 'n' : '');
+    (groups[key] = groups[key] || []).push(d);
+  }
+  const m4 = new THREE.Matrix4(), col = new THREE.Color();
+  for (const [key, arr] of Object.entries(groups)) {
+    const tr = key.includes('t'), neon = key.includes('n');
+    const mat = neon
+      ? new THREE.MeshBasicMaterial({ transparent: tr, opacity: tr ? 0.55 : 1, clippingPlanes: clips })
+      : new THREE.MeshLambertMaterial({ transparent: tr, opacity: tr ? 0.32 : 1, depthWrite: !tr, clippingPlanes: clips, side: tr ? THREE.DoubleSide : THREE.FrontSide });
+    const mesh = new THREE.InstancedMesh(geos[key[0]], mat, arr.length);
+    arr.forEach((d, i) => {
+      const s = d[1], p = d[2], R = d[3];
+      m4.set(R[0]*s[0], R[1]*s[1], R[2]*s[2], p[0], R[3]*s[0], R[4]*s[1], R[5]*s[2], p[1], R[6]*s[0], R[7]*s[1], R[8]*s[2], p[2], 0, 0, 0, 1);
+      mesh.setMatrixAt(i, m4); col.setHex(d[4]); mesh.setColorAt(i, col);
+    });
+    mesh.frustumCulled = false;
+    scene.add(mesh);
+  }
+
+  // ---------- sign text (built lazily per floor)
+  const textGroup = new THREE.Group(); scene.add(textGroup);
+  const textBuilt = new Set();
+  function hex(c) { return '#' + c.toString(16).padStart(6, '0'); }
+  function makeText(t) {
+    const [s, p, R, face, text, bg, fg, clear] = t;
+    const w = face === 'Left' ? s[2] : s[0], h = s[1];
+    if (w < 0.3 || h < 0.3) return null;
+    const scale = Math.min(48, 512 / Math.max(w, h));
+    const cw = Math.max(32, Math.round(w * scale)), ch = Math.max(32, Math.round(h * scale));
+    const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+    const g = cv.getContext('2d');
+    if (!clear) { g.fillStyle = hex(bg); g.fillRect(0, 0, cw, ch); }
+    const lines = text.split('\n');
+    let size = ch / lines.length * 0.72;
+    g.font = `700 ${size}px "Noto Sans KR", sans-serif`;
+    const widest = Math.max(...lines.map(l => g.measureText(l).width));
+    if (widest > cw * 0.9) size *= cw * 0.9 / widest;
+    g.font = `700 ${size}px "Noto Sans KR", sans-serif`;
+    g.fillStyle = hex(fg); g.textAlign = 'center'; g.textBaseline = 'middle';
+    lines.forEach((l, i) => g.fillText(l, cw / 2, ch / 2 + (i - (lines.length - 1) / 2) * size * 1.15));
+    const tex = new THREE.CanvasTexture(cv);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: !!clear, clippingPlanes: clips, depthWrite: !clear });
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    const holder = new THREE.Object3D();
+    holder.matrixAutoUpdate = false;
+    holder.matrix.set(R[0], R[1], R[2], p[0], R[3], R[4], R[5], p[1], R[6], R[7], R[8], p[2], 0, 0, 0, 1);
+    if (face === 'Left') { plane.position.set(-s[0] / 2 - 0.03, 0, 0); plane.rotation.y = -Math.PI / 2; }
+    else { plane.position.set(0, 0, -s[2] / 2 - 0.03); plane.rotation.y = Math.PI; }
+    holder.add(plane);
+    return holder;
+  }
+  function buildTexts(y0, y1) {
+    const key = y0 + ':' + y1;
+    if (textBuilt.has(key)) return;
+    textBuilt.add(key);
+    for (const t of data.texts) {
+      if (t[1][1] < y0 || t[1][1] > y1 || t._done) continue;
+      const o = makeText(t); t._done = true;
+      if (o) textGroup.add(o);
+    }
+  }
+
+  // ---------- floors
+  const extra = [
+    { label: '옥상', title: 'PSI 간판 · 헬기장', base: data.roof, h: 40, spawn: [0, data.roof + 6, -30], yaw: Math.PI },
+    { label: '내핵', title: '지구 내핵 · 정문 열쇠', base: data.core - 100, h: 100, spawn: [-54, data.core - 12, 0], yaw: -Math.PI / 2, pitch: -0.5 },
+  ];
+  FL.forEach(f => { if (f.n < -6) f.title = f.title.replace('짱큰 지하병원 · ', '병원 · '); });
+  const list = [extra[0]].concat(FL.map(f => ({ ...f, spawn: [50, f.base + 5.5, -11.5], yaw: Math.PI / 2 }))).concat([extra[1]]);
+  const f88 = list[1]; f88.spawn = [-30, f88.base + 5.5, -2]; f88.yaw = Math.PI;
+  const ul = document.getElementById('floorList');
+  list.forEach((f, i) => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.className = 'floor' + (f.label === 'B1' || f.label === '내핵' || f.label === '88F' ? ' sep' : '');
+    b.innerHTML = `<b>${f.label}</b><span></span>`;
+    b.querySelector('span').textContent = f.title;
+    b.addEventListener('click', () => { goFloor(i); if (innerWidth <= 720) setMenu(false); });
+    li.appendChild(b); ul.appendChild(li); f.el = b;
+  });
+
+  let mode = 'walk', yaw = 0, pitch = 0, current = 1;
+  const pos = new THREE.Vector3();
+  const cutBox = document.getElementById('cutBox');
+  function floorAt(y) {
+    for (let i = 0; i < list.length; i++) { const f = list[i]; if (y >= f.base - 0.5 && y < f.base + f.h - 0.5) return i; }
+    return y > data.roof ? 0 : list.length - 1;
+  }
+  function applyCut() {
+    if (mode === 'walk' && cutBox.checked) {
+      const f = list[current];
+      const top = f.label === '옥상' ? 1e6 : f.base + f.h - 1.3;
+      const bot = f.label === '내핵' ? -1e6 : f.base - 1.2;
+      clipTop.constant = top; clipBot.constant = -bot;
+      buildTexts(f.base - 1.5, f.base + f.h);
+    } else { clipTop.constant = 1e6; clipBot.constant = 1e6; }
+  }
+  function setCurrent(i) {
+    if (i === current && list[i].el.classList.contains('on')) return;
+    list[current] && list[current].el.classList.remove('on');
+    current = i; list[i].el.classList.add('on');
+    document.getElementById('where').innerHTML = `${list[i].label}<small></small>`;
+    document.querySelector('#where small').textContent = list[i].title;
+    applyCut();
+  }
+  function goFloor(i) {
+    if (mode !== 'walk') setMode('walk');
+    const f = list[i]; pos.set(...f.spawn); yaw = f.yaw; pitch = f.pitch || -0.08;
+    setCurrent(i); applyCut();
+  }
+  cutBox.addEventListener('change', applyCut);
+
+  // ---------- orbit (whole building)
+  let oYaw = 0.7, oPitch = 0.25, oDist = 520;
+  const oTarget = new THREE.Vector3(0, 60, 0);
+  function setMode(m) {
+    mode = m;
+    document.getElementById('walkBtn').setAttribute('aria-pressed', m === 'walk');
+    document.getElementById('orbitBtn').setAttribute('aria-pressed', m === 'orbit');
+    applyCut();
+  }
+  document.getElementById('walkBtn').addEventListener('click', () => { setMode('walk'); goFloor(current); });
+  document.getElementById('orbitBtn').addEventListener('click', () => setMode('orbit'));
+
+  // ---------- input
+  const keys = {};
+  addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; keys[e.code] = true; });
+  addEventListener('keyup', e => { keys[e.code] = false; });
+  let drag = null;
+  canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', e => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+    if (mode === 'walk') { yaw -= dx * 0.005; pitch = Math.max(-1.45, Math.min(1.45, pitch - dy * 0.005)); }
+    else { oYaw -= dx * 0.006; oPitch = Math.max(-0.2, Math.min(1.4, oPitch + dy * 0.004)); }
+  });
+  canvas.addEventListener('pointerup', () => { drag = null; });
+  canvas.addEventListener('pointercancel', () => { drag = null; });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (mode === 'orbit') oDist = Math.max(80, Math.min(1400, oDist * (1 + Math.sign(e.deltaY) * 0.1)));
+    else pos.y += -Math.sign(e.deltaY) * 2;
+  }, { passive: false });
+
+  // touch joystick
+  const stick = document.getElementById('stick'), knob = document.getElementById('knob');
+  let joy = { x: 0, y: 0, id: null };
+  function stickMove(e) {
+    const r = stick.getBoundingClientRect();
+    let x = (e.clientX - r.left - 60) / 50, y = (e.clientY - r.top - 60) / 50;
+    const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+    joy.x = x; joy.y = y; knob.style.transform = `translate(${x * 40}px, ${y * 40}px)`;
+  }
+  stick.addEventListener('pointerdown', e => { joy.id = e.pointerId; stick.setPointerCapture(e.pointerId); stickMove(e); });
+  stick.addEventListener('pointermove', e => { if (e.pointerId === joy.id) stickMove(e); });
+  const stickEnd = () => { joy = { x: 0, y: 0, id: null }; knob.style.transform = ''; };
+  stick.addEventListener('pointerup', stickEnd); stick.addEventListener('pointercancel', stickEnd);
+  let vert = 0;
+  for (const [id, v] of [['upBtn', 1], ['downBtn', -1]]) {
+    const b = document.getElementById(id);
+    b.addEventListener('pointerdown', () => { vert = v; });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => { vert = 0; });
+  }
+
+  // mobile menu
+  const panel = document.getElementById('panel'), menuBtn = document.getElementById('menuBtn');
+  function setMenu(open) { panel.dataset.open = open; menuBtn.setAttribute('aria-expanded', open); }
+  menuBtn.addEventListener('click', () => setMenu(panel.dataset.open !== 'true'));
+
+  // ---------- loop
+  function resize() {
+    const w = innerWidth, h = innerHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  addEventListener('resize', resize); resize();
+  const fwd = new THREE.Vector3(), right = new THREE.Vector3();
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (mode === 'walk') {
+      const sp = (keys.ShiftLeft || keys.ShiftRight ? 40 : 16) * dt;
+      fwd.set(-Math.sin(yaw), 0, -Math.cos(yaw)); right.set(Math.cos(yaw), 0, -Math.sin(yaw));
+      let mf = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y;
+      let mr = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
+      pos.addScaledVector(fwd, mf * sp).addScaledVector(right, mr * sp);
+      pos.y += ((keys.KeyE || keys.Space ? 1 : 0) - (keys.KeyQ || keys.KeyC ? 1 : 0) + vert) * sp * 0.8;
+      camera.position.copy(pos);
+      camera.rotation.set(pitch, yaw, 0, 'YXZ');
+      const fi = floorAt(pos.y);
+      if (fi !== current) setCurrent(fi);
+    } else {
+      const k = (keys.KeyW ? -1 : 0) + (keys.KeyS ? 1 : 0);
+      if (k) oDist = Math.max(80, Math.min(1400, oDist * (1 + k * dt)));
+      camera.position.set(oTarget.x + Math.sin(oYaw) * Math.cos(oPitch) * oDist, oTarget.y + Math.sin(oPitch) * oDist,
+                          oTarget.z + Math.cos(oYaw) * Math.cos(oPitch) * oDist * -1);
+      camera.lookAt(oTarget);
+    }
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+  goFloor(1);
+  document.getElementById('loading').hidden = true;
+  requestAnimationFrame(frame);
+})();
+</script>

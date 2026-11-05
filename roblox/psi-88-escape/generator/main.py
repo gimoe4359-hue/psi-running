@@ -131,8 +131,14 @@ def build(preview=False):
             data.append([{'Ball': 'S', 'Block': 'B', 'Cylinder': 'C', 'Wedge': 'W'}[kind], [round(v, 2) for v in size], [round(v, 2) for v in cf.p],
                          [round(cf.R[i][j], 4) for i in range(3) for j in range(3)], color, round(tr, 2),
                          1 if mat == 'Neon' else 0])
-        with open(os.path.join(HERE, 'preview.json'), 'w') as fh:
-            json.dump(data, fh, separators=(',', ':'))
+        texts = []
+        for cf, size, face, text, bg, fg, bg_tr in rbx.PREVIEW_TEXT:
+            texts.append([[round(v, 2) for v in size], [round(v, 2) for v in cf.p],
+                          [round(cf.R[i][j], 4) for i in range(3) for j in range(3)], face, text, bg, fg, 1 if bg_tr >= 1 else 0])
+        floors = [dict(n=n, label=label(n), title=title, base=base[n], h=h) for n, title, h, _, _ in FLOORS]
+        out = dict(floors=floors, roof=roof_y, core=base[-13] - 1, parts=data, texts=texts)
+        with open(os.path.join(HERE, 'preview.json'), 'w', encoding='utf-8') as fh:
+            json.dump(out, fh, separators=(',', ':'), ensure_ascii=False)
         print('preview parts:', len(data))
     return base
 
