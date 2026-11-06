@@ -254,7 +254,7 @@ const MATDEF = {
   Neon: [1, 0, 'none', 8, 0, 0], Pavement: [0.85, 0, 'tiles', 10, 0.22, 0.9], Pebble: [0.9, 0, 'cobble', 4, 0.35, 1.0],
   Plastic: [0.45, 0, 'none', 8, 0.03, 0], Rock: [0.9, 0, 'rock', 14, 0.35, 1.4], Sand: [0.95, 0, 'noise', 4, 0.22, 0.6],
   Sandstone: [0.9, 0, 'slate', 10, 0.25, 0.7], Slate: [0.7, 0, 'slate', 9, 0.28, 0.8], SmoothPlastic: [0.38, 0, 'none', 8, 0.03, 0],
-  Snow: [0.9, 0, 'noise', 8, 0.08, 0.4], Wood: [0.62, 0, 'wood', 7, 0.28, 0.35], WoodPlanks: [0.6, 0, 'planks', 12, 0.25, 0.5],
+  Snow: [0.9, 0, 'noise', 8, 0.08, 0.4], Wood: [0.6, 0, 'wood', 4, 0.12, 0.2], WoodPlanks: [0.55, 0, 'planks', 12, 0.16, 0.35],
 };
 function patch(mat, def) {
   const [, , kind, scale, amp, bump] = def;
@@ -427,7 +427,7 @@ FL.forEach(f => { if (f.n < -6) f.title = f.title.replace('짱큰 지하병원 �
 const list = [{ label: '옥상', title: 'PSI 간판 · 헬기장', base: data.roof, h: 60, spawn: [-10, data.roof + 6, 30], yaw: 0, pitch: 0.05, out: true }]
   .concat(FL.map(f => ({ ...f, spawn: [52, f.base + 5.2, f.n <= -6 ? 0 : -11.5], yaw: Math.PI / 2 })))
   .concat([{ label: '내핵', title: '지구 내핵 · 정문 열쇠', base: data.core - 110, h: 110, spawn: [34, data.core - 38, -40], yaw: Math.atan2(44, -40), pitch: -0.3 }]);
-list[1].spawn = [-30, list[1].base + 5.2, -4]; list[1].yaw = Math.PI;
+list[1].spawn = [30, list[1].base + 5.8, 21]; list[1].yaw = -Math.PI / 2 - 0.25;
 const ul = $('floorList');
 list.forEach((f, i) => {
   const li = document.createElement('li'), b = document.createElement('button');
@@ -581,4 +581,5 @@ $('loadSub').textContent = '첫 화면을 그리는 중이에요';
 applyQuality();
 goFloor(1);
 requestAnimationFrame(t => { frame(t); $('loading').hidden = true; window.__ready = true; });
+window.__look = (x, y, z, yw, pt) => { pos.set(x, y, z); yaw = yw; pitch = pt || 0; };
 </script>

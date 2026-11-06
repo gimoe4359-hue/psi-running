@@ -15,6 +15,7 @@ import floors_upper as U
 import floors_mid as M
 import floors_lower as L
 import vignettes as V
+import showcase88 as S88
 import world as W
 import dress as D
 import props as P
@@ -60,6 +61,8 @@ FLOORS = [
 VIGNETTES = V.VIGNETTES
 # floors that keep the dense set dressing (피의 축제방 + 병원)
 DENSE = {44} | set(range(-13, -5))
+# floors rebuilt by hand with full art direction
+REBUILT = {88: S88.build}
 
 
 def label(n):
@@ -122,7 +125,19 @@ def build(preview=False):
         dense = n in DENSE
         P.DESK_CLUTTER = dense
         building.floor_common(fb, F)
-        fn(fb, F)
+        if n in REBUILT:
+            # run the old layout into a throw-away model so the random stream for later floors is unchanged
+            marks = [len(L_) for L_ in (rbx.PREVIEW, rbx.PREVIEW_TEXT, rbx.PREVIEW_LIGHTS, rbx.REGISTRY, rbx.OPENINGS)]
+            parts0 = rbx.Inst.parts
+            fn(B(Inst('Model', 'discard'), fb.cf), F)
+            for L_, k in zip((rbx.PREVIEW, rbx.PREVIEW_TEXT, rbx.PREVIEW_LIGHTS, rbx.REGISTRY, rbx.OPENINGS), marks):
+                del L_[k:]
+            rbx.Inst.parts = parts0
+            after = R.getstate()
+            REBUILT[n](fb, F)
+            R.setstate(after)
+        else:
+            fn(fb, F)
         if dense:
             state = R.getstate()          # extra dressing must not change later floors
             vig = VIGNETTES.get(n)
