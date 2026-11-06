@@ -24,7 +24,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
 const scene = new THREE.Scene();
-const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, .1, 320);
+const cam = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, .1, 1100);
 const fitFov = () => { const a = innerWidth / innerHeight; cam.fov = a < 1 ? Math.min(68, 45 / Math.max(.6, a) * .9) : 45; cam.aspect = a; cam.updateProjectionMatrix(); }; fitFov();
 let composer = null;
 let rpass = null, curScene = scene;
@@ -47,6 +47,7 @@ const ITEMS = {
   '사과': ['🍎', 18, '나무를 흔들면 가끔 떨어짐'], '나뭇가지': ['🪵', 4, '나무를 흔들어 얻음 · 제작 재료'], '돌': ['🪨', 5, '바위에서 캠 · 제작 재료'], '꿀': ['🍯', 60, '벌통에서 모은 꿀'],
   '빵': ['🍞', 90, '화덕에서 갓 구운 빵'], '토마토 피자': ['🍕', 160, '토마토가 듬뿍'], '사과파이': ['🥧', 150, '달콤한 사과파이'], '꿀빵': ['🍯', 200, '꿀을 바른 빵'], '생선구이': ['🍢', 70, '모닥불에 구운 생선'], '구운 마시멜로': ['🍡', 40, '겉은 바삭 속은 말랑'],
   '마시멜로': ['☁️', 10, '잡화점에서 팔아요'], '새모이': ['🌰', 8, '새집에 넣어 주기'], '깃털': ['🪶', 45, '새가 두고 간 선물'], '이상현상 조각': ['🔮', 220, '지하실에서 주운 이상한 조각'],
+  '황금 사과': ['🍏', 300, '보물상자에서 나온 반짝이는 사과'], '고대 부품': ['⚙️', 250, '고대 전망탑과 같은 돌로 만든 부품'], '숲의 씨앗': ['🌰', 0, '숲의 요정이 준 씨앗 · 모으면 좋은 일이?'],
   '밀 씨앗': ['🌱', 6, '심으면 밀'], '토마토 씨앗': ['🌱', 10, '심으면 토마토'], '당근 씨앗': ['🌱', 8, '심으면 당근'], '양배추 씨앗': ['🌱', 9, '심으면 양배추']
 };
 // 물고기는 송천동 숲 연못 물고기 그대로 (이름, 아이콘, 희귀도, 값, 설명)
@@ -74,8 +75,9 @@ const LETTERS = [['이미리', '공유 씨, 아쿠아리움 물고기 기록 잘
   ['???', '지하실 문은… 밤에 열지 마세요. — 정보구출반 아님'], ['이미리', '내일 비 소식은 없어요. 근거: 하늘.'], ['장세진', '해먹 최고야ㅋㅋ 나 거기서 30분 잤어 비밀~']];
 const BOOK = ['「정보구출반은 야근 수당을 이상현상으로 분류하지 않습니다.」', '「점심 메뉴 투표 결과: 늘 하던 대로 새콤.」', '「분실물 안내: 어제의 의욕을 찾습니다.」', '「오늘의 능력 사용 지침: 쓸데없이, 하지만 성실하게.」',
   '「퇴근은 결재 사항입니다 — 결재선을 확인해 주세요.」', '「송천동행 막차가 정시에 도착했습니다. 탑승 여부는 개인 판단.」', '「정보구출반 회의실은 늘 예약 중입니다. 유령 예약 의심.」', '「이상현상 접수 건수, 오늘도 정상(이상) 범위.」'];
+const TRAVEL_FAR = [['⛰', '시작의 고원', [-104, 22], '시작의 고원'], ['🗼', '고대 전망탑 앞', [36, -98], '고대 전망탑'], ['🏰', '무너진 성터 입구', [-80, -74], '무너진 성터'], ['🏞', '거울 호수', [46, 84], '거울 호수'], ['🌲', '속삭이는 숲', [80, -30], '속삭이는 숲']];
 const TRAVEL = [['🏠', '오두막 앞', [1, 1.6]], ['🌱', '텃밭', [20.2, 9]], ['🎣', '호숫가 선착장', [-20.5, 8.6]], ['🐟', '아쿠아리움', [-1, -12.6]], ['🔭', '전망대', [8.5, -11.9]], ['🌾', '풍차 방앗간', [9.6, -6.4]], ['📖', '정자', [-6.5, -9.6]], ['🎸', '버스킹 무대', [-12.6, -10]], ['🪧', '처음 자리', [.2, 12.6]]];
-const REACH = { '아쿠아리움': [-1, -13.4, 1.6], '전망대': [8.5, -11.9, 1.5], '오두막': [.9, 1, 1.6], '풍차 방앗간': [10.1, -7.2, 1.8], '공방': [-8.2, -6.2, 1.8], '전망대': [8.5, -12.4, 1.4], '정자': [-6.5, -10.5, 1.6], '버스킹 무대': [-13.4, -10.6, 1.8], '화덕': [14.5, 2.7, 1.6],
+const REACH = { '아쿠아리움': [-1, -13.4, 1.6], '전망대': [8.5, -11.9, 1.5], '고대 전망탑': [36, -102.4, 2.2], '오두막': [.9, 1, 1.6], '풍차 방앗간': [10.1, -7.2, 1.8], '공방': [-8.2, -6.2, 1.8], '전망대': [8.5, -12.4, 1.4], '정자': [-6.5, -10.5, 1.6], '버스킹 무대': [-13.4, -10.6, 1.8], '화덕': [14.5, 2.7, 1.6],
   '텃밭': [20.2, 4.6, 2.6], '작업대': [15.4, 6.4, 1.6], '벌통': [29.6, 10.7, 1.6], '선착장': [-20.5, 4, 1.8], '모닥불': [-15.2, 6.5, 1.6], '텐트': [-14.2, 3.9, 1.6], '지하실': [2.6, -7.2, 1.6], '퀘스트 게시판': [4.6, 11.6, 1.6],
   '잡화점': [-8, 8.4, 1.7], '포토 스팟': [10.6, 3.2, 1.7], '해먹': [10.7, 10.3, 1.8], '피크닉': [-4.2, 5.6, 1.8], '우물': [-7.2, -.2, 1.6] };
 
@@ -139,7 +141,9 @@ setTimeout(async () => {
     ensureDaily(); coinsUI(); hud();
     lbar(1); $('#lmsg').textContent = '준비 완료!'; const go = $('#lgo'); go.style.display = 'inline-block';
     go.onclick = () => { ac(); $('.back') && $('.back').remove(); $('#load').style.opacity = 0; setTimeout(() => $('#load').remove(), 600); ready = true; clock.getDelta();
-      if (!S.stats.welcomed) { S.stats.welcomed = 1; const y = npcs.find(n => n.id === 'yumoja'); npcHop(y); say('유모자', ['oh my ong! 공유 씨, 마이세카이에 welcome이에요!', '여기선 낚시하고, 밭도 가꾸고, 빵도 구울 수 있어요. 지도(M)에 할 수 있는 곳이 다 표시돼 있어요.', '먼저 게시판에서 오늘의 quest를 확인해 보세요. fighting!']); } };
+      if (!S.stats.bigworld) { S.stats.bigworld = 1; const R0 = W.REG.plateau, sx = R0[0] + 20, sz = R0[1] - 2; P.pos.set(sx, W.groundY(sx, sz), sz); P.root.rotation.y = Math.atan2(0 - sx, 2 - sz); camS.tYaw = camS.yaw = P.root.rotation.y + Math.PI; camS.tPitch = camS.pitch = .22; lastRegion = '시작의 고원';
+        setTimeout(() => { regionBanner('시작의 고원'); say('', ['…와. 여기가 마이세카이 대평원이구나.', '저 아래 골짜기에 마을이 보여요. 북쪽 언덕엔 빛나는 고대 전망탑도 있어요.', '고원 끝에서 <b>점프 → 공중에서 한 번 더 점프</b>하면 패러글라이더를 펼 수 있어요!']); }, 600); }
+      else if (!S.stats.welcomed) { S.stats.welcomed = 1; const y = npcs.find(n => n.id === 'yumoja'); npcHop(y); say('유모자', ['oh my ong! 공유 씨, 마이세카이에 welcome이에요!', '여기선 낚시하고, 밭도 가꾸고, 빵도 구울 수 있어요. 지도(M)에 할 수 있는 곳이 다 표시돼 있어요.', '먼저 게시판에서 오늘의 quest를 확인해 보세요. fighting!']); } };
     loop();
   } catch (e) { console.error(e); $('#lmsg').textContent = '불러오기에 실패했어요: ' + e.message; }
 }, 60);
@@ -165,6 +169,10 @@ function makeChars(src) {
   // 낚싯대 (낚시할 때만 보임)
   const rod = new THREE.Group(); const rm = new THREE.MeshStandardMaterial({ color: '#8a5e3c', roughness: .7 });
   const stick = new THREE.Mesh(new THREE.CylinderGeometry(.015, .025, 1.6, 6), rm); stick.position.set(0, .8, 0); rod.add(stick); rod.position.set(.36, .6, .28); rod.rotation.x = .9; rod.visible = false; P.rig.add(rod); P.rod = rod;
+  { const gl = new THREE.Group(); const cm = new THREE.MeshStandardMaterial({ color: '#4a8ae8', side: THREE.DoubleSide, roughness: .7 }), cm2 = new THREE.MeshStandardMaterial({ color: '#fff6ea', side: THREE.DoubleSide, roughness: .7 });
+    for (let k = 0; k < 6; k++) { const seg = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, .42, 12, 1, true, -Math.PI / 2 + .25, Math.PI - .5), k % 2 ? cm2 : cm); seg.rotation.z = Math.PI / 2; seg.position.set(0, 0, (k - 2.5) * .42); seg.rotation.y = Math.PI / 2; gl.add(seg); }
+    const lm = new THREE.LineBasicMaterial({ color: '#ffffff' }); [-1.1, 1.1].forEach(x => gl.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([V3(x, .6, 0), V3(0, -1.3, 0)]), lm)));
+    gl.position.set(0, 2.9, 0); gl.scale.set(.85, .55, .85); gl.visible = false; P.rig.add(gl); P.glider = gl; }
   NPCS.forEach(n => { const c = charFrom(src, n.c); c.root.position.set(n.at[0], W.groundY(...n.at), n.at[1]); c.root.rotation.y = Math.random() * 6; const lb = label(n.name); lb.position.y = 1.85; c.root.add(lb);
     npcs.push({ ...n, ...c, lb, home: new THREE.Vector3(n.at[0], 0, n.at[1]), tgt: null, wait: 1 + Math.random() * 3, phase: Math.random() * 6, hop: 0 }); });
 }
@@ -238,40 +246,53 @@ async function gain(k, n = 1, from) {
   burst('✨', head(2.0), 5, { up: 1.2, speed: 1, g: 0, life: .7, size: .2, drag: 2 }); ding();
   await M_.raise(1.0); add(k, n);
 }
-// ================= 지도 이미지 (위에서 찍기) =================
-const MAP = { x0: -33, z0: -29, size: 66 };
-function makeMap() {
-  const N = 900, H2 = MAP.size / 2, cx = MAP.x0 + H2, cz = MAP.z0 + H2, oc = new THREE.OrthographicCamera(-H2, H2, H2, -H2, 1, 300); oc.position.set(cx, 150, cz); oc.up.set(0, 0, -1); oc.lookAt(cx, 0, cz);
-  const fog = scene.fog; scene.fog = null; const pr = renderer.getPixelRatio(); renderer.setPixelRatio(1); renderer.setSize(N, N, false);
-  renderer.render(scene, oc);
-  const cv = document.createElement('canvas'); cv.width = cv.height = N; const x = cv.getContext('2d'); x.drawImage(renderer.domElement, 0, 0, N, N);
-  // 테두리 바깥은 부드럽게 흐리게
-  const g = x.createRadialGradient(N / 2, N / 2, N * .36, N / 2, N / 2, N * .52); g.addColorStop(0, 'rgba(236,224,196,0)'); g.addColorStop(1, 'rgba(236,224,196,.85)'); x.fillStyle = g; x.fillRect(0, 0, N, N);
-  mapImg = cv; scene.fog = fog; renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight);
+// ================= 지도 이미지 (위에서 찍기): 큰 세계 · 마을 =================
+const MAP = { x0: -33, z0: -29, size: 66 }, MAPW = { x0: -172, z0: -170, size: 344 };
+let mapW = null;
+function shoot(M0, N) {
+  const H2 = M0.size / 2, cx = M0.x0 + H2, cz = M0.z0 + H2, oc = new THREE.OrthographicCamera(-H2, H2, H2, -H2, 1, 600); oc.position.set(cx, 400, cz); oc.up.set(0, 0, -1); oc.lookAt(cx, 0, cz);
+  renderer.setSize(N, N, false); renderer.render(scene, oc);
+  const cv = document.createElement('canvas'); cv.width = cv.height = N; cv.getContext('2d').drawImage(renderer.domElement, 0, 0, N, N); return cv;
 }
-const toMap = (x, z) => [(x - MAP.x0) / MAP.size, (z - MAP.z0) / MAP.size];
+function makeMap() {
+  const fog = scene.fog; scene.fog = null; const pr = renderer.getPixelRatio(); renderer.setPixelRatio(1);
+  mapImg = shoot(MAP, 900); { const x = mapImg.getContext('2d'), N = 900, g = x.createRadialGradient(N / 2, N / 2, N * .36, N / 2, N / 2, N * .52); g.addColorStop(0, 'rgba(236,224,196,0)'); g.addColorStop(1, 'rgba(236,224,196,.85)'); x.fillStyle = g; x.fillRect(0, 0, N, N); }
+  mapW = shoot(MAPW, LOW ? 1200 : 1600);
+  scene.fog = fog; renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight);
+}
+const toMap = (x, z, M0 = MAP) => [(x - M0.x0) / M0.size, (z - M0.z0) / M0.size];
 let waypoint = null;
 function drawMini() {
-  const cv = $('#mini canvas'), x = cv.getContext('2d'), N = cv.width, span = 30, k = mapImg.width / MAP.size;
-  const [u, v] = toMap(P.pos.x, P.pos.z); x.clearRect(0, 0, N, N); x.save(); x.beginPath(); x.arc(N / 2, N / 2, N / 2, 0, 7); x.clip();
-  x.fillStyle = '#c8cf94'; x.fillRect(0, 0, N, N);
-  x.drawImage(mapImg, u * mapImg.width - span / 2 * k, v * mapImg.height - span / 2 * k, span * k, span * k, 0, 0, N, N);
-  if (waypoint) { const [wu, wv] = toMap(...waypoint.p); let dx = (wu - u) * MAP.size / span * N, dy = (wv - v) * MAP.size / span * N; const d = Math.hypot(dx, dy), m = N / 2 - 14; if (d > m) { dx *= m / d; dy *= m / d; } x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('📍', N / 2 + dx, N / 2 + dy); }
+  const cv = $('#mini canvas'), x = cv.getContext('2d'), N = cv.width, inV = Math.hypot(P.pos.x, P.pos.z - 2) < 34, M0 = inV ? MAP : MAPW, img = inV ? mapImg : mapW, span = inV ? 30 : 46, k = img.width / M0.size;
+  const [u, v] = toMap(P.pos.x, P.pos.z, M0); x.clearRect(0, 0, N, N); x.save(); x.beginPath(); x.arc(N / 2, N / 2, N / 2, 0, 7); x.clip();
+  x.fillStyle = '#c8cf94'; x.fillRect(0, 0, N, N); if (!inV && !S.mapOn) x.filter = 'grayscale(1) brightness(.75)';
+  x.drawImage(img, u * img.width - span / 2 * k, v * img.height - span / 2 * k, span * k, span * k, 0, 0, N, N); x.filter = 'none';
+  if (waypoint) { const [wu, wv] = toMap(...waypoint.p, M0); let dx = (wu - u) * M0.size / span * N, dy = (wv - v) * M0.size / span * N; const d = Math.hypot(dx, dy), m = N / 2 - 14; if (d > m) { dx *= m / d; dy *= m / d; } x.font = '22px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('📍', N / 2 + dx, N / 2 + dy); }
   x.translate(N / 2, N / 2); x.rotate(-P.root.rotation.y + Math.PI); x.fillStyle = '#ff6a5a'; x.strokeStyle = '#fff'; x.lineWidth = 3; x.beginPath(); x.moveTo(0, -13); x.lineTo(10, 10); x.lineTo(0, 5); x.lineTo(-10, 10); x.closePath(); x.stroke(); x.fill();
   x.restore();
 }
-function openMap() {
+let mapTab = null;
+function openMap(tab) {
   if (!mapImg) return; closeSheet(); sheetOpen = true; keys.clear(); joyV.set(0, 0);
+  mapTab = tab || mapTab || (Math.hypot(P.pos.x, P.pos.z - 2) < 34 ? 'v' : 'w');
   const bg = document.createElement('div'); bg.className = 'fmap p'; bg.id = 'sheet';
-  const pts = W.INTER.map(([ic, nm, ac, x, y, z]) => ({ ic, nm, ac, x, z }));
-  const marks = pts.map((p, i) => { const [u, v] = toMap(p.x, p.z); return `<div class="mk${waypoint && waypoint.nm === p.nm ? ' wp' : ''}" data-i="${i}" style="left:${u * 100}%;top:${v * 100}%"><span class="i">${p.ic}</span><span class="n">${esc(p.nm)}</span></div>`; }).join('')
-    + npcs.map(n => { const [u, v] = toMap(n.root.position.x, n.root.position.z); return `<div class="mk npc" style="left:${u * 100}%;top:${v * 100}%"><span class="i" style="width:24px;height:24px;font-size:13px">🙂</span><span class="n" style="font-size:9.5px;opacity:.85">${esc(n.name)}</span></div>`; }).join('');
-  const [mu, mv] = toMap(P.pos.x, P.pos.z);
-  bg.innerHTML = `<div class="wrap"><img src="${mapImg.toDataURL('image/jpeg', .85)}" alt="지도">${marks}<div class="me" style="left:${mu * 100}%;top:${mv * 100}%"><i style="transform:rotate(${(-P.root.rotation.y + Math.PI) * 57.3}deg)"></i></div>
-    <div class="tt">🗺 마이세카이 · 할 수 있는 곳 ${pts.length}곳</div><button class="cl" data-x>✕</button><div class="info" id="minfo">아이콘을 누르면 길을 알려 줘요</div></div>`;
+  let pts, M0, img, title, extra = '';
+  if (mapTab === 'v') { M0 = MAP; img = mapImg; pts = W.INTER.filter(([, , , x, , z]) => Math.hypot(x, z - 2) < 40).map(([ic, nm, ac, x, y, z]) => ({ ic, nm, ac, x, z })); title = `🏡 마이세카이 마을 · 할 수 있는 곳 ${pts.length}곳`; }
+  else { M0 = MAPW; img = mapW; title = S.mapOn ? '🗺 마이세카이 대평원' : '🗺 마이세카이 대평원 · 아직 지도가 흐릿해요';
+    pts = [...W.LANDMARKS.filter(l => S.mapOn || l[1] === '마이세카이 마을' || l[1] === '고대 전망탑').map(([ic, nm, x, z]) => ({ ic, nm, ac: nm === '마이세카이 마을' ? '마을 지도 보기' : '가 보기', x, z })),
+      ...W.INTER.filter(([, nm, , x, , z]) => Math.hypot(x, z - 2) >= 40 && nm !== '고대 전망탑').map(([ic, nm, ac, x, y, z]) => ({ ic, nm, ac, x, z })),
+      ...W.CHESTS.filter(c => S.chests && S.chests[c.id]).map(c => ({ ic: '📦', nm: '열어 본 보물상자', ac: '이미 열었어요', x: c.x, z: c.z }))];
+    if (!S.mapOn) extra = `<div class="fogmsg">🗼 고대 전망탑 꼭대기에 오르면 지도가 밝혀져요</div>`; }
+  const marks = pts.map((p, i) => { const [u, v] = toMap(p.x, p.z, M0); return `<div class="mk${waypoint && waypoint.nm === p.nm ? ' wp' : ''}" data-i="${i}" style="left:${u * 100}%;top:${v * 100}%"><span class="i">${p.ic}</span><span class="n">${esc(p.nm)}</span></div>`; }).join('')
+    + (mapTab === 'v' ? npcs.map(n => { const [u, v] = toMap(n.root.position.x, n.root.position.z, M0); return `<div class="mk npc" style="left:${u * 100}%;top:${v * 100}%"><span class="i" style="width:24px;height:24px;font-size:13px">🙂</span><span class="n" style="font-size:9.5px;opacity:.85">${esc(n.name)}</span></div>`; }).join('') : '');
+  const [mu, mv] = toMap(P.pos.x, P.pos.z, M0);
+  bg.innerHTML = `<div class="wrap"><img src="${img.toDataURL('image/jpeg', .85)}" alt="지도" style="${mapTab === 'w' && !S.mapOn ? 'filter:grayscale(1) brightness(.7) blur(1px)' : ''}">${marks}<div class="me" style="left:${mu * 100}%;top:${mv * 100}%"><i style="transform:rotate(${(-P.root.rotation.y + Math.PI) * 57.3}deg)"></i></div>${extra}
+    <div class="tt">${title}</div><div class="mtabs"><button data-t="w" class="${mapTab === 'w' ? 'on' : ''}">전체</button><button data-t="v" class="${mapTab === 'v' ? 'on' : ''}">마을</button></div><button class="cl" data-x>✕</button><div class="info" id="minfo">아이콘을 누르면 길을 알려 줘요</div></div>`;
   bg.addEventListener('pointerdown', e => {
     if (e.target === bg || e.target.closest('[data-x]')) { e.preventDefault(); closeSheet(); return; }
+    const tb = e.target.closest('[data-t]'); if (tb) { e.preventDefault(); openMap(tb.dataset.t); return; }
     const mk = e.target.closest('.mk[data-i]'); if (mk) { const p = pts[+mk.dataset.i]; pop();
+      if (p.nm === '마이세카이 마을') { openMap('v'); return; }
       $('#minfo').innerHTML = `<span>${p.ic} <b>${esc(p.nm)}</b> · ${esc(p.ac)}</span><button class="btn" id="wpgo">길 안내</button>`;
       $('#wpgo').onpointerdown = ev => { ev.preventDefault(); const r = REACH[p.nm]; waypoint = { nm: p.nm, p: r ? [r[0], r[1]] : [p.x, p.z] }; toast(`📍 ${esc(p.nm)}(으)로 안내할게요`); closeSheet(); }; }
   });
@@ -357,18 +378,20 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 const tap = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (ready) fn(); });
 tap('#bAct', () => fishing ? fishTap() : talking() ? nextSay() : act()); tap('#bJump', () => jump()); tap('#bRun', () => { runToggle = !runToggle; $('#bRun').classList.toggle('on', runToggle); });
 tap('#mini', () => openMap()); tap('#bBag', () => openBag()); tap('#bDex', () => openDex()); tap('#bQuest', () => openQuests()); tap('#bMore', () => openMore()); tap('#bPose', () => togglePoses());
-function jump() { if (pm || sheetOpen || talking() || fishing) return; if (P.pose) { P.pose = null; return; } P.jbuf = .16; }
+function jump() { if (pm || sheetOpen || talking() || fishing) return; if (P.pose) { P.pose = null; return; }
+  if (!P.ground && !AREA && P.air > .15) { P.glide = !P.glide; if (P.glide) { beep(500, .15, 'triangle', .05); P.vy = Math.max(P.vy, -1); } return; } P.jbuf = .16; }
 
 // ================= 장소: 바깥 세상 · 전망대 꼭대기 · 아쿠아리움 안 · 지하실 =================
 let AREA = null; const INS = {};
 const WORLD = { world: true, ground: (x, z, y) => W.groundY(x, z, y), collide: (p, r, f) => W.collide(p, r, f), cam: c => { const cg = W.hgt(c.x, c.z) + .45; if (c.y < cg) c.y = cg; } };
 const A = () => AREA || WORLD;
-function towerArea() {
-  const T = W.TOWER;
-  return { world: true, tower: true, name: '전망대 꼭대기', icon: '🔭',
+function towerArea(T2) {
+  const T = T2 || W.TOWER;
+  return { world: true, tower: true, name: T2 ? '고대 전망탑 꼭대기' : '전망대 꼭대기', icon: T2 ? '🗼' : '🔭', ancient: !!T2,
     ground: () => T.deck, collide(p, r) { const dx = p.x - T.x, dz = p.z - T.z, d = Math.hypot(dx, dz), m = T.r - r; if (d > m) { p.x = T.x + dx / d * m; p.z = T.z + dz / d * m; } },
     camD: 4.4, camP: .22, cam: c => { if (c.y < T.deck + .6) c.y = T.deck + .6; if (c.y > T.deck + 2.3) c.y = T.deck + 2.3; },
-    spots: [['🔭', '망원경', '경치 보기', T.scope[0], T.scope[1], 1.3, 'scope'], ['🪜', '계단', '내려가기', T.x + .2, T.z + 1.9, 1.2, 'down']] };
+    spots: T2 ? [['🔭', '대평원 바라보기', '경치 보기', T.scope[0], T.scope[1], 1.4, 'scope'], ['🪂', '탑 가장자리', '뛰어내리기 (패러글라이더)', T.x + 3, T.z, 1.2, 'leap'], ['🪜', '빛의 계단', '내려가기', T.x, T.z + 2.6, 1.2, 'down']]
+      : [['🔭', '망원경', '경치 보기', T.scope[0], T.scope[1], 1.3, 'scope'], ['🪜', '계단', '내려가기', T.x + .2, T.z + 1.9, 1.2, 'down']] };
 }
 function setArea(key, pos, ry) {
   if (key === 'aqua') { if (!INS.aqua) { INS.aqua = buildAquarium(renderer); const c = charFrom(CHAR_SRC, '#d8c8f0'); scene.remove(c.root); INS.aqua.scene.add(c.root); c.root.position.set(-2.4, 0, 2.2); c.root.rotation.y = Math.PI - .25; INS.aqua.mimi = c;
@@ -376,6 +399,7 @@ function setArea(key, pos, ry) {
     AREA = INS.aqua; INS.aqua.setDonated(Object.keys(S.aqua)); }
   else if (key === 'cellar') { INS.cellar = INS.cellar || buildCellar(); AREA = INS.cellar; const nt = S.h >= 20 || S.h < 5; INS.cellar.frag.visible = nt && S.cellarDay !== S.day; INS.cellar.setRing(nt && S.phoneDay !== S.day); }
   else if (key === 'tower') AREA = towerArea();
+  else if (key === 'tower2') AREA = towerArea(W.T2);
   else AREA = null;
   const sc = AREA && AREA.scene ? AREA.scene : scene; curScene = sc; sc.add(P.root);
   const sp = pos || (AREA && AREA.spawn) || [0, 0]; P.pos.set(sp[0], 0, sp[1]); P.pos.y = A().ground(P.pos.x, P.pos.z); P.vel.set(0, 0, 0); P.vy = 0; P.seat = null; P.pose = null;
@@ -389,8 +413,9 @@ const goArea = (key, pos, ry, dark) => new Promise(res => fade(() => { setArea(k
 // 실내 · 전망대에서 할 수 있는 것
 const SPOT = {
   exit: async () => { const back = { '아쿠아리움 · 송천동 연못관': [[-1, -12.6], 0], '집 지하 · ???': [[2.6, -7.4], Math.PI] }[A().name]; await goArea(null, back[0], back[1], A().dark); M_.hop(.35); },
-  down: async () => { await goArea(null, [W.TOWER.x, W.TOWER.z + 2.75], 0); M_.hop(.35); },
-  scope: async () => { const T = W.TOWER, a = Math.atan2(0 - T.x, 2 - T.z); await turnTo(T.x + Math.sin(a) * 5, T.z + Math.cos(a) * 5); camSave = { d: camS.tDist, p: camS.tPitch }; camS.tYaw = P.root.rotation.y + Math.PI; camS.tDist = 3.2; camS.tPitch = .12; camS.lastDrag = now();
+  down: async () => { const T = A().ancient ? W.T2 : W.TOWER; await goArea(null, [T.x, T.z + (A().ancient ? 5.4 : 2.75)], 0); M_.hop(.35); },
+  leap: async () => { const T = W.T2; AREA = null; await turnTo(T.x + 10, T.z); P.vel.set(Math.sin(P.root.rotation.y) * 5, 0, Math.cos(P.root.rotation.y) * 5); P.vy = 6; P.ground = false; P.air = 1; P.pos.x += Math.sin(P.root.rotation.y) * 1.2; P.pos.z += Math.cos(P.root.rotation.y) * 1.2; setTimeout(() => { P.glide = true; toast('🪂 패러글라이더! 스틱/방향키로 방향, 점프로 접기'); }, 450); },
+  scope: async () => { const T = A().ancient ? W.T2 : W.TOWER, a = Math.atan2(0 - T.x, 2 - T.z); await turnTo(T.x + Math.sin(a) * 5, T.z + Math.cos(a) * 5); camSave = { d: camS.tDist, p: camS.tPitch }; camS.tYaw = P.root.rotation.y + Math.PI; camS.tDist = 3.2; camS.tPitch = .12; camS.lastDrag = now();
     fx('🔭', front(.5, 1.5), { life: 1.4, size: .3 }); await mo(.6, u => lean(.25 * ease(u)));
     await new Promise(r => say('', ['마을이 한눈에 보여요. 오두막 굴뚝, 반짝이는 호수, 돌아가는 풍차…', S.h >= 19.5 || S.h < 5 ? '밤하늘에 별이 쏟아질 것 같아요.' : '바람이 기분 좋게 불어요.'], r));
     await mo(.3, u => lean(.25 * (1 - u))); await photo('전망대 꼭대기에서 본 풍경'); },
@@ -445,6 +470,8 @@ function findTarget() {
   for (const [ic, nm, ac, x, y, z] of W.INTER) { const r = REACH[nm]; const tx = r ? r[0] : x, tz = r ? r[1] : z, rr = r ? r[2] : 1.6; const d = Math.hypot(px - tx, pz - tz) - rr; if (d < 0) consider({ k: 'inter', ic, nm, ac, x, z }, score(x, z, d) - 1); }
   for (const n of npcs) { const d = n.root.position.distanceTo(P.pos) - 1.7; if (d < 0) consider({ k: 'npc', ic: '💬', nm: n.name, ac: '이야기하기', n }, score(n.root.position.x, n.root.position.z, d) - 1.5); }
   if (!best) { W.TREES.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (.45 * s + 1.1); if (d < 0) consider({ k: 'tree', ic: '🌳', nm: '나무', ac: S.shaken[i] ? '오늘은 다 흔들었어요' : '흔들기', i, x, z, s }, score(x, z, d)); });
+    W.CHESTS.forEach(c => { const d = Math.hypot(px - c.x, pz - c.z) - 1.5; if (d < 0) consider({ k: 'chest', ic: '📦', nm: '보물상자', ac: S.chests && S.chests[c.id] ? '빈 상자' : '열기', c, x: c.x, z: c.z }, d - 2); });
+    W.SEEDS.forEach(c => { if (S.seeds && S.seeds[c.id]) return; const d = Math.hypot(px - c.x, pz - c.z) - 1.4; if (d < 0) consider({ k: 'seed', ic: '🌼', nm: '수상한 꽃 고리', ac: '살펴보기', c, x: c.x, z: c.z }, d - 2); });
     W.ROCKS.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (s * 1.1 + 1.0); if (d < 0) consider({ k: 'rock', ic: '🪨', nm: '바위', ac: S.mined[i] ? '오늘은 다 캤어요' : '돌 캐기', i, x, z, s }, score(x, z, d)); }); }
   return best;
 }
@@ -477,6 +504,8 @@ async function act() {
     else if (t.k === 'npc') { actionCam(true); await talkNPC(t.n); }
     else if (t.k === 'tree') { await turnTo(t.x, t.z); actionCam(true); await shakeTree(t); }
     else if (t.k === 'rock') { await turnTo(t.x, t.z); actionCam(true); await mineRock(t); }
+    else if (t.k === 'chest') { await turnTo(t.x, t.z); actionCam(true); await openChest(t.c); }
+    else if (t.k === 'seed') { await turnTo(t.x, t.z); actionCam(true); await findSeed(t.c); }
     else { const fn = ACTS[t.nm]; if (t.x != null && t.nm !== '선착장') await turnTo(t.x, t.z); if (t.nm !== '선착장') actionCam(true); if (fn) await fn(t); else toast(`${t.ic} ${esc(t.nm)} — 준비 중이에요`); }
   } finally { acting = false; }
 }
@@ -569,13 +598,18 @@ const ACTS = {
     const b = fx('🐦', nest.clone().add(V3(0, .35, 0)), { life: 1.6, size: .4, upd: (p, u) => { p.s.position.y = nest.y + .35 + Math.abs(Math.sin(u * 14)) * .05; } }); beep(1800, .05, 'sine', .04); beep(2200, .05, 'sine', .04, .1);
     await M_.wait(1.5); fly('🐦', nest.clone().add(V3(0, .35, 0)), nest.clone().add(V3(-7, 4, 5)), 1, { h: .4, size: .4 }); toast('🐦 짹짹! 새가 모이를 먹고 갔어요');
     if (Math.random() < .5) await gain('깃털', 1, nest); save(); },
-  '이정표': async () => sheet('🪧', '이정표', '빠른 이동', TRAVEL.map(([ic, nm], i) => row(ic, esc(nm), '', `<button class="btn" data-a="go" data-v="${i}">이동</button>`)).join(''), b => bindBtns(b, { go: async v => { const [, nm, [x, z]] = TRAVEL[+v]; closeSheet();
+  '이정표': async () => { const LIST = [...TRAVEL, ...TRAVEL_FAR.filter(t => S.visited && S.visited[t[3]])]; sheet('🪧', '이정표', '빠른 이동 · 대평원은 가 본 곳만', LIST.map(([ic, nm], i) => row(ic, esc(nm), '', `<button class="btn" data-a="go" data-v="${i}">이동</button>`)).join(''), b => bindBtns(b, { go: async v => { const [, nm, [x, z]] = LIST[+v]; closeSheet();
     burst('💨', P.pos.clone().add(V3(0, .4, 0)), 8, { up: .5, speed: 1.5, g: 0, life: .7, size: .35, grow: 1 }); await M_.spin(.5);
-    fade(() => { P.pos.set(x, W.groundY(x, z), z); P.vel.set(0, 0, 0); camS.tYaw = camS.yaw = P.root.rotation.y + Math.PI; burst('💨', P.pos.clone().add(V3(0, .4, 0)), 8, { up: .5, speed: 1.5, g: 0, life: .7, size: .35, grow: 1 }); M_.hop(.4); toast(`🪧 ${nm}(으)로 왔어요`); }, 450); } })),
+    fade(() => { P.pos.set(x, W.groundY(x, z), z); P.vel.set(0, 0, 0); camS.tYaw = camS.yaw = P.root.rotation.y + Math.PI; burst('💨', P.pos.clone().add(V3(0, .4, 0)), 8, { up: .5, speed: 1.5, g: 0, life: .7, size: .35, grow: 1 }); M_.hop(.4); toast(`🪧 ${nm}(으)로 왔어요`); }, 450); } })); },
   '정자': async () => sheet('📖', '정자', '책 읽기 · 낮잠', `<p>바람이 솔솔 부는 정자. 책장에 「정보구출반 사내 소식지」가 꽂혀 있어요.</p><div style="display:flex;gap:8px;margin-top:10px"><button class="btn" data-a="read">책 읽기</button><button class="btn sub" data-a="nap">낮잠 (3시간)</button></div>`, b => bindBtns(b, {
     read: async () => { closeSheet(); P.pose = 'sit'; const g = hold('book'); g.position.set(-.36, .1, .1); g.rotation.x = -.6; await M_.wait(.6); say('사내 소식지', [BOOK[Math.floor(Math.random() * BOOK.length)], '…피식 웃음이 나요.'], () => { drop(g); fx('😆', head(1.7), { life: 1, size: .35, v: V3(0, .4, 0) }); }); },
     nap: async () => { closeSheet(); P.pose = 'lie'; const z = setInterval(() => fx('💤', head(1), { v: V3(.2, .5, 0), life: 1.4, size: .3, grow: .6 }), 500); await M_.wait(1.6); fade(() => { clearInterval(z); S.h += 3; toast('😴 낮잠을 푹 잤어요 (+3시간)'); P.pose = null; }, 900, true); } })),
   '전망대': async () => { await mo(.5, u => rigSet(0, .1 * Math.abs(wave(u, 2)), .3 * u)); await goArea('tower', [W.TOWER.x + .3, W.TOWER.z + 1.2], 0); toast('🔭 전망대 꼭대기! 망원경으로 경치를 볼 수 있어요'); burst('🍃', head(1.6), 5, { up: .6, speed: 1.4, g: -.5, life: 1.4, size: .25 }); },
+  '고대 전망탑': async () => { const T = W.T2; await mo(.5, u => rigSet(0, .1 * Math.abs(wave(u, 2)), .3 * u)); burst('✨', head(1.2), 8, { up: 2, speed: .5, g: 0, life: 1.2, size: .3 });
+    await goArea('tower2', [T.x + .4, T.z + 1.8], 0);
+    if (!S.mapOn) { S.mapOn = true; save(); beep(523, .5, 'sine', .06); beep(659, .5, 'sine', .06, .25); beep(784, .8, 'sine', .06, .5); burst('✨', head(1.6), 14, { up: 2.5, speed: 2, g: 0, life: 1.6, size: .35 });
+      T.beam.material.color.set('#c8ffff'); await new Promise(r => say('고대 전망탑', ['탑이 빛나며 대평원의 지도가 밝혀졌어요!', '지도(M)의 「전체」에서 성터·호수·숲을 볼 수 있어요. 가장자리에서 뛰어내리면 패러글라이더로 날 수 있어요.'], r)); } else toast('🗼 고대 전망탑 꼭대기예요'); },
+  '호수 선착장': async () => startFishing(W.LAKEDOCK),
   '벤치': async t => { const b = W.BENCHES.slice().sort((a, c) => Math.hypot(a[0] - P.pos.x, a[1] - P.pos.z) - Math.hypot(c[0] - P.pos.x, c[1] - P.pos.z))[0]; await sitAt(b[0], b[1], b[2], W.hgt(b[0], b[1]) + .5); toast('🪑 벤치에 앉았어요. 움직이면 일어나요'); },
   '포토 스팟': async () => { await photo('포토 스팟에서 한 컷'); },
   '버스킹 무대': () => busk(),
@@ -603,6 +637,23 @@ async function shakeTree(t) {
   else { const bees = [0, 1, 2].map(i => fx('🐝', crown, { life: 1.6, size: .22, upd: (p, u) => { const a = u * 10 + i * 2; p.s.position.set(P.pos.x + Math.cos(a) * .7, P.pos.y + 1.2 + Math.sin(u * 13) * .2, P.pos.z + Math.sin(a) * .7); } }));
     toast('🐝 앗, 벌이다! 도망쳐요~'); await mo(1.2, u => rigSet(0, .15 * Math.abs(wave(u, 4)), 0, 0, 0, .2 * wave(u, 6))); }
   ev('shake'); save();
+}
+const CHEST_LOOT = [['코인', 300], ['황금 사과', 1], ['고대 부품', 1], ['코인', 500], ['이상현상 조각', 1], ['황금 사과', 2]];
+async function openChest(c) {
+  S.chests = S.chests || {}; if (S.chests[c.id]) { await M_.shake(.5); return toast('📦 이미 연 상자예요'); }
+  S.chests[c.id] = 1; await M_.crouch(.4); beep(300, .3, 'triangle', .05); await mo(.8, u => { c.lid.rotation.x = -1.9 * ease(u); rigSet(0, 0, 0, .2 * Math.sin(u * Math.PI)); });
+  burst('✨', V3(c.x, W.hgt(c.x, c.z) + 1, c.z), 12, { up: 2.2, speed: 1, g: -1, life: 1.2, size: .3 }); [523, 659, 784, 1046].forEach((f, i) => beep(f, .25, 'sine', .06, i * .12));
+  const [k, n] = CHEST_LOOT[c.id % CHEST_LOOT.length];
+  if (k === '코인') { fx('💰', head(2), { life: 1.2, size: .6 }); await M_.raise(1); money(n); } else await gain(k, n, V3(c.x, W.hgt(c.x, c.z) + .8, c.z));
+  const got = Object.keys(S.chests).length; toast(`📦 보물상자 ${got}/${W.CHESTS.length}`); save();
+}
+async function findSeed(c) {
+  S.seeds = S.seeds || {}; if (S.seeds[c.id]) return; S.seeds[c.id] = 1; await M_.crouch(.35);
+  const p0 = V3(c.x, W.hgt(c.x, c.z) + .4, c.z); fx('🧚', p0.clone(), { life: 1.6, size: .5, upd: (p, u) => { p.s.position.set(c.x, p0.y + u * 1.6, c.z); } }); burst('🍃', p0, 8, { up: 1.6, speed: 1, life: 1, size: .25 });
+  beep(1200, .1, 'sine', .05); beep(1500, .12, 'sine', .05, .12); c.g.visible = false;
+  await new Promise(r => say('숲의 요정', ['야하하! 찾았다!', '숲의 씨앗을 줄게. 대평원 곳곳에 내 친구들이 숨어 있어!'], r));
+  await gain('숲의 씨앗', 1, p0); const n = Object.keys(S.seeds).length; toast(`🌰 숲의 씨앗 ${n}/${W.SEEDS.length}`);
+  if (n === W.SEEDS.length) { money(2000); say('숲의 요정', ['씨앗을 전부 모았구나! 대평원의 친구 인정이야! (₩2000)']); } save();
 }
 async function mineRock(t) {
   await turnTo(t.x, t.z);
@@ -748,9 +799,10 @@ async function photo(title) {
 // ================= 낚시 =================
 let fishing = null;
 const pondPreset = () => S.h >= 20 || S.h < 5 ? 'night' : S.h >= 17.5 || S.h < 6.5 ? 'dusk' : 'day';
-async function startFishing() {
-  if (!W.onDock(P.pos.x, P.pos.z) && P.pos.distanceTo(V3(-20.5, P.pos.y, 3.6)) > 2.2) { waypoint = null; P.pos.set(-20.5, W.groundY(-20.5, 3.6), 3.6); }
-  P.vel.set(0, 0, 0); P.speed = 0; await turnTo(-20.5, -2); actionCam(true); P.rod.visible = true;
+async function startFishing(at) {
+  if (at) { P.vel.set(0, 0, 0); P.speed = 0; await turnTo(W.REG.lake[0], W.REG.lake[1]); }
+  else { if (!W.onDock(P.pos.x, P.pos.z) && P.pos.distanceTo(V3(-20.5, P.pos.y, 3.6)) > 2.2) { waypoint = null; P.pos.set(-20.5, W.groundY(-20.5, 3.6), 3.6); }
+  P.vel.set(0, 0, 0); P.speed = 0; await turnTo(-20.5, -2); } actionCam(true); P.rod.visible = true;
   // 던지기: 뒤로 젖혔다가 휙
   await mo(.45, u => { P.rod.rotation.x = .9 - 1.7 * ease(u); rigSet(0, 0, 0, -.18 * ease(u)); });
   beep(700, .12, 'sine', .04); await mo(.4, u => { P.rod.rotation.x = -.8 + 2.1 * ease(u); rigSet(0, 0, 0, .2 * Math.sin(u * Math.PI)); });
@@ -849,7 +901,8 @@ function update(dt, t) {
   const run = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joyId !== null && mag > .94);
   const top = (run ? 6.8 : 3.8) * (joyId !== null && !run ? Math.min(1, mag / .8) : mag > 0 ? 1 : 0);
   // 가속·감속 (미끄럽지 않게 빠르게 붙되, 방향 전환은 부드럽게)
-  const accel = top > P.vel.length() ? 18 : 24, tv = tmp.copy(want).multiplyScalar(top);
+  if (P.glide) { if (mag < .05) want.set(Math.sin(P.root.rotation.y), 0, Math.cos(P.root.rotation.y)); else want.normalize(); mag = 1; }
+  const gtop = P.glide ? 6.5 : top, accel = gtop > P.vel.length() ? (P.glide ? 4 : 18) : (P.glide ? 4 : 24), tv = tmp.copy(want).multiplyScalar(gtop);
   P.vel.x += (tv.x - P.vel.x) * Math.min(1, dt * accel * .5); P.vel.z += (tv.z - P.vel.z) * Math.min(1, dt * accel * .5);
   P.speed = Math.hypot(P.vel.x, P.vel.z);
   if (P.speed > .05) { P.pos.x += P.vel.x * dt; P.pos.z += P.vel.z * dt;
@@ -861,10 +914,12 @@ function update(dt, t) {
   const gy = P.seat ? (P.seat.moving ? P.pos.y : P.seat.y) : A().ground(P.pos.x, P.pos.z, P.pos.y);
   P.jbuf -= dt; P.air += dt;
   if (P.jbuf > 0 && P.air < .12 && !P.pose && !busy) { P.vy = 7.0; P.ground = false; P.air = 1; P.jbuf = 0; beep(420, .08, 'triangle', .05); burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .3, speed: .8, g: 0, life: .4, size: .2, grow: 1 }); }
-  if (P.seat) { P.vy = 0; if (!P.seat.moving) P.pos.y = P.seat.y; } else { P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt; }
+  if (P.seat) { P.vy = 0; if (!P.seat.moving) P.pos.y = P.seat.y; } else if (P.glide) { P.vy = Math.max(P.vy - 14 * dt, -1.7); P.pos.y += P.vy * dt; } else { P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt; }
+  if (P.pos.y <= gy && P.glide) { P.glide = false; }
   if (P.pos.y <= gy) { if (!P.ground && P.vy < -3) { P.land = .18; burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .2, speed: 1, g: 0, life: .35, size: .2, grow: 1 }); } P.pos.y = gy; P.vy = 0; P.ground = true; P.air = 0; }
   else if (P.pos.y > gy + .08) P.ground = false; else { P.pos.y += (gy - P.pos.y) * Math.min(1, dt * 20); P.air = 0; }
   P.root.position.copy(P.pos);
+  if (P.glider) P.glider.visible = !!P.glide;
   // ---- 캐릭터 몸짓 ----
   if (pm) { pm.t += dt; const u = Math.min(1, pm.t / pm.dur); pm.fn(u, pm.t, dt); if (u >= 1) { const r = pm.res; pm = null; r(); } }
   else if (!fishing) {
@@ -873,6 +928,7 @@ function update(dt, t) {
     if (P.pose === 'sit') rigSet(0, P.seat ? -.05 : -.06, 0, -.08, 0, 0, 1.07, .88 + br, 1.07);
     else if (P.pose === 'lie') { rigSet(0, .3, 0, -1.45, 0, 0); P.zz = (P.zz || 0) + dt; if (P.zz > 1.3) { P.zz = 0; fx('💤', head(.9), { v: V3(.2, .5, 0), life: 1.4, size: .28, grow: .6 }); } }
     else if (P.pose === 'under') rigSet(0, -1.6);
+    else if (P.glide) { rigSet(0, -.15, 0, .35, 0, Math.sin(t * 2) * .06); }
     else if (!P.ground) { const k = THREE.MathUtils.clamp(P.vy / 7, -1, 1); rigSet(0, 0, 0, .1 * s01, 0, 0, 1 - .06 * k, 1 + .1 * k, 1 - .06 * k); }
     else if (P.land > 0) { const k = P.land / .18; rigSet(0, 0, 0, 0, 0, 0, 1 + .12 * k, 1 - .2 * k, 1 + .12 * k); }
     else if (s01 > .05) { const hop = Math.abs(Math.sin(P.phase)) * (run ? .18 : .12) * s01, sq = 1 - Math.cos(P.phase * 2) * .04 * s01;
@@ -917,15 +973,19 @@ function update(dt, t) {
   if (A().scene) A().tick(t, dt); else { W.setTime(S.h, P.pos); W.tick(t, dt); } fxTick(dt);
   if (waypoint && Math.hypot(P.pos.x - waypoint.p[0], P.pos.z - waypoint.p[1]) < 2.2) { toast(`📍 ${esc(waypoint.nm)}에 도착했어요`); waypoint = null; }
   tAcc += dt; if (tAcc > .12) { tAcc = 0; target = busy ? null : findTarget(); showPrompt(); if (!A().scene) drawMini(); }
-  hudAcc += dt; if (hudAcc > 1) { hudAcc = 0; const h = Math.floor(S.h), mi = Math.floor(S.h % 1 * 60 / 10) * 10;
+  hudAcc += dt; if (hudAcc > 1) { hudAcc = 0; if (!AREA) { const rg = regionOf(); if (rg !== lastRegion) { if (lastRegion) regionBanner(rg); lastRegion = rg; } } const h = Math.floor(S.h), mi = Math.floor(S.h % 1 * 60 / 10) * 10;
     const ic = h < 5 || h >= 21 ? '🌙' : h < 7 ? '🌄' : h < 17 ? '☀️' : h < 19.5 ? '🌅' : '🌆';
     $('#pic').textContent = AREA && AREA.icon || ic; $('#pname').textContent = AREA ? AREA.name : nearArea(); $('#ptime').textContent = `${S.day}일째 · ${h < 12 ? '오전' : '오후'} ${((h + 11) % 12) + 1}:${String(mi).padStart(2, '0')}${waypoint ? ` · 📍${waypoint.nm} ${Math.round(Math.hypot(P.pos.x - waypoint.p[0], P.pos.z - waypoint.p[1]))}m` : ''}`;
     if (!AREA || AREA.tower) $('#vig').style.background = h < 5 || h >= 21 ? 'radial-gradient(ellipse 80% 75% at 50% 55%,transparent 55%,rgba(5,8,25,.38))' : ''; }
   saveAcc += dt; if (saveAcc > 8) { saveAcc = 0; save(); }
 }
+let lastRegion = '';
+function regionOf() { const x = P.pos.x, z = P.pos.z; if (Math.hypot(x, z - 2) < 38) return '마이세카이 마을'; let best = '마이세카이 대평원', bd = 1e9;
+  for (const [ic, nm, lx, lz] of W.LANDMARKS) { const d = Math.hypot(x - lx, z - lz); if (d < 36 && d < bd) { bd = d; best = nm; } } if (Math.hypot(x, z - 2) > 140) best = '설산 기슭'; return best; }
+function regionBanner(nm) { const el = document.createElement('div'); el.className = 'region'; el.innerHTML = `<small>${nm === '마이세카이 마을' ? '정보구출반의 작은 세계' : '마이세카이 대평원'}</small><b>${esc(nm)}</b><i></i>`; $('#layer').append(el); setTimeout(() => el.remove(), 3600); S.visited = S.visited || {}; S.visited[nm] = 1; }
 function nearArea() {
   const x = P.pos.x, z = P.pos.z, A = [['오두막 마당', 1, 2, 9], ['텃밭', 22, 4, 10], ['호숫가', -22, 1, 11], ['아쿠아리움', -1, -20, 10], ['풍차 언덕', 11, -10, 6], ['정자 숲', -8, -11, 6]];
-  let best = '마이세카이 숲길', bd = 1e9; A.forEach(([n, ax, az, r]) => { const d = Math.hypot(x - ax, z - az) - r; if (d < 0 && d < bd) { bd = d; best = n; } }); return best;
+  let best = '', bd = 1e9; A.forEach(([n, ax, az, r]) => { const d = Math.hypot(x - ax, z - az) - r; if (d < 0 && d < bd) { bd = d; best = n; } }); return best || regionOf();
 }
 // 폰·패드는 평소엔 가볍게, 아쿠아리움에서만 수채화 필터 켜기
 function render() { if (composer && (!LOW || (AREA && AREA.gouache))) { rpass.scene = curScene; composer.render(); } else renderer.render(curScene, cam); }
