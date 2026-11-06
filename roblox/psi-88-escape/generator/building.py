@@ -59,7 +59,25 @@ def slab(b, y0, y1, holes, color, mat, outer=(BX0, BX1, BZ0, BZ1), name='Slab', 
     return m
 
 
-def wall_x(b, x0, x1, z, y0, y1, color, mat='Concrete', t=0.6, openings=(), name='Wall', **kw):
+def _darker(c, k=0.5):
+    return (int(((c >> 16) & 255) * k) << 16) | (int(((c >> 8) & 255) * k) << 8) | int((c & 255) * k)
+
+
+def _trim(m, a0, a1, axis, plane, t, y0, y1, color):
+    """Baseboard + a thin top cap on both faces of a wall segment."""
+    if y1 - y0 < 6 or t < 0.3 or a1 - a0 < 0.8 or abs(y0) > 0.6:
+        return
+    bc = _darker(color, 0.45)
+    for sgn in (-1, 1):
+        f0, f1 = plane + sgn * t / 2, plane + sgn * (t / 2 + 0.12)
+        lo, hi = min(f0, f1), max(f0, f1)
+        if axis == 'x':
+            m.box('Baseboard', a0, y0, lo, a1, y0 + 0.55, hi, bc, 'Wood', shadow=False, collide=False)
+        else:
+            m.box('Baseboard', lo, y0, a0, hi, y0 + 0.55, a1, bc, 'Wood', shadow=False, collide=False)
+
+
+def wall_x(b, x0, x1, z, y0, y1, color, mat='Concrete', t=0.6, openings=(), name='Wall', trim=True, **kw):
     """Wall running along X at depth z. openings: (x_centre, width, height)."""
     m = b.model(name)
     cur = x0
@@ -67,26 +85,34 @@ def wall_x(b, x0, x1, z, y0, y1, color, mat='Concrete', t=0.6, openings=(), name
         a, c = xc - w / 2, xc + w / 2
         if a > cur:
             m.box('Wall', cur, y0, z - t / 2, a, y1, z + t / 2, color, mat, **kw)
+            if trim:
+                _trim(m, cur, a, 'x', z, t, y0, y1, color)
         if y0 + h < y1:
             m.box('Lintel', a, y0 + h, z - t / 2, c, y1, z + t / 2, color, mat, **kw)
         cur = c
     if cur < x1:
         m.box('Wall', cur, y0, z - t / 2, x1, y1, z + t / 2, color, mat, **kw)
+        if trim:
+            _trim(m, cur, x1, 'x', z, t, y0, y1, color)
     return m
 
 
-def wall_z(b, z0, z1, x, y0, y1, color, mat='Concrete', t=0.6, openings=(), name='Wall', **kw):
+def wall_z(b, z0, z1, x, y0, y1, color, mat='Concrete', t=0.6, openings=(), name='Wall', trim=True, **kw):
     m = b.model(name)
     cur = z0
     for zc, w, h in sorted(openings):
         a, c = zc - w / 2, zc + w / 2
         if a > cur:
             m.box('Wall', x - t / 2, y0, cur, x + t / 2, y1, a, color, mat, **kw)
+            if trim:
+                _trim(m, cur, a, 'z', x, t, y0, y1, color)
         if y0 + h < y1:
             m.box('Lintel', x - t / 2, y0 + h, a, x + t / 2, y1, c, color, mat, **kw)
         cur = c
     if cur < z1:
         m.box('Wall', x - t / 2, y0, cur, x + t / 2, y1, z1, color, mat, **kw)
+        if trim:
+            _trim(m, cur, z1, 'z', x, t, y0, y1, color)
     return m
 
 
@@ -293,5 +319,50 @@ def floor_common(fb, F):
         facade_glass(st, h, missing=F.get('facade_missing'), mid_rail=h > 20)
     elif ext == 'basement':
         basement_walls(st, h, F.get('outer_color', 0x8E8A82), F.get('outer_mat', 'Concrete'))
+    detail_floor(st, F)
     stair_segment(fb, F)
     elevator_bank(fb, F, F.get('elevator_text'), F.get('elevator_bent', False))
+
+
+def detail_floor(st, F):
+    """Architectural detail shared by every floor: pilasters, sills, baseboards, drop-ceiling grid."""
+    h = F['h']
+    c = h - 1
+    d = st.model('Detail')
+    ext = F.get('ext', 'glass')
+    trimc = F.get('trim_color', 0x2E2A28)
+    skip_s = [(x0 - 2, x1 + 2) for x0, x1, _ in F.get('facade_missing', {}).get('S', [])]
+    # perimeter baseboard on the outer walls
+    for x0, z0, x1, z1 in ((-79, -55, 79, -54.85), (-79, 54.85, 79, 55), (-79, -55, -78.85, 55), (78.85, -55, 79, 55)):
+        d.box('Baseboard', x0, 0, z0, x1, 0.55, z1, trimc, 'Wood', shadow=False, collide=False)
+    if ext == 'glass':
+        for x0, z0, x1, z1 in ((-79, -55, 79, -54.3), (-79, 54.3, 79, 55), (-79, -55, -78.3, 55), (78.3, -55, 79, 55)):
+            d.box('Sill', x0, 1.35, z0, x1, 1.6, z1, 0xD8D4CC, 'Marble', shadow=False)
+    # pilasters (structural columns) every 16 studs
+    pc = F.get('pilaster_color', 0xB8B2A8 if ext == 'glass' else F.get('outer_color', 0x8E8A82))
+    pm = 'Concrete' if ext == 'glass' else F.get('outer_mat', 'Concrete')
+    for x in range(-72, 73, 16):
+        for zf, sgn in ((-55, 1), (55, -1)):
+            if zf < 0 and any(a <= x <= b for a, b in skip_s):
+                continue
+            d.box('Pilaster', x - 1.1, 0, min(zf, zf + sgn * 0.9), x + 1.1, c, max(zf, zf + sgn * 0.9), pc, pm)
+    for z in range(-48, 49, 16):
+        d.box('Pilaster', -79, 0, z - 1.1, -78.1, c, z + 1.1, pc, pm)
+        if not (-20 <= z <= 36):
+            d.box('Pilaster', 78.1, 0, z - 1.1, 79, c, z + 1.1, pc, pm)
+    # drop ceiling grid (T-bars)
+    if F.get('ceiling', True) and F.get('ceil_grid', False):
+        gc = F.get('grid_color', 0xC8C6C0)
+        y0, y1 = c - 0.32, c - 0.2
+        for z in range(-52, 53, 4):
+            if SZ0 <= z <= SZ1:
+                d.box('TBar', -79, y0, z - 0.08, SX0, y1, z + 0.08, gc, 'Metal', shadow=False, collide=False)
+                d.box('TBar', SX1, y0, z - 0.08, 79, y1, z + 0.08, gc, 'Metal', shadow=False, collide=False)
+            else:
+                d.box('TBar', -79, y0, z - 0.08, 79, y1, z + 0.08, gc, 'Metal', shadow=False, collide=False)
+        for x in range(-76, 77, 4):
+            if SX0 <= x <= SX1:
+                d.box('TBar', x - 0.08, y0, -55, x + 0.08, y1, SZ0, gc, 'Metal', shadow=False, collide=False)
+                d.box('TBar', x - 0.08, y0, SZ1, x + 0.08, y1, 55, gc, 'Metal', shadow=False, collide=False)
+            else:
+                d.box('TBar', x - 0.08, y0, -55, x + 0.08, y1, 55, gc, 'Metal', shadow=False, collide=False)

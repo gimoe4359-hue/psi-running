@@ -133,9 +133,9 @@ def skyline(world):
     # surrounding towers
     for k in range(30):
         a = k / 30 * math.tau + RW.uniform(-0.08, 0.08)
-        r = RW.uniform(260, 520)
+        r = RW.uniform(560, 900)
         x, z = math.cos(a) * r, math.sin(a) * r
-        w, d, h = RW.uniform(40, 80), RW.uniform(40, 80), RW.uniform(120, 420)
+        w, d, h = RW.uniform(60, 120), RW.uniform(60, 120), RW.uniform(180, 600)
         rot = Ry(-math.degrees(a))
         m.blk('Tower', (w, h, d), (x, h / 2, z), RW.choice([0x16181E, 0x1E2026, 0x22242A]), 'Glass', rot=rot, refl=0.1)
         for j in range(RW.randint(2, 6)):
@@ -145,12 +145,12 @@ def skyline(world):
     # the mirrored city hanging upside-down from the sky
     for k in range(16):
         a = k / 16 * math.tau + RW.uniform(-0.1, 0.1)
-        r = RW.uniform(280, 560)
+        r = RW.uniform(620, 1000)
         x, z = math.cos(a) * r, math.sin(a) * r
         w, d, h = RW.uniform(40, 70), RW.uniform(40, 70), RW.uniform(150, 380)
         top = 1300
         m.blk('MirrorTower', (w, h, d), (x, top - h / 2, z), 0x1A1418, 'Glass', rot=Ry(RW.uniform(0, 90)), collide=False)
         m.blk('MirrorBand', (w + 0.4, 1.4, d + 0.4), (x, top - h + 30, z), 0xFF5A40, 'Neon', collide=False, shadow=False)
     # red moon
-    moon = m.ball('RedMoon', 220, (-800, 700, 900), 0x9A1A14, 'Neon', collide=False, shadow=False)
+    moon = m.ball('RedMoon', 320, (-1400, 1100, 1700), 0x9A1A14, 'Neon', collide=False, shadow=False)
     return m

@@ -196,6 +196,7 @@ def serialize(roots, path):
 # ---------------------------------------------------------------- preview export
 PREVIEW = []  # (kind, size, cf, color, transparency, material)
 PREVIEW_TEXT = []  # (cf, size, face, text, bg, fg, bg_tr)
+PREVIEW_LIGHTS = []  # (pos, kind, color, brightness, range, shadows, face_dir)
 
 
 # ---------------------------------------------------------------- builder
@@ -249,7 +250,7 @@ class B:
         kind = shape or ('Wedge' if cls == 'WedgePart' else 'Block')
         if cls == 'SpawnLocation':
             kind = 'Block'
-        PREVIEW.append((kind, size, world, color, tr, mat))
+        PREVIEW.append((kind, size, world, color, tr, mat, refl))
         p._cf, p._size = world, size
         return p
 
@@ -290,6 +291,13 @@ class B:
 # ---------------------------------------------------------------- decorations attached to parts
 def light(part, kind='PointLight', color=0xFFF1E0, brightness=1.0, rng=16, shadows=False,
           face='Bottom', angle=90):
+    if hasattr(part, '_cf'):
+        cf, sz = part._cf, part._size
+        fd = {'Bottom': (0, -1, 0), 'Top': (0, 1, 0), 'Front': (0, 0, -1), 'Back': (0, 0, 1), 'Left': (-1, 0, 0),
+              'Right': (1, 0, 0)}[face]
+        wd = [sum(cf.R[i][j] * fd[j] for j in range(3)) for i in range(3)]
+        off = 0.6 if kind != 'PointLight' else 0
+        PREVIEW_LIGHTS.append(([cf.p[i] + wd[i] * off for i in range(3)], kind, color, brightness, rng, shadows, wd))
     l = Inst(kind, kind, part)
     l.prop('float', 'Brightness', brightness)
     l.prop('Color3', 'Color', color)
