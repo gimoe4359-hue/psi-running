@@ -17,6 +17,8 @@ import floors_lower as L
 import vignettes as V
 import world as W
 import dress as D
+import props as P
+from props import R
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, '..', 'PSI_88F_Escape_Map.rbxlx')
@@ -56,6 +58,8 @@ FLOORS = [
 
 
 VIGNETTES = V.VIGNETTES
+# floors that keep the dense set dressing (피의 축제방 + 병원)
+DENSE = {44} | set(range(-13, -5))
 
 
 def label(n):
@@ -115,21 +119,26 @@ def build(preview=False):
         fb = floors_folder.model(name, cf=T(0, base[n], 0))
         F['base'] = base[n]
         reg0 = len(rbx.REGISTRY)
+        dense = n in DENSE
+        P.DESK_CLUTTER = dense
         building.floor_common(fb, F)
         fn(fb, F)
-        vig = VIGNETTES.get(n)
-        if vig:
-            vig(fb, F)
-        th = F.get('theme')
-        if th:
-            dd = D.dress_floor(fb, F, reg0, th, density=F.get('density', 1.0), decal_n=F.get('decals', 60),
-                               clear=F.get('clear', 4.0))
-            cl = V.CLUSTERS.get(n)
-            if cl:
-                cl(dd)
+        if dense:
+            state = R.getstate()          # extra dressing must not change later floors
+            vig = VIGNETTES.get(n)
+            if vig:
+                vig(fb, F)
+            th = F.get('theme')
+            if th:
+                dd = D.dress_floor(fb, F, reg0, th, density=F.get('density', 1.0), decal_n=F.get('decals', 60),
+                                   clear=F.get('clear', 4.0))
+                cl = V.CLUSTERS.get(n)
+                if cl:
+                    cl(dd)
+            R.setstate(state)
+        P.DESK_CLUTTER = False
 
     W.roof(root, roof_y)
-    V.extras(root, roof_y, base[-13] - 1)
     L.core(root, base[-13] - 1)
     W.exterior(root)
     W.skyline(root)

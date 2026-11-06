@@ -8,6 +8,7 @@ import random
 from rbx import T, Rx, Ry, Rz, light, gui_text, particles, FACING_YAW
 
 R = random.Random(8888)
+DESK_CLUTTER = False  # personal desk clutter (only on densely dressed floors)
 
 # ---------------------------------------------------------------- palette
 WOOD = 0x6B4A2F
@@ -197,7 +198,7 @@ def desk(b, w=6, d=3, h=3.1, top=0xD9D4CA, frame=DGREY, monitor=True, chair_=Tru
                   0xF2F0EA, rot=Ry(R.uniform(0, 360)), collide=False)
         if R.random() < 0.5:
             m.cyl('Mug', 0.5, 0.4, (w / 2 - 0.6, h + 0.25, -0.5), R.choice([0xFFFFFF, 0xC04040, 0x305080]), 'SmoothPlastic', collide=False)
-    if clutter:
+    if clutter and DESK_CLUTTER:
         import props2
         props2.desk_clutter(m, w, d, h)
     if nameplate:
