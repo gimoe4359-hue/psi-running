@@ -18,6 +18,7 @@ import vignettes as V
 import showcase88 as S88
 import v2_office as VO
 import v2_public as VP
+import v2_special as VS
 import world as W
 import dress as D
 import props as P
@@ -64,7 +65,7 @@ VIGNETTES = V.VIGNETTES
 # floors that keep the dense set dressing (피의 축제방 + 병원)
 DENSE = {44} | set(range(-13, -5))
 # floors rebuilt by hand with full art direction
-REBUILT = {88: S88.build, 87: VO.f87, 80: VO.f80, 70: VO.f70, 40: VO.f40, 8: VO.f8, 60: VP.f60, 1: VP.f1, 20: VP.f20, 10: VP.f10, 30: VP.f30}
+REBUILT = {88: S88.build, 87: VO.f87, 80: VO.f80, 70: VO.f70, 40: VO.f40, 8: VO.f8, 60: VP.f60, 1: VP.f1, 20: VP.f20, 10: VP.f10, 30: VP.f30, 66: VS.f66, 50: VS.f50, -1: VS.fB1, -2: VS.fB2, -3: VS.fB3}
 
 
 def label(n):
