@@ -19,6 +19,7 @@ import showcase88 as S88
 import v2_office as VO
 import v2_public as VP
 import v2_special as VS
+import v2_backrooms as VB
 import world as W
 import dress as D
 import props as P
@@ -37,6 +38,8 @@ FLOORS = [
                                                       'W': [(-30, -6, False), (20, 44, True)],
                                                       'N': [(-60, -44, False)]})),
     (80, '1급 기밀 문서보관소', 16, U.f80, dict(theme='office', density=0.5, ceil_grid=True, floor_color=0x4A4E52, ceil_color=0x6A6E72, elevator_text='보안 구역')),
+    (77, '백룸', 16, (lambda fb, F: None), dict(ext='basement', floor_color=0xB09A5C, ceil_color=0xE2D8B0, outer_color=0xC9B36A,
+                                              outer_mat='SmoothPlastic', elevator_text='77')),
     (70, 'CCTV 관제실', 16, U.f70, dict(theme='office', density=0.9, ceil_grid=True, floor_color=0x2A2E36, floor_mat='DiamondPlate', ceil_color=0x2A2E36)),
     (66, '짜장 지옥', 32, U.f66, dict(theme=None, floor_color=0x3A2414, ceil_color=0x4A3424, elevator_text='짜장 침수')),
     (60, '사내식당 (진미국수)', 16, U.f60, dict(theme='kitchen', ceil_grid=True, floor_color=0xC8C4B8, floor_mat='Slate', ceil_color=0xE8E8E4)),
@@ -65,7 +68,8 @@ VIGNETTES = V.VIGNETTES
 # floors that keep the dense set dressing (피의 축제방 + 병원)
 DENSE = {44} | set(range(-13, -5))
 # floors rebuilt by hand with full art direction
-REBUILT = {88: S88.build, 87: VO.f87, 80: VO.f80, 70: VO.f70, 40: VO.f40, 8: VO.f8, 60: VP.f60, 1: VP.f1, 20: VP.f20, 10: VP.f10, 30: VP.f30, 66: VS.f66, 50: VS.f50, -1: VS.fB1, -2: VS.fB2, -3: VS.fB3}
+ISOLATED = {77}
+REBUILT = {88: S88.build, 87: VO.f87, 80: VO.f80, 70: VO.f70, 40: VO.f40, 8: VO.f8, 60: VP.f60, 1: VP.f1, 20: VP.f20, 10: VP.f10, 30: VP.f30, 66: VS.f66, 50: VS.f50, -1: VS.fB1, -2: VS.fB2, -3: VB.fB3, 77: VB.f77}
 
 
 def label(n):
@@ -124,6 +128,7 @@ def build(preview=False):
         name = 'F%s_%s' % (label(n), title.split(' (')[0].replace(' · ', '_').replace(' ', ''))
         fb = floors_folder.model(name, cf=T(0, base[n], 0))
         F['base'] = base[n]
+        iso_state = R.getstate() if n in ISOLATED else None
         reg0 = len(rbx.REGISTRY)
         dense = n in DENSE
         P.DESK_CLUTTER = dense
@@ -155,6 +160,8 @@ def build(preview=False):
                     cl(dd)
             R.setstate(state)
         P.DESK_CLUTTER = False
+        if iso_state is not None:
+            R.setstate(iso_state)       # a newly added floor must not change any other floor
 
     W.roof(root, roof_y)
     L.core(root, base[-13] - 1)

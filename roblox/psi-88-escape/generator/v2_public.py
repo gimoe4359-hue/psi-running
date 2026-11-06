@@ -272,7 +272,7 @@ def f1(fb, F):
     Q.atm(s.at(T(-78.3, FL, 4) * Ry(-90)))
     Q.newspaper_rack(s.at(T(-78.4, FL, 10) * Ry(-90)))
     dr = s.blk('Directory', (0.4, 13, 6), (61.3, FL + 7.5, 40), 0x14161A, 'Metal')
-    gui_text(dr, '층별 안내\n88F 공유 하우스\n87F (출입 통제)\n80F 문서보관소\n70F 보안관제센터\n66F ■■ 지옥\n60F 사내식당\n50F 조수민 하우스\n'
+    gui_text(dr, '층별 안내\n88F 공유 하우스\n87F (출입 통제)\n80F 문서보관소\n77F (존재하지 않는 층)\n70F 보안관제센터\n66F ■■ 지옥\n60F 사내식당\n50F 조수민 하우스\n'
              '44F 연회장\n40F 오피스\n30F 피트니스\n20F 회장실\n10F 어린이집\n8F 정보구출반\n1F 로비\nB1 파르티르레트\nB2 기니방\nB3 ■■■■\nB6~13 지하병원\n▼ 지구 내핵',
              'Left', bg=0x14161A, fg=0xE8E0C8, glow=True, font=19, ppu=30, pad=0.05)
     # linear pendants + chandelier ring
