@@ -1,6 +1,6 @@
 """Building shell: slabs, facades, the continuous stair core and elevator bank."""
 import math
-from rbx import Inst, T, Ry, light, gui_text
+from rbx import Inst, T, Ry, light, gui_text, OPENINGS
 import props as P
 
 # Footprint (outer face of the facade)
@@ -82,6 +82,8 @@ def wall_x(b, x0, x1, z, y0, y1, color, mat='Concrete', t=0.6, openings=(), name
     m = b.model(name)
     cur = x0
     for xc, w, h in sorted(openings):
+        p0, p1 = b.cf.point((xc - w / 2 - 0.6, y0, z - 4.5)), b.cf.point((xc + w / 2 + 0.6, y0, z + 4.5))
+        OPENINGS.append((min(p0[0], p1[0]), min(p0[2], p1[2]), max(p0[0], p1[0]), max(p0[2], p1[2]), p0[1]))
         a, c = xc - w / 2, xc + w / 2
         if a > cur:
             m.box('Wall', cur, y0, z - t / 2, a, y1, z + t / 2, color, mat, **kw)
@@ -101,6 +103,8 @@ def wall_z(b, z0, z1, x, y0, y1, color, mat='Concrete', t=0.6, openings=(), name
     m = b.model(name)
     cur = z0
     for zc, w, h in sorted(openings):
+        p0, p1 = b.cf.point((x - 4.5, y0, zc - w / 2 - 0.6)), b.cf.point((x + 4.5, y0, zc + w / 2 + 0.6))
+        OPENINGS.append((min(p0[0], p1[0]), min(p0[2], p1[2]), max(p0[0], p1[0]), max(p0[2], p1[2]), p0[1]))
         a, c = zc - w / 2, zc + w / 2
         if a > cur:
             m.box('Wall', x - t / 2, y0, cur, x + t / 2, y1, a, color, mat, **kw)

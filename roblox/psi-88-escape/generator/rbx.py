@@ -170,12 +170,12 @@ def serialize(roots, path):
 
     def w(inst, depth):
         ref[0] += 1
-        ind = '\t' * depth
+        ind = ''
         out.append('%s<Item class="%s" referent="RBX%08X">' % (ind, inst.cls, ref[0]))
-        out.append('%s\t<Properties>' % ind)
+        out.append('<Properties>')
         for t, n, v in inst.props:
-            out.append('%s\t\t%s' % (ind, _ser_prop(t, n, v)))
-        out.append('%s\t</Properties>' % ind)
+            out.append(_ser_prop(t, n, v))
+        out.append('</Properties>')
         for c in inst.children:
             w(c, depth + 1)
         out.append('%s</Item>' % ind)
@@ -196,6 +196,8 @@ def serialize(roots, path):
 # ---------------------------------------------------------------- preview export
 PREVIEW = []  # (kind, size, cf, color, transparency, material)
 PREVIEW_TEXT = []  # (cf, size, face, text, bg, fg, bg_tr)
+REGISTRY = []  # (x0,y0,z0,x1,y1,z1, name, collide, mat, tr)
+OPENINGS = []  # world rects (x0,z0,x1,z1,y) kept clear by the dresser
 PREVIEW_LIGHTS = []  # (pos, kind, color, brightness, range, shadows, face_dir)
 
 
@@ -252,6 +254,12 @@ class B:
             kind = 'Block'
         PREVIEW.append((kind, size, world, color, tr, mat, refl))
         p._cf, p._size = world, size
+        R = world.R
+        hx = sum(abs(R[0][j]) * size[j] for j in range(3)) / 2
+        hy = sum(abs(R[1][j]) * size[j] for j in range(3)) / 2
+        hz = sum(abs(R[2][j]) * size[j] for j in range(3)) / 2
+        pp = world.p
+        REGISTRY.append((pp[0] - hx, pp[1] - hy, pp[2] - hz, pp[0] + hx, pp[1] + hy, pp[2] + hz, name, collide, mat, tr))
         return p
 
     def box(self, name, x0, y0, z0, x1, y1, z1, color, mat='SmoothPlastic', **kw):

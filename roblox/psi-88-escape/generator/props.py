@@ -197,6 +197,9 @@ def desk(b, w=6, d=3, h=3.1, top=0xD9D4CA, frame=DGREY, monitor=True, chair_=Tru
                   0xF2F0EA, rot=Ry(R.uniform(0, 360)), collide=False)
         if R.random() < 0.5:
             m.cyl('Mug', 0.5, 0.4, (w / 2 - 0.6, h + 0.25, -0.5), R.choice([0xFFFFFF, 0xC04040, 0x305080]), 'SmoothPlastic', collide=False)
+    if clutter:
+        import props2
+        props2.desk_clutter(m, w, d, h)
     if nameplate:
         p = m.blk('Nameplate', (1.8, 0.45, 0.12), (-w / 2 + 1.2, h + 0.25, -d / 2 + 0.25), 0x1C1C1C, 'Metal', rot=Rx(-15))
         gui_text(p, nameplate, 'Front', bg=0x1C1C1C, fg=0xE8D9A8, font=19, ppu=60)
