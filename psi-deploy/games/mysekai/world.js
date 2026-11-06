@@ -5,7 +5,7 @@ import { mergeGeometries } from './lib/jsm/utils/BufferGeometryUtils.js';
 export function buildWorld(sc, opt = {}) {
 const NIGHT = false;
 const DYN = [], LAMPS = [], COLS = [], TREES = [], ROCKS = [];
-let FIRE = null, TOWER = null, T2 = null, LAKEDOCK = null; const BENCHES = [];
+let FIRE = null, TOWER = null, T2 = null, LAKEDOCK = null; const BENCHES = [], LOD = [], FORAGE = [];
 // 원래 맵의 점조명은 위치만 기억 (밤에 가까운 몇 개만 실제 빛으로 켬 → 폰·아이패드도 가볍게)
 const PL = (color, power) => { const o = new THREE.Object3D(); o.userData.lamp = { color, power }; LAMPS.push(o); return o; };
 // 충돌: 원 [x, z, r] / 회전 상자 {x, z, hw, hd, ry}
@@ -468,7 +468,7 @@ const CHESTS = [], SEEDS = [], LANDMARKS = [];
     if (fbm(x * .05, z * .05, 2) < -.05) continue;
     for (let j = 0; j < 6 && ng < NG; j++, ng++) { const gx = x + (R() - .5) * 2.4, gz = z + (R() - .5) * 2.4; e.set((R() - .5) * .2, R() * 6, (R() - .5) * .2); q.setFromEuler(e); const sc2 = .3 + R() * .45;
       const k = ck(gx, gz); if (!gch.has(k)) gch.set(k, []); gch.get(k).push([new THREE.Matrix4().compose(new THREE.Vector3(gx, hgt(gx, gz) - .04, gz), q, new THREE.Vector3(sc2 * 1.4, sc2 * (1 + R() * .7), sc2)), new THREE.Color().setHSL(.23 + R() * .06, .45 + R() * .2, .4 + R() * .15)]); } }
-  for (const L of gch.values()) { const im = new THREE.InstancedMesh(blade, grassM, L.length); L.forEach(([m, c], i) => { im.setMatrixAt(i, m); im.setColorAt(i, c); }); im.receiveShadow = true; im.computeBoundingSphere(); sc.add(im); }
+  for (const [key, L] of gch.entries()) { const im = new THREE.InstancedMesh(blade, grassM, L.length); { const [i, j] = key.split(',').map(Number); LOD.push([im, (i + .5) * CH, (j + .5) * CH, opt.low ? 58 : 80]); } L.forEach(([m, c], i) => { im.setMatrixAt(i, m); im.setColorAt(i, c); }); im.receiveShadow = true; im.computeBoundingSphere(); sc.add(im); }
   DYN.push({ userData: { gtick: GT }, traverse() {}, isObject3D: false });
   // 꽃밭 (작은 반짝이 꽃)
   const flowerG = new THREE.SphereGeometry(.1, 6, 4); const fls = ['#ffffff', '#ffe27a', '#ff9ab0', '#b8a0ff'].map(c => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .1 }));
@@ -477,8 +477,20 @@ const CHESTS = [], SEEDS = [], LANDMARKS = [];
   const GEO = { trunk: [trunkG, trunkM], rock: [rockG, new THREE.MeshStandardMaterial({ color: '#8a877c', roughness: 1 })] };
   for (let ci = 0; ci < 5; ci++) { GEO['blob' + ci] = [blobG, leafM[ci]]; GEO['cone' + ci] = [coneG, leafM[ci]]; }
   for (let ci = 0; ci < 4; ci++) GEO['fl' + ci] = [flowerG, fls[ci]];
-  for (const c of chunks.values()) for (const [kind, L] of Object.entries(c)) { const [g, m] = GEO[kind]; const im = new THREE.InstancedMesh(g, m, L.length); L.forEach((mm, i) => im.setMatrixAt(i, mm)); im.castShadow = !kind.startsWith('fl'); im.receiveShadow = true; im.computeBoundingSphere(); sc.add(im); }
+  for (const [key, c] of chunks.entries()) for (const [kind, L] of Object.entries(c)) { const [g, m] = GEO[kind]; const im = new THREE.InstancedMesh(g, m, L.length); { const [i, j] = key.split(',').map(Number); LOD.push([im, (i + .5) * CH, (j + .5) * CH, kind.startsWith('fl') ? (opt.low ? 50 : 70) : kind === 'rock' ? 220 : (opt.low ? 200 : 280)]); } L.forEach((mm, i) => im.setMatrixAt(i, mm)); im.castShadow = !kind.startsWith('fl'); im.receiveShadow = true; im.computeBoundingSphere(); sc.add(im); }
 
+  // ---- 지역마다 다른 채집물 (매일 다시 자람) ----
+  const forage = (x, z, item, make) => { const y = hgt(x, z); if (y < BIGWATER + .3) return; const g = new THREE.Group(); g.position.set(x, y, z); sc.add(g); make(g); DYN.push(g); LOD.push([g, x, z, 30]); FORAGE.push({ id: FORAGE.length, x, z, item, g }); };
+  const shroom = g => { for (let k = 0; k < 3; k++) { const s2 = .12 + R() * .1, dx = (R() - .5) * .5, dz = (R() - .5) * .5; add(new THREE.CylinderGeometry(s2 * .4, s2 * .5, s2 * 1.6, 8), M('#fbf3e4'), dx, s2 * .8, dz, { p: g, cast: false }); add(new THREE.SphereGeometry(s2, 12, 8, 0, 6.29, 0, Math.PI / 2), M('#e8504a'), dx, s2 * 1.55, dz, { p: g, cast: false }); add(new THREE.SphereGeometry(s2 * .2, 6, 4), M('#ffffff'), dx + s2 * .4, s2 * 1.9, dz, { p: g, cast: false }); } };
+  const herb = g => { for (let k = 0; k < 6; k++) add(new THREE.ConeGeometry(.05, .45, 4), M('#5ab05a', { emissive: '#3a8a3a', emissiveIntensity: .2 }), (R() - .5) * .3, .22, (R() - .5) * .3, { p: g, rz: (R() - .5) * .6, cast: false }); add(new THREE.SphereGeometry(.06, 6, 4), M('#ffffff', { emissive: '#ffffff', emissiveIntensity: .3 }), 0, .48, 0, { p: g, cast: false }); };
+  const shell = g => { for (let k = 0; k < 2; k++) { const m = add(new THREE.SphereGeometry(.14, 10, 6, 0, Math.PI), M(k ? '#f8e0d8' : '#fff6ea', { roughness: .4 }), (k - .5) * .3, .04, 0, { p: g, rx: -Math.PI / 2, cast: false }); m.scale.set(1, 1, .4); } };
+  const crystal = g => { for (let k = 0; k < 3; k++) add(new THREE.OctahedronGeometry(.16 + R() * .08), M('#bfe8ff', { emissive: '#7ad0ff', emissiveIntensity: .7, roughness: .1, transparent: true, opacity: .85 }), (R() - .5) * .4, .22, (R() - .5) * .4, { p: g, ry: R() * 3, s: [1, 1.6, 1], cast: false }); };
+  const gear = g => { add(new THREE.TorusGeometry(.18, .06, 6, 10), M('#7e8a96', { metalness: .6, roughness: .4, emissive: '#3a8ac8', emissiveIntensity: .25 }), 0, .1, 0, { p: g, rx: Math.PI / 2 - .3, cast: false }); };
+  const ring = ([cx, cz, rr], n, item, make) => { for (let k = 0; k < n; k++) { const a = R() * 6.28, d = Math.sqrt(R()) * rr, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; if (Math.hypot(x, z - 2) < 150) forage(x, z, item, make); } };
+  ring(REG.forestNE, 9, '숲 버섯', shroom); ring(REG.forestS, 8, '숲 버섯', shroom); ring(REG.forestW, 6, '숲 버섯', shroom);
+  ring([REG.plateau[0], REG.plateau[1], 24], 10, '고원 허브', herb); ring([REG.castle[0], REG.castle[1], 16], 6, '고대 부품', gear);
+  for (let k = 0; k < 10; k++) { const a = R() * 6.28, x = REG.lake[0] + Math.cos(a) * 30, z = REG.lake[1] + Math.sin(a) * 27; forage(x, z, '호수 조개', shell); }
+  for (let k = 0; k < 10; k++) { const a = R() * 6.28, d = 128 + R() * 14, x = Math.cos(a) * d, z = 2 + Math.sin(a) * d; forage(x, z, '얼음 결정', crystal); }
   // ---- 고대 전망탑 (올라가면 지도가 밝혀짐) ----
   { const [x, z] = REG.towerHill, y = hgt(x, z) - .5, T = new THREE.Group(); T.position.set(x, y, z); sc.add(T);
     const st = M('#5a5e66', { roughness: .7 }), glow = M('#7ae0ff', { emissive: '#4ac8ff', emissiveIntensity: 2.2 });
@@ -600,7 +612,7 @@ const KEYS = [
   [24, '#0b1230', '#1e2a58', '#3a3a6a', '#1c2446', '#8aa0ff', .5, '#5a6aa8', '#141c28', .45, 1.6]];
 const tc = new THREE.Color(), tA = new THREE.Color(), tB = new THREE.Color();
 const lerpC = (a, b, t) => tA.set(a).lerp(tB.set(b), t).clone();
-let EMIS = [], lastSky = -1;
+let EMIS = [], lastSky = -1, lodTick = 0;
 function setTime(h, focus) {
   h = ((h % 24) + 24) % 24; let i = 0; while (KEYS[i + 1][0] <= h) i++; const A = KEYS[i], B = KEYS[i + 1], t = (h - A[0]) / (B[0] - A[0]);
   const top = lerpC(A[1], B[1], t), mid = lerpC(A[2], B[2], t), low = lerpC(A[3], B[3], t);
@@ -619,6 +631,7 @@ function setTime(h, focus) {
   nightLights.forEach(l => l.intensity = 0);
   if (night > .05 && focus) { const near = LAMPS.slice().sort((a, b) => a.position.distanceToSquared(focus) - b.position.distanceToSquared(focus)).slice(0, nightLights.length);
     near.forEach((o, k) => { const l = nightLights[k]; l.position.copy(o.position); l.color.set(o.userData.lamp.color); l.intensity = Math.min(9, o.userData.lamp.power * 1.4) * night; }); }
+  if (focus && (++lodTick % 20 === 0)) for (const [m, x, z, r] of LOD) m.visible = !m.userData.taken && Math.hypot(x - focus.x, z - focus.z) < r + 34;
   return { night, h };
 }
 
@@ -666,5 +679,6 @@ function tick(t, dt) {
   if (flies.visible) flies.children.forEach(f => { const [x, y, z, ph] = f.userData.o; f.position.set(x + Math.sin(t * .6 + ph) * .8, y + Math.sin(t * 1.1 + ph * 2) * .4, z + Math.cos(t * .5 + ph) * .8); });
   if (FIRE) FIRE.emissiveIntensity *= .92 + Math.random() * .16;
 }
-return { hgt, groundY, collide, INTER, setTime, tick, onDock, COLS, AREAS, TREES, ROCKS, DYN, SEE, TOWER, BENCHES, T2, CHESTS, SEEDS, LANDMARKS, REG, LAKEDOCK, villW };
+const slopeAt = (x, z) => Math.hypot(hgt(x + .5, z) - hgt(x - .5, z), hgt(x, z + .5) - hgt(x, z - .5));
+return { slopeAt, FORAGE, hgt, groundY, collide, INTER, setTime, tick, onDock, COLS, AREAS, TREES, ROCKS, DYN, SEE, TOWER, BENCHES, T2, CHESTS, SEEDS, LANDMARKS, REG, LAKEDOCK, villW };
 }

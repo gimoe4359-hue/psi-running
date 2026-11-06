@@ -47,6 +47,8 @@ const ITEMS = {
   '사과': ['🍎', 18, '나무를 흔들면 가끔 떨어짐'], '나뭇가지': ['🪵', 4, '나무를 흔들어 얻음 · 제작 재료'], '돌': ['🪨', 5, '바위에서 캠 · 제작 재료'], '꿀': ['🍯', 60, '벌통에서 모은 꿀'],
   '빵': ['🍞', 90, '화덕에서 갓 구운 빵'], '토마토 피자': ['🍕', 160, '토마토가 듬뿍'], '사과파이': ['🥧', 150, '달콤한 사과파이'], '꿀빵': ['🍯', 200, '꿀을 바른 빵'], '생선구이': ['🍢', 70, '모닥불에 구운 생선'], '구운 마시멜로': ['🍡', 40, '겉은 바삭 속은 말랑'],
   '마시멜로': ['☁️', 10, '잡화점에서 팔아요'], '새모이': ['🌰', 8, '새집에 넣어 주기'], '깃털': ['🪶', 45, '새가 두고 간 선물'], '이상현상 조각': ['🔮', 220, '지하실에서 주운 이상한 조각'],
+  '숲 버섯': ['🍄', 25, '숲에서 자라는 빨간 버섯 · 요리 재료'], '고원 허브': ['🌿', 20, '시작의 고원에서 나는 향긋한 풀'], '호수 조개': ['🐚', 35, '거울 호수 물가의 조개'], '얼음 결정': ['🧊', 60, '설산 기슭에서 반짝이는 결정'],
+  '버섯 파이': ['🥧', 180, '버섯이 듬뿍 · 먹으면 기운이 남'], '버섯 꼬치': ['🍢', 90, '모닥불에 구운 버섯'], '허브 생선구이': ['🐟', 150, '고원 허브를 올린 생선구이'],
   '황금 사과': ['🍏', 300, '보물상자에서 나온 반짝이는 사과'], '고대 부품': ['⚙️', 250, '고대 전망탑과 같은 돌로 만든 부품'], '숲의 씨앗': ['🌰', 0, '숲의 요정이 준 씨앗 · 모으면 좋은 일이?'],
   '밀 씨앗': ['🌱', 6, '심으면 밀'], '토마토 씨앗': ['🌱', 10, '심으면 토마토'], '당근 씨앗': ['🌱', 8, '심으면 당근'], '양배추 씨앗': ['🌱', 9, '심으면 양배추']
 };
@@ -59,10 +61,10 @@ const GACHA = [
   ['☕', '컴포즈 커피 컵', '장세진 대리의 최애 · 리필은 셀프', 1], ['🍜', '짜장면 미니어처', '차강면 차장 추천^^', 1], ['💾', 'Ctrl+S 키캡', '안경수 대리: 저장하게나, 허허', 1], ['📋', '오탈자 없는 보고서', '이미리 과장 검수 완료', 2],
   ['📣', '굿잡 확성기', '유모자 팀장: oh my ong!', 1], ['☕', '부서진 머그 조각', '에스키모가 또… Извините (죄송합니다)', 1], ['🪪', '정보구출반 사원증', '목에 거는 시늉도 가능', 1], ['📱', '주운 핸드폰 키링', '대롱대롱', 2],
   ['🎫', '송천동행 막차표', '탑승은 자유, 하차는 신중히', 2], ['🔦', '이상현상 탐지기', '삐빅… 이상 없음(이상 있음)', 2], ['🌉', '8번다리 스노우볼', '흔들면 안개가 낀다', 3], ['🧸', '싸이 인형', '말랑말랑 · 아주 희귀', 4]];
-const CRAFT = [['🪑', '나무 의자', { '나뭇가지': 4 }], ['🪴', '돌 화분', { '돌': 3, '나뭇가지': 1 }], ['🏮', '종이 등불', { '나뭇가지': 2, '돌': 1, '꿀': 1 }], ['🌰', '새모이', { '밀': 1 }, true]];
+const CRAFT = [['🪑', '나무 의자', { '나뭇가지': 4 }], ['🪴', '돌 화분', { '돌': 3, '나뭇가지': 1 }], ['🏮', '종이 등불', { '나뭇가지': 2, '돌': 1, '꿀': 1 }], ['❄️', '얼음 등불', { '얼음 결정': 2, '나뭇가지': 1 }], ['🎐', '조개 풍경', { '호수 조개': 3, '나뭇가지': 1 }], ['🌰', '새모이', { '밀': 1 }, true]];
 const CROPS = { '밀 씨앗': ['밀', 3, 2.5], '토마토 씨앗': ['토마토', 2, 4], '당근 씨앗': ['당근', 2, 3], '양배추 씨앗': ['양배추', 2, 3.5] };   // 수확물, 개수, 자라는 시간(게임 시간)
 const QPOOL = [['water', '우물에서 물 3번 긷기', 3, 80], ['fish', '물고기 2마리 낚기', 2, 150], ['bake', '화덕에서 요리 1번', 1, 140], ['pet', '고양이 쓰다듬기', 1, 60], ['harvest', '작물 3개 수확', 3, 120], ['sell', '잡화점에서 5개 팔기', 5, 100],
-  ['shake', '나무 4번 흔들기', 4, 70], ['mine', '돌 3개 캐기', 3, 70], ['talk', '친구 3명과 이야기', 3, 90], ['photo', '사진 1장 찍기', 1, 60], ['honey', '꿀 모으기', 1, 80], ['busk', '버스킹 1번', 1, 100]];
+  ['shake', '나무 4번 흔들기', 4, 70], ['mine', '돌 3개 캐기', 3, 70], ['talk', '친구 3명과 이야기', 3, 90], ['photo', '사진 1장 찍기', 1, 60], ['honey', '꿀 모으기', 1, 80], ['busk', '버스킹 1번', 1, 100], ['forage', '대평원에서 채집 4번', 4, 120], ['fish', '물고기 3마리 낚기', 3, 180]];
 const NPCS = [
   { id: 'imiri', name: '이미리', c: '#d8c8f0', at: [-4.8, 4.8], lines: ['…노을, 지금이 제일 예뻐요.', '보고서는 근거가 있어야 해요. 낚시도요.', '네. …공유 씨도 잠깐 쉬어요.', '그 물고기, 도감에 제대로 기록했어요?'] },
   { id: 'sejin', name: '장세진', c: '#bfe8d0', at: [4.6, 2.6], lines: ['ㅋㅋ 공유야 연못 봐봐 나 완벽조각남 비친다~', '컴포즈 가고 싶다… 여긴 왜 카페가 없어ㅎㅎ', '일은 내일의 내가 할 거야~', '캡슐 뽑기 했어? 나 또 컵 나왔어ㅋㅋ'] },
@@ -88,7 +90,7 @@ ui.innerHTML = `<div class="vig" id="vig"></div>
 <div class="quest" id="qhud"></div>
 <div class="mini p" id="mini"><canvas width="220" height="220"></canvas><span>지도 M</span></div>
 <div class="menu p"><button class="mb" id="bBag" title="가방">🎒</button><button class="mb" id="bDex" title="도감">📘</button><button class="mb" id="bQuest" title="퀘스트">📜</button><button class="mb" id="bPose" title="포즈 (G)">🙂</button><button class="mb" id="bMore" title="설정">⚙️</button></div><div class="poses p" id="poses" hidden></div>
-<div class="joyhint" id="joyhint">이동</div><div class="joy" id="joy"><span></span></div>
+<svg class="stam" id="stam" viewBox="0 0 44 44"><circle cx="22" cy="22" r="17" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="6"/><circle id="stamC" cx="22" cy="22" r="17" fill="none" stroke="#8cf07a" stroke-width="6" stroke-linecap="round" transform="rotate(-90 22 22)" stroke-dasharray="106.8" stroke-dashoffset="0"/></svg><div class="joyhint" id="joyhint">이동</div><div class="joy" id="joy"><span></span></div>
 <div class="acts p"><button class="act big off" id="bAct"><span class="e" id="actE">✋</span><span id="actT">상호작용</span></button><button class="act jump" id="bJump"><span class="e">⤴️</span>점프</button><button class="act run" id="bRun"><span class="e">💨</span>달리기</button></div>
 <div id="prompt"></div><div class="toasts" id="toasts"></div><div id="layer"></div><div class="fade" id="fade"></div>`;
 const toast = (t, ms = 2600) => { const d = document.createElement('div'); d.className = 'toast'; d.innerHTML = t; $('#toasts').append(d); setTimeout(() => d.remove(), ms); while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove(); };
@@ -138,7 +140,7 @@ setTimeout(async () => {
     const gltf = await new GLTFLoader().loadAsync('./char.glb', e => e.total && lbar(.55 + .35 * e.loaded / e.total));
     makeChars(gltf.scene); lbar(.95);
     W.setTime(12, new THREE.Vector3()); makeMap(); W.setTime(S.h, P.pos);
-    ensureDaily(); coinsUI(); hud();
+    ensureDaily(); syncForage(); coinsUI(); hud();
     lbar(1); $('#lmsg').textContent = '준비 완료!'; const go = $('#lgo'); go.style.display = 'inline-block';
     go.onclick = () => { ac(); $('.back') && $('.back').remove(); $('#load').style.opacity = 0; setTimeout(() => $('#load').remove(), 600); ready = true; clock.getDelta();
       if (!S.stats.bigworld) { S.stats.bigworld = 1; const R0 = W.REG.plateau, sx = R0[0] + 20, sz = R0[1] - 2; P.pos.set(sx, W.groundY(sx, sz), sz); P.root.rotation.y = Math.atan2(0 - sx, 2 - sz); camS.tYaw = camS.yaw = P.root.rotation.y + Math.PI; camS.tPitch = camS.pitch = .22; lastRegion = '시작의 고원';
@@ -304,7 +306,7 @@ function ensureDaily() {
   if (!S.quests || S.quests.day !== S.day) {
     const pool = QPOOL.slice().sort(() => Math.random() - .5).slice(0, 3);
     S.quests = { day: S.day, list: pool.map(([id, t, n, rw]) => ({ id, t, n, rw, have: 0, done: false, got: false })) };
-    S.shaken = {}; S.mined = {}; S.talked = {};
+    S.shaken = {}; S.mined = {}; S.talked = {}; if (W) setTimeout(() => { try { syncForage(); W.FORAGE.forEach(c => { if (!c.g.userData.taken) c.g.visible = true; }); } catch (e) { } }, 0);
     const L = LETTERS[(S.day * 7 + 3) % LETTERS.length]; S.letters.unshift({ from: L[0], text: L[1], day: S.day, read: false }); S.letters = S.letters.slice(0, 20);
     if (S.day > 1) toast('☀️ 새로운 하루! 게시판에 의뢰가 붙고 우체통에 편지가 왔어요', 3600);
   }
@@ -379,7 +381,7 @@ const tap = (id, fn) => $(id).addEventListener('pointerdown', e => { e.preventDe
 tap('#bAct', () => fishing ? fishTap() : talking() ? nextSay() : act()); tap('#bJump', () => jump()); tap('#bRun', () => { runToggle = !runToggle; $('#bRun').classList.toggle('on', runToggle); });
 tap('#mini', () => openMap()); tap('#bBag', () => openBag()); tap('#bDex', () => openDex()); tap('#bQuest', () => openQuests()); tap('#bMore', () => openMore()); tap('#bPose', () => togglePoses());
 function jump() { if (pm || sheetOpen || talking() || fishing) return; if (P.pose) { P.pose = null; return; }
-  if (!P.ground && !AREA && P.air > .15) { P.glide = !P.glide; if (P.glide) { beep(500, .15, 'triangle', .05); P.vy = Math.max(P.vy, -1); } return; } P.jbuf = .16; }
+  if (!P.ground && !AREA && P.air > .15) { if (!P.glide && P.tired) { toast('😵 힘이 없어서 펼칠 수 없어요'); return; } P.glide = !P.glide; if (P.glide) { beep(500, .15, 'triangle', .05); P.vy = Math.max(P.vy, -1); } return; } P.jbuf = .16; }
 
 // ================= 장소: 바깥 세상 · 전망대 꼭대기 · 아쿠아리움 안 · 지하실 =================
 let AREA = null; const INS = {};
@@ -470,6 +472,7 @@ function findTarget() {
   for (const [ic, nm, ac, x, y, z] of W.INTER) { const r = REACH[nm]; const tx = r ? r[0] : x, tz = r ? r[1] : z, rr = r ? r[2] : 1.6; const d = Math.hypot(px - tx, pz - tz) - rr; if (d < 0) consider({ k: 'inter', ic, nm, ac, x, z }, score(x, z, d) - 1); }
   for (const n of npcs) { const d = n.root.position.distanceTo(P.pos) - 1.7; if (d < 0) consider({ k: 'npc', ic: '💬', nm: n.name, ac: '이야기하기', n }, score(n.root.position.x, n.root.position.z, d) - 1.5); }
   if (!best) { W.TREES.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (.45 * s + 1.1); if (d < 0) consider({ k: 'tree', ic: '🌳', nm: '나무', ac: S.shaken[i] ? '오늘은 다 흔들었어요' : '흔들기', i, x, z, s }, score(x, z, d)); });
+    W.FORAGE.forEach(c => { if (S.forage && S.forage[c.id] === S.day) return; const d = Math.hypot(px - c.x, pz - c.z) - 1.3; if (d < 0) consider({ k: 'forage', ic: (ITEMS[c.item] || ['🌱'])[0], nm: c.item, ac: '줍기', c, x: c.x, z: c.z }, d - 1.5); });
     W.CHESTS.forEach(c => { const d = Math.hypot(px - c.x, pz - c.z) - 1.5; if (d < 0) consider({ k: 'chest', ic: '📦', nm: '보물상자', ac: S.chests && S.chests[c.id] ? '빈 상자' : '열기', c, x: c.x, z: c.z }, d - 2); });
     W.SEEDS.forEach(c => { if (S.seeds && S.seeds[c.id]) return; const d = Math.hypot(px - c.x, pz - c.z) - 1.4; if (d < 0) consider({ k: 'seed', ic: '🌼', nm: '수상한 꽃 고리', ac: '살펴보기', c, x: c.x, z: c.z }, d - 2); });
     W.ROCKS.forEach(([x, z, s], i) => { const d = Math.hypot(px - x, pz - z) - (s * 1.1 + 1.0); if (d < 0) consider({ k: 'rock', ic: '🪨', nm: '바위', ac: S.mined[i] ? '오늘은 다 캤어요' : '돌 캐기', i, x, z, s }, score(x, z, d)); }); }
@@ -504,6 +507,7 @@ async function act() {
     else if (t.k === 'npc') { actionCam(true); await talkNPC(t.n); }
     else if (t.k === 'tree') { await turnTo(t.x, t.z); actionCam(true); await shakeTree(t); }
     else if (t.k === 'rock') { await turnTo(t.x, t.z); actionCam(true); await mineRock(t); }
+    else if (t.k === 'forage') { await turnTo(t.x, t.z); await pickForage(t.c); }
     else if (t.k === 'chest') { await turnTo(t.x, t.z); actionCam(true); await openChest(t.c); }
     else if (t.k === 'seed') { await turnTo(t.x, t.z); actionCam(true); await findSeed(t.c); }
     else { const fn = ACTS[t.nm]; if (t.x != null && t.nm !== '선착장') await turnTo(t.x, t.z); if (t.nm !== '선착장') actionCam(true); if (fn) await fn(t); else toast(`${t.ic} ${esc(t.nm)} — 준비 중이에요`); }
@@ -536,12 +540,13 @@ const CRAFT_MO = {
 };
 function craftSheet(ic, title, sub, recipes, onMake, opt = {}) {
   const fishKinds = ['이끼붕어', '반딧불송사리', '꽃잎베타', '유리비늘피라미', '붕어', '송사리', '피라미', '민물새우'];
+  const fishFix = (nm, req, opt) => { if (!opt.anyFish || !nm.includes('생선')) return req; const r = { ...req }; delete r['이끼붕어']; return { ...r, ...fishReq() }; };
   const fishReq = () => { const k = fishKinds.find(f => has(f)); return k ? { [k]: 1 } : { '이끼붕어': 1 }; };
   const render = b => {
-    b.innerHTML = recipes.map(([ric, nm, req, note, decor], i) => { const rq = opt.anyFish && nm === '생선구이' ? fishReq() : req;
+    b.innerHTML = recipes.map(([ric, nm, req, note, decor], i) => { const rq = fishFix(nm, req, opt);
       return row(ric, esc(nm) + (S.inv[nm] ? ` <small>(${S.inv[nm]}개 있음)</small>` : decor && S.decor[nm] ? ` <small>(${S.decor[nm]}개 장식)</small>` : ''), (note ? esc(note) + ' · ' : '') + need(rq), `<button class="btn" data-a="mk" data-v="${i}" ${canMake(rq) ? '' : 'disabled'}>만들기</button>`); }).join('')
       + `<p style="font-size:12px;color:#9a8a78">재료는 🎒가방에서 확인할 수 있어요.</p>`;
-    bindBtns(b, { mk: async v => { const [ric, nm, req, , decor] = recipes[+v]; const rq = opt.anyFish && nm === '생선구이' ? fishReq() : req; if (!canMake(rq)) return; take(rq); closeSheet();
+    bindBtns(b, { mk: async v => { const [ric, nm, req, , decor] = recipes[+v]; const rq = fishFix(nm, req, opt); if (!canMake(rq)) return; take(rq); closeSheet();
       acting = true; actionCam(true); try { await CRAFT_MO[opt.mo || 'hammer'](opt.spot || front(1.1, .8));
         if (decor) { S.decor[nm] = (S.decor[nm] || 0) + 1; burst('✨', head(2), 6, { up: 1.4, speed: 1, g: 0, life: .8, size: .22 }); fx(ric, head(2), { life: 1, size: .55, g: 0 }); ding(); await M_.raise(); toast(`${ric} ${esc(nm)} 완성! 오두막에 장식했어요`); }
         else await gain(nm, 1, opt.spot);
@@ -562,8 +567,8 @@ const ACTS = {
   '잡화점': async () => { const n = npcs.find(x => x.id === 'sejin'); await M_.hop(.35); openShop(); },
   '캡슐 뽑기': async () => { openGacha(); },
   '풍차 방앗간': () => craftSheet('🌾', '풍차 방앗간', '밀 2개 → 밀가루 1개', [['🥣', '밀가루', { '밀': 2 }]], () => ev('mill'), { mo: 'mill', spot: at(10.4, 1.6, -7.6) }),
-  '화덕': () => craftSheet('🍞', '화덕', '따끈하게 굽기 · 요리하면 퀘스트 진행', [['🍞', '빵', { '밀가루': 1, '물': 1 }], ['🍕', '토마토 피자', { '밀가루': 1, '토마토': 2, '물': 1 }], ['🥧', '사과파이', { '밀가루': 1, '사과': 2 }], ['🍯', '꿀빵', { '빵': 1, '꿀': 1 }]], () => ev('bake'), { mo: 'cook', spot: at(14.5, .8, 2.2) }),
-  '모닥불': () => craftSheet('🔥', '모닥불', '생선을 굽거나 마시멜로를 구워요', [['🍢', '생선구이', { '이끼붕어': 1 }, '흔한 물고기 아무거나'], ['🍡', '구운 마시멜로', { '마시멜로': 1 }]], () => ev('bake'), { anyFish: true, mo: 'fire', spot: at(-15.2, .7, 5.4) }),
+  '화덕': () => craftSheet('🍞', '화덕', '따끈하게 굽기 · 요리하면 퀘스트 진행', [['🍞', '빵', { '밀가루': 1, '물': 1 }], ['🍕', '토마토 피자', { '밀가루': 1, '토마토': 2, '물': 1 }], ['🥧', '사과파이', { '밀가루': 1, '사과': 2 }], ['🥧', '버섯 파이', { '밀가루': 1, '숲 버섯': 2 }, '대평원 숲의 버섯'], ['🍯', '꿀빵', { '빵': 1, '꿀': 1 }]], () => ev('bake'), { mo: 'cook', spot: at(14.5, .8, 2.2) }),
+  '모닥불': () => craftSheet('🔥', '모닥불', '생선을 굽거나 마시멜로를 구워요', [['🍢', '생선구이', { '이끼붕어': 1 }, '흔한 물고기 아무거나'], ['🐟', '허브 생선구이', { '이끼붕어': 1, '고원 허브': 1 }, '흔한 물고기 + 고원 허브'], ['🍢', '버섯 꼬치', { '숲 버섯': 2 }], ['🍡', '구운 마시멜로', { '마시멜로': 1 }]], () => ev('bake'), { anyFish: true, mo: 'fire', spot: at(-15.2, .7, 5.4) }),
   '작업대': () => craftSheet('🛠', '작업대', '모은 재료로 가구 만들기 → 오두막에 장식돼요', CRAFT.map(([ic, nm, req, item]) => [ic, nm, req, item ? '' : '오두막 장식', !item]), null, { mo: 'hammer', spot: at(15, 1.2, 5) }),
   '공방': async () => openForge(),
   '벌통': async () => { const left = S.honeyAt + 3 - T(); const hive = at(29.6, 1.1, 9.6);
@@ -586,7 +591,7 @@ const ACTS = {
     for (let i = 0; i < 3; i++) { fx(i % 2 ? '💕' : '💗', cat, { v: V3((Math.random() - .5) * .4, .9, 0), life: 1.1, size: .3 }); beep(760 + i * 120, .08, 'sine', .04); await mo(.35, u => rigSet(0, -.04, .05, .3, 0, .12 * wave(u), 1.06, .88, 1.06)); }
     await mo(.3, u => rigSet(0, -.04 * (1 - u), 0, .3 * (1 - u)));
     if (S.petDay !== S.day) { S.petDay = S.day; S.friend.cat = (S.friend.cat || 0) + 1; ev('pet'); fx('😺', cat.clone().add(V3(0, .5, 0)), { life: 1.2, size: .4, v: V3(0, .3, 0) }); toast(`🐈 고양이가 골골송을 불러요 (친밀도 ${S.friend.cat})`); save(); } else toast('🐈 …냐아. (졸려 보여요)'); },
-  '피크닉': async () => { await M_.hop(.35); P.pose = 'sit'; const snack = ['빵', '사과', '구운 마시멜로', '꿀빵'].find(k => has(k));
+  '피크닉': async () => { await M_.hop(.35); P.pose = 'sit'; const snack = ['빵', '사과', '구운 마시멜로', '꿀빵', '버섯 꼬치', '버섯 파이', '허브 생선구이', '황금 사과'].find(k => has(k));
     if (snack) { add(snack, -1, true); const ic = (ITEMS[snack] || ['🍞'])[0]; fx(ic, front(.35, .95), { life: 1.2, size: .32 }); for (let i = 0; i < 3; i++) { beep(400 + i * 60, .05, 'triangle', .04); await mo(.3, u => rigSet(0, -.05, 0, -.1 + .12 * Math.abs(wave(u)), 0, 0, 1.06, .9, 1.06)); } fx('😋', head(1.7), { life: 1, size: .35, v: V3(0, .4, 0) }); toast(`🧺 ${snack}을(를) 먹으며 쉬어요. 냠냠`); }
     else toast('🧺 담요에 앉아 노을을 봐요'); },
   '해먹': async () => { await M_.hop(.4); P.pose = 'lie'; const z = setInterval(() => fx('💤', head(1), { v: V3(.2, .5, 0), life: 1.4, size: .3, grow: .6 }), 600);
@@ -646,6 +651,12 @@ async function openChest(c) {
   const [k, n] = CHEST_LOOT[c.id % CHEST_LOOT.length];
   if (k === '코인') { fx('💰', head(2), { life: 1.2, size: .6 }); await M_.raise(1); money(n); } else await gain(k, n, V3(c.x, W.hgt(c.x, c.z) + .8, c.z));
   const got = Object.keys(S.chests).length; toast(`📦 보물상자 ${got}/${W.CHESTS.length}`); save();
+}
+function syncForage() { S.forage = S.forage || {}; W.FORAGE.forEach(c => { c.g.userData.taken = S.forage[c.id] === S.day; if (c.g.userData.taken) c.g.visible = false; }); }
+async function pickForage(c) {
+  S.forage = S.forage || {}; if (S.forage[c.id] === S.day) return; S.forage[c.id] = S.day; await M_.crouch(.4);
+  c.g.userData.taken = true; c.g.visible = false; burst('✨', V3(c.x, W.hgt(c.x, c.z) + .4, c.z), 4, { up: 1, speed: .6, life: .6, size: .2 });
+  await gain(c.item, 1 + (Math.random() < .25 ? 1 : 0), V3(c.x, W.hgt(c.x, c.z) + .3, c.z)); ev('forage'); save();
 }
 async function findSeed(c) {
   S.seeds = S.seeds || {}; if (S.seeds[c.id]) return; S.seeds[c.id] = 1; await M_.crouch(.35);
@@ -809,7 +820,8 @@ async function startFishing(at) {
   burst('💧', front(3, .1), 6, { up: 1.3, speed: .7, life: .6, size: .2 });
   fishing = { caught: [] };
   await new Promise(r => setTimeout(r, 250));
-  startPond({ toast: s => toast(esc(s)), preset: pondPreset,
+  if (at) toast('🏞 거울 호수는 깊어서 드문 물고기가 더 잘 잡혀요');
+  startPond({ toast: s => toast(esc(s)), preset: pondPreset, rare: at ? 2.2 : 1,
     onCatch: (f, cm, first) => { add(f.name, 1, true); S.dex[f.name] = (S.dex[f.name] || 0) + 1; ev('fish'); fishing && fishing.caught.push([f, cm, first]); save(); },
     onClose: () => endFishing() });
 }
@@ -898,7 +910,9 @@ function update(dt, t) {
     want.addScaledVector(right, ax).addScaledVector(fwd, -az); if (want.lengthSq() > 0) want.normalize();
   } else if (P.pose && !pm && !acting && (joyV.length() > .5 || MOVE_KEYS.some(c => keys.has(c)))) { P.pose = null; if (P.seat) { P.seat = null; P.pos.addScaledVector(V3(Math.sin(P.root.rotation.y), 0, Math.cos(P.root.rotation.y)), .55); } }
   if (camSave && !busy && mag > .1) actionCam(false);   // 다시 걷기 시작하면 카메라 원래대로
-  const run = keys.has('ShiftLeft') || keys.has('ShiftRight') || runToggle || (joyId !== null && mag > .94);
+  // 스태미나: 활공·절벽 오르기·대평원에서 달리기에 씀
+  if (P.stam == null) { P.stam = 1; P.stamWait = 0; P.tired = false; }
+  const run = !P.tired && !P.climb && keys.has('ShiftLeft') || keys.has('ShiftRight') || (!P.tired && !P.climb && (runToggle || (joyId !== null && mag > .94)));
   const top = (run ? 6.8 : 3.8) * (joyId !== null && !run ? Math.min(1, mag / .8) : mag > 0 ? 1 : 0);
   // 가속·감속 (미끄럽지 않게 빠르게 붙되, 방향 전환은 부드럽게)
   if (P.glide) { if (mag < .05) want.set(Math.sin(P.root.rotation.y), 0, Math.cos(P.root.rotation.y)); else want.normalize(); mag = 1; }
@@ -915,6 +929,15 @@ function update(dt, t) {
   P.jbuf -= dt; P.air += dt;
   if (P.jbuf > 0 && P.air < .12 && !P.pose && !busy) { P.vy = 7.0; P.ground = false; P.air = 1; P.jbuf = 0; beep(420, .08, 'triangle', .05); burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .3, speed: .8, g: 0, life: .4, size: .2, grow: 1 }); }
   if (P.seat) { P.vy = 0; if (!P.seat.moving) P.pos.y = P.seat.y; } else if (P.glide) { P.vy = Math.max(P.vy - 14 * dt, -1.7); P.pos.y += P.vy * dt; } else { P.vy -= (P.vy > 0 ? 20 : 30) * dt; P.pos.y += P.vy * dt; }
+  // 절벽 오르기: 아주 가파른 곳을 오르면 매달려 기어오름
+  if (!AREA && !P.glide && !P.seat && P.ground !== false) { const sl = W.slopeAt(P.pos.x, P.pos.z), up = W.hgt(P.pos.x + P.vel.x * .15, P.pos.z + P.vel.z * .15) > W.hgt(P.pos.x, P.pos.z) + .02;
+    if (!P.climb && sl > 1.3 && up && P.speed > .4) { P.climb = true; } else if (P.climb && (sl < 1.0 || P.speed < .05)) P.climb = false; }
+  if (P.climb) { const v = Math.hypot(P.vel.x, P.vel.z); if (v > 1.7) { P.vel.x *= 1.7 / v; P.vel.z *= 1.7 / v; } }
+  { const using = P.glide ? .045 : P.climb && P.speed > .2 ? .11 : (run && P.speed > 2 && W.villW(P.pos.x, P.pos.z) > .5) ? .05 : 0;
+    if (using) { P.stam = Math.max(0, P.stam - using * dt); P.stamWait = .8; } else if (P.ground !== false || P.climb) { P.stamWait -= dt; if (P.stamWait <= 0) P.stam = Math.min(1, P.stam + .32 * dt); }
+    if (P.stam <= 0 && !P.tired) { P.tired = true; if (P.glide) { P.glide = false; toast('😵 힘이 빠져서 패러글라이더를 놓쳤어요!'); } if (P.climb) { P.climb = false; const gx = W.hgt(P.pos.x + .5, P.pos.z) - W.hgt(P.pos.x - .5, P.pos.z), gz = W.hgt(P.pos.x, P.pos.z + .5) - W.hgt(P.pos.x, P.pos.z - .5), gl = Math.hypot(gx, gz) || 1; P.vel.set(-gx / gl * 4, 0, -gz / gl * 4); toast('😵 힘이 빠져서 미끄러졌어요… 잠깐 쉬어요'); } }
+    if (P.tired && P.stam > .35) P.tired = false;
+    const sv = $('#stam'); if (sv) { const show = P.stam < .999; sv.style.opacity = show ? 1 : 0; $('#stamC').setAttribute('stroke-dashoffset', (106.8 * (1 - P.stam)).toFixed(1)); $('#stamC').setAttribute('stroke', P.tired ? '#ff6a5a' : P.stam < .3 ? '#ffc04a' : '#8cf07a'); } }
   if (P.pos.y <= gy && P.glide) { P.glide = false; }
   if (P.pos.y <= gy) { if (!P.ground && P.vy < -3) { P.land = .18; burst('💨', P.pos.clone().add(V3(0, .1, 0)), 3, { up: .2, speed: 1, g: 0, life: .35, size: .2, grow: 1 }); } P.pos.y = gy; P.vy = 0; P.ground = true; P.air = 0; }
   else if (P.pos.y > gy + .08) P.ground = false; else { P.pos.y += (gy - P.pos.y) * Math.min(1, dt * 20); P.air = 0; }
@@ -929,6 +952,7 @@ function update(dt, t) {
     else if (P.pose === 'lie') { rigSet(0, .3, 0, -1.45, 0, 0); P.zz = (P.zz || 0) + dt; if (P.zz > 1.3) { P.zz = 0; fx('💤', head(.9), { v: V3(.2, .5, 0), life: 1.4, size: .28, grow: .6 }); } }
     else if (P.pose === 'under') rigSet(0, -1.6);
     else if (P.glide) { rigSet(0, -.15, 0, .35, 0, Math.sin(t * 2) * .06); }
+    else if (P.climb) { P.phase += dt * 6 * Math.min(1, P.speed); rigSet(0, .08 * Math.abs(Math.sin(P.phase)), -.12, -.75, 0, Math.sin(P.phase) * .12, 1, 1, 1); if (Math.random() < dt * 3) fx('💦', head(1.6), { v: V3(.3, .4, 0), life: .6, size: .16 }); }
     else if (!P.ground) { const k = THREE.MathUtils.clamp(P.vy / 7, -1, 1); rigSet(0, 0, 0, .1 * s01, 0, 0, 1 - .06 * k, 1 + .1 * k, 1 - .06 * k); }
     else if (P.land > 0) { const k = P.land / .18; rigSet(0, 0, 0, 0, 0, 0, 1 + .12 * k, 1 - .2 * k, 1 + .12 * k); }
     else if (s01 > .05) { const hop = Math.abs(Math.sin(P.phase)) * (run ? .18 : .12) * s01, sq = 1 - Math.cos(P.phase * 2) * .04 * s01;

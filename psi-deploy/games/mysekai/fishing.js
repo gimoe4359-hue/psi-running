@@ -307,7 +307,7 @@ function openFishing() {
   addEventListener('resize', () => { if (ov === d) [W, H, D] = fitCanvas(c); });
 }
 /* 물었을 때 어떤 물고기일지 (시간대 · 깊이) — 도감의 확률도 이걸로 계산해요 */
-function fishW(pr, depth) { return FISH.map(f => { let w = f.w; if (f.night && pr === 'night') w *= f.night; if (f.dusk && pr === 'dusk') w *= f.dusk; if (f.night && pr === 'day' && !f.dusk && f.r >= 3) w *= .25; if (f.r >= 3) w *= 1 + depth * 1.5; if (f.r >= 4) w *= 1 + depth * 2.5; if (f.r <= 1) w *= 1.3 - depth * .6; if (f.deep && depth < .6) w = 0; return w; }); }
+function fishW(pr, depth) { return FISH.map(f => { let w = f.w; if (f.night && pr === 'night') w *= f.night; if (f.dusk && pr === 'dusk') w *= f.dusk; if (f.night && pr === 'day' && !f.dusk && f.r >= 3) w *= .25; if (f.r >= 3) w *= (1 + depth * 1.5) * (CTX.rare || 1); if (f.r >= 4) w *= 1 + depth * 2.5; if (f.r <= 1) w *= 1.3 - depth * .6; if (f.deep && depth < .6) w = 0; return w; }); }
 function fishPct(i, pr, depth) { const ws = fishW(pr, depth), tot = ws.reduce((a, b) => a + b, 0); return tot ? ws[i] / tot * 100 : 0; }
 const pctS = v => v <= 0 ? '안 나와요' : v < 1 ? '1% 미만' : (v < 10 ? v.toFixed(1) : Math.round(v)) + '%';
 const PCT_D = [['얕은 곳', .2], ['깊은 곳', .9]], PCT_T = [['day', '낮'], ['dusk', '노을'], ['night', '밤']];
