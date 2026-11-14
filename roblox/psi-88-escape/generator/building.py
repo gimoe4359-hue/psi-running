@@ -268,7 +268,8 @@ def stair_segment(b, F):
                                 locked=(mode == 'locked'), name='StairDoor', window=True)
         tag(door_m, 'StairDoor')
         if mode == 'locked':
-            P.chains_x(dm.at(T(SX0 - 0.1, 0, DOOR_Z) * Ry(90)), DOOR_W, DOOR_H)
+            ch = P.chains_x(dm.at(T(SX0 - 0.1, 0, DOOR_Z) * Ry(90)), DOOR_W, DOOR_H)
+            tag(ch, 'LockedChains')
     if F.get('gate'):
         g = P.bars_along_x(dm, LANE_A[0] + 0.25, LANE_A[1] - 0.25, -8.3, 0, 8.8, step=1.0,
                            color=0x2E2C2A, name='ExitGate')

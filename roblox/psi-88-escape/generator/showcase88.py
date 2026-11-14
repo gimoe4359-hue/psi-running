@@ -610,11 +610,11 @@ def build(fb, F):
     # ---------------- doors
     doors = s.model('Doors')
     for i, (a, b2) in enumerate(ROOMS):
-        door_leaf(doors, 'x', a + 3.4, 34, open_deg=[70, 25, 90, 0, 55][i], hinge=-1, swing=1, name='BedroomDoor')
+        door_leaf(doors, 'x', a + 3.4, 34, open_deg=[70, 75, 90, 85, 60][i], hinge=-1, swing=1, name='BedroomDoor')
     door_leaf(doors, 'x', 59, 34, w=3.4, open_deg=0, hinge=1, swing=1, name='BoilerDoor')
-    door_leaf(doors, 'x', -14, 27, open_deg=35, hinge=1, swing=-1, name='Room6Door')
+    door_leaf(doors, 'x', -14, 27, open_deg=85, hinge=1, swing=-1, name='Room6Door')
     door_leaf(doors, 'x', 5, 27, open_deg=80, hinge=-1, swing=-1, name='BathDoor')
-    door_leaf(doors, 'z', -6, 14, open_deg=60, hinge=-1, swing=-1, name='PlanDoor')
+    door_leaf(doors, 'z', -6, 14, open_deg=85, hinge=-1, swing=-1, name='PlanDoor')
     door_leaf(doors, 'z', -6, -4, open_deg=0, hinge=1, swing=1, name='LaundryDoor')
     P.sign(doors, '보일러실', 59, FL + 6.2, 33.7, '-z', 1.8, 0.5, bg=0xEDEBE6, fg=0x5A5650, name='BoilerSign')
     for i, (a, b2) in enumerate(ROOMS):

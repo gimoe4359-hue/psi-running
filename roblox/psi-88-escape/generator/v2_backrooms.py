@@ -119,8 +119,8 @@ def f77(fb, F):
     ex = P.sign(s, 'EXIT', -78.6, FL + 8.6, -44, '+x', 2.6, 0.9, bg=0x0E7A3A, fg=0xFFFFFF, glow=True, name='FakeExit')
     light(ex, 'PointLight', 0x2AFF7A, 0.4, 7)
     # 쭉쭉이 in the far corner, plus long scratch marks along the ceiling where it drags its hand
-    zz = zzukzzuk(g.at(T(-58, 0, 40) * Ry(150)))
-    g.blk('ChaserSpawn', (4, 6, 4), (-58, FL + 3, 40), 0xFF0000, tr=1, collide=False, tags=['ChaserSpawn'])
+    zz = zzukzzuk(g.at(T(-58, 0, 40) * Ry(0)))   # faces -Z; the server turns it with CFrame.lookAt around its pivot
+    g.blk('ZzukHome', (2, 2, 2), (-58, FL + 3, 40), 0xFF0000, tr=1, collide=False)
     for k in range(6):
         s.beam('CeilingScratch', (-50 + k * 0.4, CH - 0.02, 30 - k * 6), (-48 + k * 0.4, CH - 0.02, 26 - k * 6), 0.12, 0.04, 0x4A3A1A, **DEC)
     for k in range(8):

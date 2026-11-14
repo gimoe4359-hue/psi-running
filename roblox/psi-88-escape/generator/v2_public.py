@@ -117,7 +117,7 @@ def f60(fb, F):
     wall(s, 'z', -55, 40, -56, 0xD8C8B0, name='WestWall')
     east_edge(s, -55, 40, 0xD8C8B0)
     wall(s, 'x', -56, 62, 14, 0xD8C8B0, openings=[(5, 46, 3.3, 8.2), (-32, 14, 2.8, 6.0), (46, 3.8, 0, DOOR_H)], name='ServeryWall')
-    door_leaf(s, 'x', 46, 14, open_deg=0, hinge=-1, swing=1, color=0xB8BCC0)
+    door_leaf(s, 'x', 46, 14, open_deg=80, hinge=-1, swing=1, color=0xB8BCC0)
     s.box('ServeryHeader', -18, FL + 8.2, 13.5, 28, FL + 10, 13.75, 0x2A1A14, 'Wood')
     sg = P.sign(s, '진미국수  PSI점', 5, FL + 9.1, 13.4, '-z', 14, 1.5, bg=0x2A1A14, fg=0xF2D8A0, glow=True, name='BrandSign', font=20)
     light(sg, 'SurfaceLight', 0xFFD8A0, 0.6, 10, False, 'Front', 110)
@@ -503,7 +503,7 @@ def f10(fb, F):
     wall(s, 'z', -55, 40, 30, PASTEL[0], openings=[(-20, 6, 0, 8.4), (20, 3.8, 0, DOOR_H)], name='EntryWall')
     for c_, pl, ax, w in ((-20, -30, 'z', 3.8), (-50, 6, 'x', 3.8), (-2, 6, 'x', 6), (20, 6, 'x', 3.8), (-20, 30, 'z', 6), (20, 30, 'z', 3.8)):
         casing(s, ax, c_, pl, w, 0, DOOR_H if w < 5 else 8.4)
-    door_leaf(s, 'z', -20, -30, open_deg=25, hinge=1, swing=-1, color=0xF0D0D8)
+    door_leaf(s, 'z', -20, -30, open_deg=80, hinge=1, swing=-1, color=0xF0D0D8)
     door_leaf(s, 'x', -50, 6, open_deg=70, hinge=-1, swing=1, color=0xF4ECC0)
     door_leaf(s, 'x', 20, 6, open_deg=80, hinge=1, swing=1, color=0xC8E4D8)
     door_leaf(s, 'z', 20, 30, open_deg=0, hinge=-1, swing=1, color=0xD8D8F0)
@@ -563,6 +563,8 @@ def f10(fb, F):
     nl = nr.blk('NightLight', (0.6, 0.6, 0.3), (-78.6, FL + 1.4, -20), 0xFFB0D0, 'Neon', **DEC)
     light(nl, 'PointLight', 0xFFA0C8, 0.7, 18)
     g.blk('ChaserSpawn', (4, 6, 4), (-50, FL + 3, -30), 0xFF0000, tr=1, collide=False, tags=['ChaserSpawn'])
+    for px, pz in ((-70, -10), (-40, -48), (-60, 20), (0, -30)):
+        g.blk('ChaserPatrol', (2, 2, 2), (px, FL + 3, pz), 0xFF0000, tr=1, collide=False)
     for i in range(5):
         P.handprint(nr, -30.32, FL + 1.4 + (i % 2) * 0.5, -40 + i * 1.6, '-x', color=0xC02020)
     blinds(s, -78, -31, -54.4, closed=1.0)

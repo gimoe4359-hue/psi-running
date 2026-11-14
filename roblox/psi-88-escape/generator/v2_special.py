@@ -225,7 +225,7 @@ def f50(fb, F):
     pr.box('PorchRoof', -19, HF + WH - 0.6, -12.6, -3, HF + WH - 0.2, -6, 0x6A2A34, 'Slate')
     pl = pr.blk('PorchLight', (0.5, 0.7, 0.5), (-14, HF + 7.8, -6.6), 0xFFE0B0, 'Neon', **DEC)
     light(pl, 'PointLight', 0xFFD0A0, 0.7, 14, True)
-    P.door(h.at(T(-11, HF, hz0) * Ry(0)), 4.0, 7.6, color=0xC04A6A, frame=0xFFFFFF, open_deg=-30, window=True, name='FrontDoor')
+    P.door(h.at(T(-11, HF, hz0) * Ry(0)), 4.0, 7.6, color=0xC04A6A, frame=0xFFFFFF, open_deg=-85, window=True, name='FrontDoor')
     P.sign(h, '수민이네 ♥', -11, HF + 8.4, hz0 - 0.5, '-z', 3.2, 0.8, bg=0xFFF0F4, fg=0xC03050, name='Nameplate', font=9)
     # interior (reuse the earlier story, at the raised house floor)
     hi = h.model('Interior')
@@ -251,6 +251,9 @@ def f50(fb, F):
     from vignettes import dollhouse, kid_bike, kiddie_pool, flowerbed, gnome, laundry_line, lamp_post
     dollhouse(kr.at(T(-14, HF, 22) * Ry(30)))
     g.blk('ChaserSpawn', (4, 6, 4), (-25, HF + 3, 28), 0xFF0000, tr=1, collide=False, tags=['ChaserSpawn'])
+    g.blk('ChaserPatrol', (2, 2, 2), (-25, HF + 3, 10), 0xFF0000, tr=1, collide=False)
+    g.blk('ChaserPatrol', (2, 2, 2), (5, HF + 3, 26), 0xFF0000, tr=1, collide=False)
+    g.blk('ChaserPatrol', (2, 2, 2), (-11, FL + 3, -20), 0xFF0000, tr=1, collide=False)
     kt = hi.model('Kitchen')
     P.counter(kt.at(T(5, HF, 36.4) * Ry(180)), w=24, body=0xFFFFFF, top=0xF0D8E0, top_mat='Marble')
     P.fridge(kt.at(T(17, HF, 36) * Ry(180)))
@@ -337,7 +340,7 @@ def fB1(fb, F):
         fluted_panel(s, axis, a0, a1, pl, side, col=WALNUT, step=1.6)
     # shopfront: glass with brass mullions, door, renovation decals
     glass_wall(s, 'z', SZ0, SZ1, SX1, doors=[-12], frame_col=0x8A6A2A, tint=0xB8C8C8, tr=0.55)
-    glass_door(s, 'z', -12, SX1, open_deg=0, hinge=1, swing=1, frame_col=0x8A6A2A)
+    glass_door(s, 'z', -12, SX1, open_deg=80, hinge=1, swing=1, frame_col=0x8A6A2A)
     fasc = s.box('Fascia', SX1 - 0.4, CH - 2.2, SZ0, SX1 + 0.4, CH, SZ1, 0x1A1008, 'Wood')
     sg = P.sign(s, 'PARTIRLETTE  ·  파르티르레트', SX1 + 0.45, CH - 1.1, 0, '+x', 22, 1.6, bg=0x1A1008, fg=0xE8C87A, glow=True, name='ShopSign', font=8)
     light(sg, 'SurfaceLight', 0xFFD890, 0.7, 10, False, 'Front', 110)

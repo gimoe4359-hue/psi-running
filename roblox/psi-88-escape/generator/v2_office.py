@@ -230,7 +230,7 @@ def f80(fb, F):
     rr = s.model('ReadingRoom')
     glass_wall(rr, 'z', 10, 46, -14, doors=[20])
     glass_wall(rr, 'x', -44, -14, 10, doors=[])
-    glass_door(rr, 'z', 20, -14, open_deg=30, hinge=-1, swing=-1)
+    glass_door(rr, 'z', 20, -14, open_deg=80, hinge=-1, swing=-1)
     floor_finish(rr, (-44, -14, 10, 46), 0x5A3A2A, 'WoodPlanks', top=FL + 0.02)
     for tz in (20, 34):
         rr.blk('LongTable', (20, 0.3, 4.4), (-30, FL + 2.5, tz), OAK_D, 'Wood')
@@ -568,7 +568,7 @@ def f8(fb, F):
     glass_wall(s, 'x', -56, -30, -22, doors=[])
     glass_wall(s, 'x', -56, -30, 6, doors=[])
     glass_door(s, 'z', -40, -30, open_deg=20, hinge=1, swing=-1)
-    glass_door(s, 'z', -8, -30, open_deg=0, hinge=-1, swing=-1)
+    glass_door(s, 'z', -8, -30, open_deg=80, hinge=-1, swing=-1)
     glass_door(s, 'z', 18, -30, open_deg=50, hinge=-1, swing=-1)
     pn = s.model('Pantry')
     pn.box('Counter', -55.75, FL, -54, -53.5, FL + 2.85, -26, 0xEDEBE6)

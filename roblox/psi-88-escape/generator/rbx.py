@@ -159,6 +159,9 @@ def _ser_prop(t, n, v):
         return '<ColorSequence name="%s">%s</ColorSequence>' % (n, out)
     if t == 'Content':
         return '<Content name="%s"><url>%s</url></Content>' % (n, escape(v))
+    if t == 'ProtectedString':
+        body = v.replace(']]>', ']]]]><![CDATA[>')
+        return '<ProtectedString name="%s"><![CDATA[%s]]></ProtectedString>' % (n, body)
     if t == 'BinaryString':
         return '<BinaryString name="%s">%s</BinaryString>' % (n, base64.b64encode(v).decode())
     raise ValueError(t)

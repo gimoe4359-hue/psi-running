@@ -20,6 +20,7 @@ import v2_office as VO
 import v2_public as VP
 import v2_special as VS
 import v2_backrooms as VB
+import gameplay as G
 import world as W
 import dress as D
 import props as P
@@ -160,6 +161,7 @@ def build(preview=False):
                     cl(dd)
             R.setstate(state)
         P.DESK_CLUTTER = False
+        G.add_floor_gameplay(fb, n)
         if iso_state is not None:
             R.setstate(iso_state)       # a newly added floor must not change any other floor
 
@@ -171,8 +173,8 @@ def build(preview=False):
     # legend for scripters
     info = Inst('StringValue', 'MapInfo', root.parent)
     info.prop('string', 'Value', 'PSI 88층 탈출 맵 — 태그: PlayerSpawn, StairDoor, ExitGate, ExitButton, Checkpoint, '
-                                 'KillBrick, ChaserSpawn, MainGate, KeySlot, Key, VaultDoor, Safe, CellBars')
-    serialize([ws, lighting], OUT)
+                                 'KillBrick, ChaserSpawn, MainGate, KeySlot, Key, VaultDoor, Safe, CellBars, LockedChains, ZzukZzuk · 이름: FloorKey_<n>, AptKey, ChaserPatrol')
+    serialize([ws, lighting] + G.services(FLOORS, base, base[-13] - 1), OUT)
     print('parts:', Inst.parts, 'instances:', Inst.count)
     print('floor bases:', {label(k): v for k, v in base.items()}, 'roof:', roof_y)
     if preview:
