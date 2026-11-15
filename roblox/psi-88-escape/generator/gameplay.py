@@ -160,7 +160,9 @@ def config_source(floors, base, core_top, chaser_user=CHASER_USER, chaser_id=0):
              '-- SleepFloors: 그 층의 조수민은 자고 있다가 시끄러우면 깬다.',
              'M.Chaser = { UserName = %s, UserId = %d, DisplayName = "조수민", PatrolSpeed = 11, ChaseSpeed = 17, SprintSpeed = 21,'
              ' SleepFloors = { [10] = true } }' % ('"%s"' % chaser_user, chaser_id),
-             'M.Zzuk = { Speed = 22 }', '', 'M.floors = {']
+             'M.Zzuk = { Speed = 22 }', '',
+             '-- 층 컬링: 지금 있는 층과 위아래 층만 화면에 그린다 (각 플레이어 화면에서만). 문제가 생기면 false.',
+             'M.FloorCulling = true', '', 'M.floors = {']
     for n, title, h, _, _ in floors:
         lab = '%dF' % n if n > 0 else 'B%d' % -n
         obj = OBJECTIVES.get(n, '계단 창살을 열 방법을 찾아라').replace('"', '\\"')
@@ -202,6 +204,8 @@ def services(floors, base, core_top):
     sps = Inst('StarterPlayerScripts', 'StarterPlayerScripts', sp)
     ui = Inst('LocalScript', 'ClientUI', sps)
     ui.prop('ProtectedString', 'Source', lua('ClientUI.client.lua'))
+    cull = Inst('LocalScript', 'FloorCulling', sps)
+    cull.prop('ProtectedString', 'Source', lua('FloorCulling.client.lua'))
     Inst('StarterCharacterScripts', 'StarterCharacterScripts', sp)
     roots.append(sp)
 

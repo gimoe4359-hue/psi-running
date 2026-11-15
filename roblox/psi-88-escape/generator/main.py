@@ -92,7 +92,9 @@ def skip_text(upper, lower):
 def build(preview=False):
     rbx.PREVIEW.clear()
     ws = Inst('Workspace', 'Workspace')
-    ws.prop('bool', 'StreamingEnabled', True)
+    # The whole map is sent once and the FloorCulling LocalScript keeps only nearby floors in view. Distance streaming is
+    # a sphere: at a radius that covers one floor end to end (150 studs) it also pulls in a dozen floors above and below.
+    ws.prop('bool', 'StreamingEnabled', False)
     ws.prop('int', 'StreamingMinRadius', 64)
     ws.prop('int', 'StreamingTargetRadius', 200)
     lighting = Inst('Lighting', 'Lighting')

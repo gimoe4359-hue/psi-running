@@ -120,6 +120,8 @@ local function newChaser(floor, homeCF, patrol)
 	model.Parent = workspace
 	local hum = model:FindFirstChildOfClass("Humanoid")
 	local hrp = model:WaitForChild("HumanoidRootPart")
+	-- the server always simulates her: a client that is not showing this floor must never be handed her physics
+	pcall(function() hrp:SetNetworkOwner(nil) end)
 	local anims = loadAnims(hum)
 	if #patrol == 0 then patrol = { homeCF.Position } end
 	local self = { model = model, hum = hum, hrp = hrp, floor = floor, home = homeCF, patrol = patrol,
