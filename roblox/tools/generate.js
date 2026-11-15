@@ -2019,8 +2019,22 @@ grp('MainBuilding', () => {
           slidingDoor(a, b, L, PART0, di === 0 ? 1 : -1, restroom || (ri + di) % 5 === 0, `Door_${r.name}_${di + 1}`);
         });
         const label = isClass(r.name) ? `${r.name[0]}학년 ${r.name[2]}반` : r.name;
-        B('RoomSign', r.xa + 1.6, L + 8.0, PART0 - 2.0, r.xa + 5.6, L + 9.2, PART0 - 0.2, [246, 246, 240], 'SmoothPlastic', {
-          nc: true, tag: 'RoomSign', attr: { Room: r.name }, text: { face: 'Front', text: label, color: [30, 40, 70], bg: [246, 246, 240], bgT: 0, lit: 1, pps: 70 } });
+        // 교실 번호판: 앞문 옆 벽에서 복도 쪽으로 튀어나온 양면 표지판 (위: 큰 반 번호, 아래: 남색 띠에 "2학년 1반")
+        grp(`RoomSign_${r.name}`, () => {
+          const xs = r.xa + 1.15, y0 = L + 7.85, y1 = L + 8.8, za = PART0 - 2.05, zb = PART0 - 0.18, metal = [150, 154, 160], so = { nc: true, ns: true };
+          const big = isClass(r.name) ? r.name : r.name, small = isClass(r.name) ? label : `${r.f + 1}층`;
+          B('SignMount', xs - 0.14, y1 - 0.06, PART0 - 0.1, xs + 0.14, y1 + 0.16, PART0, metal, 'Metal', so);
+          B('SignArm', xs - 0.04, y1 + 0.02, za, xs + 0.04, y1 + 0.1, PART0 - 0.1, metal, 'Metal', so);
+          B('SignFrame', xs - 0.09, y0 - 0.04, za - 0.04, xs + 0.09, y1 + 0.02, zb + 0.04, [190, 194, 198], 'Metal', { ...so, refl: 0.1 });
+          const yb = y0 + 0.3;
+          [[0, 'Right'], [-1, 'Left']].forEach(([sd, face]) => {
+            const x0 = xs + sd * 0.1, x1 = x0 + 0.1;
+            B('RoomSign', x0, yb, za, x1, y1 - 0.02, zb, [250, 250, 246], 'SmoothPlastic', { ...so, min: 0.04, tag: sd === 0 ? 'RoomSign' : undefined, attr: sd === 0 ? { Room: r.name } : undefined,
+              text: { face, text: big, color: [26, 38, 78], bg: [250, 250, 246], bgT: 0, lit: 1, font: 'GothamBlack', pps: 90 } });
+            B('RoomSignBand', x0, y0, za, x1, yb, zb, [30, 52, 104], 'SmoothPlastic', { ...so, min: 0.04,
+              text: { face, text: small, color: [255, 255, 255], bg: [30, 52, 104], bgT: 0, lit: 1, font: 'GothamBold', pps: 90 } });
+          });
+        });
         if (r.xa - WALL > BX0 + 0.5 && !(r.xa - WALL >= HALL0 - 0.5 && r.xa <= HALL1 + 0.5)) B('RoomWall', r.xa - WALL, L, PART1, r.xa, top, ROOM1, C.wallIvory, 'Plaster');
         interiorRoom(r);
       });
