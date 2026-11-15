@@ -507,10 +507,18 @@ def f40(fb, F):
         i, j = R.randrange(nx), R.randrange(nz)
         cx, cz = x0 + (i + 0.5) * cell, z0 + (j + 0.5) * cell
         on = R.random() < 0.2
-        workstation(s.at(T(cx, 0, cz + 1.2) * Ry(R.choice([0, 180]))), w=5, d=2.4, panel=False, screen='…' if on else None,
-                    dark=not on, mess=0.6, chair=R.random() < 0.7)
+        # a desk only goes against a partition that runs along the cell (never in the walking line), so every corridor stays open
+        if wh[i][j + 1]:
+            dz, rot = z0 + (j + 1) * cell - 1.6, 0
+        elif wh[i][j]:
+            dz, rot = z0 + j * cell + 1.6, 180
+        else:
+            continue
+        cz = dz
+        workstation(s.at(T(cx, 0, dz) * Ry(rot)), w=4.6, d=2.4, panel=False, screen='…' if on else None,
+                    dark=not on, mess=0.6, chair=False)
         if on:
-            p = s.blk('MonitorGlow', (0.2, 0.2, 0.2), (cx, FL + 4, cz + 1), 0, tr=1, **DEC)
+            p = s.blk('MonitorGlow', (0.2, 0.2, 0.2), (cx, FL + 4, cz), 0, tr=1, **DEC)
             light(p, 'PointLight', 0x6AA8FF, 0.5, 10)
     for _ in range(80):
         Q.d_paper(s.at(T(R.uniform(-77, 40), FL, R.uniform(-51, 51))))

@@ -301,7 +301,7 @@ def f1(fb, F):
     for xc in (-8, 8):
         mg.box('DoorGlass', xc - 3.6, FL, -55.8, xc + 3.6, FL + 12, -55.4, 0x9AB0B8, 'Glass', tr=0.5)
         mg.box('DoorBar', xc - 0.15, FL, -55.9, xc + 0.15, FL + 12, -55.3, 0x1A1A1A, 'Metal')
-        P.chains_x(mg.at(T(xc, FL, -54.6)), 6.5, 12, z=0)
+        tag(P.chains_x(mg.at(T(xc, FL, -54.6)), 6.5, 12, z=0), 'MainChains')
     mg.box('MainGate', -12, 0, -56.6, 12, 16, -54.2, 0xFF00FF, tr=1, tags=['MainGate'])
     P.sign(mg, '정문 — 열쇠가 필요합니다', 0, FL + 13.5, -54.0, '+z', 10, 1.4, bg=0x111111, fg=0xFFD23A, name='GateSign')
     ks = mg.model('KeySlot')
@@ -635,8 +635,9 @@ def f30(fb, F):
     east_edge(s, -55, 40, 0xE8EEF0)
     s.box('Ceiling', -79, CH + 3, -55, 10, CH + 3.3, 40, 0xF0F4F4, shadow=False)
     s.box('CeilingGym', 10, CH, -55, 62, CH + 0.3, 40, 0xEDEBE6, shadow=False)
-    glass_wall(s, 'z', -55, 40, 10, doors=[20], h=CH)
-    glass_door(s, 'z', 20, 10, open_deg=30, hinge=-1, swing=1)
+    # the glazing stops either side of the deck steps (z -14..-4) — that gap is the way onto the pool deck
+    glass_wall(s, 'z', -55, -14, 10, h=CH)
+    glass_wall(s, 'z', -4, 40, 10, h=CH)
     # pool deck (raised) + basin
     DH = 3.0
     deck = (-79, 10, -55, 40)

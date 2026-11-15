@@ -100,6 +100,7 @@ class Inst:
 
     def __init__(self, cls, name, parent=None):
         self.cls = cls
+        self.parent_ref = parent
         self.props = []
         self.children = []
         self.prop('string', 'Name', name)
@@ -255,7 +256,7 @@ class B:
         kind = shape or ('Wedge' if cls == 'WedgePart' else 'Block')
         if cls == 'SpawnLocation':
             kind = 'Block'
-        PREVIEW.append((kind, size, world, color, tr, mat, refl))
+        PREVIEW.append((kind, size, world, color, tr, mat, refl, p, collide))
         p._cf, p._size = world, size
         R = world.R
         hx = sum(abs(R[0][j]) * size[j] for j in range(3)) / 2

@@ -180,7 +180,7 @@ def build(preview=False):
     if preview:
         data = []
         mats = sorted(rbx.MAT)
-        for kind, size, cf, color, tr, mat, refl in rbx.PREVIEW:
+        for kind, size, cf, color, tr, mat, refl, inst, collide in rbx.PREVIEW:
             if tr >= 0.99:
                 continue
             data.append([{'Ball': 'S', 'Block': 'B', 'Cylinder': 'C', 'Wedge': 'W'}[kind], [round(v, 2) for v in size], [round(v, 2) for v in cf.p],
@@ -190,7 +190,7 @@ def build(preview=False):
         for cf, size, face, text, bg, fg, bg_tr in rbx.PREVIEW_TEXT:
             texts.append([[round(v, 2) for v in size], [round(v, 2) for v in cf.p],
                           [round(cf.R[i][j], 4) for i in range(3) for j in range(3)], face, text, bg, fg, 1 if bg_tr >= 1 else 0])
-        floors = [dict(n=n, label=label(n), title=title, base=base[n], h=h) for n, title, h, _, _ in FLOORS]
+        floors = [dict(n=n, label=label(n), title=title, base=base[n], h=h, objective=G.OBJECTIVES.get(n, '출입 카드를 찾아 계단 창살을 열어라')) for n, title, h, _, _ in FLOORS]
         lights = [[[round(v, 2) for v in p], k[0], c, round(b, 2), r, 1 if sh else 0, [round(v, 2) for v in d]]
                   for p, k, c, b, r, sh, d in rbx.PREVIEW_LIGHTS]
         out = dict(floors=floors, roof=roof_y, core=base[-13] - 1, mats=mats, parts=data, texts=texts, lights=lights)
