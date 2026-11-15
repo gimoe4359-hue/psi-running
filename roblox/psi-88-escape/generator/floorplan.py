@@ -179,20 +179,23 @@ def draw(data, n, out, box=None, start=(60.0, -11.5)):
 
 def check(data):
     bad = 0
+    total = 0
     for n, base, h in data['floors']:
         levels, _ = grid(data, n)
         seen = flood(levels)
         for ax, ya, az, bx, yb, bz, col, tr, name, color, tags, kind in data['parts']:
-            if not name.startswith(('FloorKey', 'GP_', 'AptKey')):
+            if not name.startswith(('FloorKey', 'GP_', 'AptKey', 'HideZone', 'ChaserSpawn', 'ChaserPatrol')):
                 continue
             if not (base - 0.5 <= (ya + yb) / 2 < base + h - 0.5):
                 continue
-            if name.startswith('GP_x'):      # markers that need not be walkable (rush path ends, spawners…)
+            if name.startswith(('GP_Digit', 'GP_Board')):      # wall / ceiling displays: only looked at
                 continue
-            if not near(seen, (ax + bx) / 2, (az + bz) / 2, y=(ya + yb) / 2 - base):
+            total += 1
+            r = 9.0 if (bx - ax) > 1.5 and name.startswith('FloorKey') else 4.5
+            if not near(seen, (ax + bx) / 2, (az + bz) / 2, r=r, y=(ya + yb) / 2 - base):
                 bad += 1
                 print('UNREACHABLE  floor', n, name, round((ax + bx) / 2, 1), round((ya + yb) / 2 - base, 1), round((az + bz) / 2, 1))
-    print('reachability check done, problems:', bad)
+    print('reachability check done: %d anchors, problems: %d' % (total, bad))
 
 
 if __name__ == '__main__':

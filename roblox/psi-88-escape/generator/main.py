@@ -172,8 +172,9 @@ def build(preview=False):
 
     # legend for scripters
     info = Inst('StringValue', 'MapInfo', root.parent)
-    info.prop('string', 'Value', 'PSI 88층 탈출 맵 — 태그: PlayerSpawn, StairDoor, ExitGate, ExitButton, Checkpoint, '
-                                 'KillBrick, ChaserSpawn, MainGate, KeySlot, Key, VaultDoor, Safe, CellBars, LockedChains, ZzukZzuk · 이름: FloorKey_<n>, AptKey, ChaserPatrol')
+    info.prop('string', 'Value', 'PSI 88층 탈출 맵 — 태그: PlayerSpawn, StairDoor, ExitGate, ExitButton, Checkpoint, KillBrick, ChaserSpawn, '
+                                 'HideSpot, MainGate, MainChains, KeySlot, Key, VaultDoor, Safe, CellBars, LockedChains, ZzukZzuk · '
+                                 '이름: FloorKey_<n>, GP_<종류>_<번호>, ChaserPatrol')
     serialize([ws, lighting] + G.services(FLOORS, base, base[-13] - 1), OUT)
     print('parts:', Inst.parts, 'instances:', Inst.count)
     print('floor bases:', {label(k): v for k, v in base.items()}, 'roof:', roof_y)

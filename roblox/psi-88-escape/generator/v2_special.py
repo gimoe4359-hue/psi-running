@@ -250,10 +250,6 @@ def f50(fb, F):
     P.sign(kr, '조수민 방\n노크 안 하면 죽음', -10.25, HF + 7.5, 26, '-x', 3, 1.4, bg=0xFFE0EA, fg=0xC01030, name='DoorSign', font=9)
     from vignettes import dollhouse, kid_bike, kiddie_pool, flowerbed, gnome, laundry_line, lamp_post
     dollhouse(kr.at(T(-14, HF, 22) * Ry(30)))
-    g.blk('ChaserSpawn', (4, 6, 4), (-25, HF + 3, 28), 0xFF0000, tr=1, collide=False, tags=['ChaserSpawn'])
-    g.blk('ChaserPatrol', (2, 2, 2), (-25, HF + 3, 10), 0xFF0000, tr=1, collide=False)
-    g.blk('ChaserPatrol', (2, 2, 2), (5, HF + 3, 26), 0xFF0000, tr=1, collide=False)
-    g.blk('ChaserPatrol', (2, 2, 2), (-11, FL + 3, -20), 0xFF0000, tr=1, collide=False)
     kt = hi.model('Kitchen')
     P.counter(kt.at(T(5, HF, 36.4) * Ry(180)), w=24, body=0xFFFFFF, top=0xF0D8E0, top_mat='Marble')
     P.fridge(kt.at(T(17, HF, 36) * Ry(180)))

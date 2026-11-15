@@ -27,6 +27,7 @@ def booth(b, w=6, col=0x8A2A24):
     m.blk('TableFoot', (2.2, 0.1, 1.4), (0, FL + 0.05, 0), INK, 'Metal')
     m.blk('Napkins', (0.6, 0.5, 0.4), (w / 2 - 0.9, FL + 2.8, 0), 0xF0F0EC, **NC)
     m.cyl('Sauce', 0.7, 0.3, (w / 2 - 1.5, FL + 2.9, 0.3), 0xC02020, **NC)
+    m.blk('HideZone', (w + 0.6, 8, 7.6), (0, FL + 4, 0), 0xFF00FF, tr=1, collide=False, shadow=False, tags=['HideSpot'])
 
 
 def square_table(b, top=0xD8C8A8, chair_col=0x3A3836, n=4):
