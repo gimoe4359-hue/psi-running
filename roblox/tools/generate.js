@@ -1670,8 +1670,8 @@ function slidingDoor(a, b, L, zFace, open, gname, o = {}) {
   const mid = (a + b) / 2;
   // 바깥 레일: 왼쪽 문짝(유리창, +X로 밀림) / 안쪽 레일: 오른쪽 문짝(-X로 밀려 왼쪽 문짝 뒤로)
   // 복도에서 보면 +X 쪽 문짝이 왼쪽에 보인다 → 유리창은 그 문짝에 (참고 사진처럼 왼쪽 문짝)
-  doorLeaf(`${gname}_L`, a - 0.08, mid + 0.06, L, zFace - 0.41, mid - a - 0.3, false, { handleAt: 'left' });
-  doorLeaf(`${gname}_R`, mid - 0.06, b + 0.08, L, zFace - 0.24, -(b - mid - 0.3), open, { glass: true, handleAt: 'right', lock: true });
+  doorLeaf(`${gname}_L`, a + 0.01, mid + 0.06, L, zFace - 0.41, mid - a - 0.3, false, { handleAt: 'left' });
+  doorLeaf(`${gname}_R`, mid - 0.06, b - 0.01, L, zFace - 0.24, -(b - mid - 0.3), open, { glass: true, handleAt: 'right', lock: true });
 }
 
 
@@ -2038,8 +2038,11 @@ grp('MainBuilding', () => {
         doorList.forEach(([a, b], di) => {
           // 오크 문틀 + 위쪽 채광창 (유리 2장, 가운데 살)
           const so = { nc: true, ns: true }, zm = (PART0 + PART1) / 2, mid = (a + b) / 2;
-          B('Casing', a - 0.3, L, PART0 - 0.12, a, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
-          B('Casing', b, L, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
+          // 교실 문은 문짝 두 장이 문틀 안에 들어가도록 옆 문틀을 복도 쪽으로 깊게
+          const cz = restroom ? PART0 - 0.12 : PART0 - 0.52;
+          B('Casing', a - 0.3, L, cz, a, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
+          B('Casing', b, L, cz, b + 0.3, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
+          if (!restroom) B('Threshold', a, L, PART0 - 0.52, b, L + 0.04, PART0, OAK_FRAME, 'Wood', { nc: true, ns: true, min: 0.03 });
           B('Casing', a - 0.3, L + 9.3, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
           B('Casing', a, L + 7.2, PART0 - 0.12, b, L + 7.55, PART1 + 0.12, OAK_FRAME, 'Wood');
           B('TransomBar', mid - 0.1, L + 7.55, PART0 - 0.08, mid + 0.1, L + 9.3, PART1 + 0.08, OAK_FRAME, 'Wood');
