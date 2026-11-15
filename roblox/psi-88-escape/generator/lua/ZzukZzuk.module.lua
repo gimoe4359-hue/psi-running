@@ -14,11 +14,16 @@ local home = nil
 local floor = nil
 local lastGhost = 0
 local dark = false
+local watching = {}      -- [player] = time of the last "it is on my screen" report from that player's client
+local idleSince = 0
 
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Exclude
 
 local function looking(e, target)
+	-- the player's own client checks its camera and reports; that is the real test
+	local t = watching[e.player]
+	if t ~= nil then return os.clock() - t < 0.7 end
 	local head = e.char:FindFirstChild("Head")
 	if not head then return false end
 	local eye = head.Position
@@ -36,23 +41,36 @@ local function step(dt)
 	local bestD = 1e9
 	local seen = false
 	for _, e in ipairs(ctx.alive(floor)) do
-		local d = (e.hrp.Position - pivot.Position).Magnitude
-		if d < bestD then
-			bestD = d
-			target = e
+		-- the stair landing and its doorway are out of bounds for it, so it can never camp the way in
+		if e.hrp.Position.X < 56 then
+			local d = (e.hrp.Position - pivot.Position).Magnitude
+			if d < bestD then
+				bestD = d
+				target = e
+			end
 		end
 		if looking(e, pivot.Position + Vector3.new(0, 6, 0)) then seen = true end
 	end
-	if not target or bestD > 75 then return end
+	if not target or bestD > 75 then
+		-- nobody to hunt: after a while it is back in its hall
+		if idleSince == 0 then
+			idleSince = os.clock()
+		elseif os.clock() - idleSince > 6 and (pivot.Position - home.Position).Magnitude > 4 and not seen then
+			model:PivotTo(home)
+		end
+		return
+	end
+	idleSince = 0
+	-- while somebody has it on screen it is a statue: it neither moves nor catches, and can be walked past
+	if seen and not dark then return end
 	if bestD < 4.5 then
 		ctx.kill(target.char, "zzuk")
 		ctx.playAt(target.hrp, "rbxasset://sounds/HalloweenGhost.wav", 1, 0.5)
-		-- step back so the respawned player gets a breath
-		model:PivotTo(pivot * CFrame.new(0, 0, 12))
-		task.wait(3)
+		task.wait(1.5)
+		model:PivotTo(home)
+		task.wait(2)
 		return
 	end
-	if seen and not dark then return end
 	-- slide toward the target, facing it, feet on the floor
 	local flat = Vector3.new(target.hrp.Position.X, pivot.Position.Y, target.hrp.Position.Z)
 	local dir = flat - pivot.Position
@@ -101,8 +119,14 @@ function M.setDark(on)
 	dark = on
 end
 
+-- from the client: true while 쭉쭉이 is inside this player's view and not behind a wall
+function M.setLooking(player, on)
+	watching[player] = if on then os.clock() else 0
+end
+
 function M.reset()
 	dark = false
+	idleSince = 0
 	if model and home then model:PivotTo(home) end
 end
 

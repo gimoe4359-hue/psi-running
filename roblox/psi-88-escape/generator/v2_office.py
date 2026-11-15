@@ -161,6 +161,8 @@ def compact_unit(b, L=14, h=9, end_label='A'):
     m.blk('Carriage', (2.8, 0.5, L), (0, FL + 0.25, 0), 0x3A3C3E, 'Metal')
     m.blk('Spine', (0.15, h, L - 0.4), (0, FL + 0.5 + h / 2, 0), 0x6A6E72, 'Metal')
     m.blk('Top', (2.8, 0.15, L - 0.2), (0, FL + 0.5 + h, 0), 0x8A8E92, 'Metal')
+    # the shelves and boxes are light decoration; this is what actually stops a player walking through the stack
+    m.blk('Solid', (2.6, h, L - 0.2), (0, FL + 0.5 + h / 2, 0), 0xFF00FF, tr=1, shadow=False)
     nlev = 5
     step = (h - 0.4) / nlev
     for k in range(1, int(L / 3.4)):

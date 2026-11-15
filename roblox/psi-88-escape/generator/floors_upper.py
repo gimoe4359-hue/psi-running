@@ -373,12 +373,12 @@ def f66(fb, F):
         s.ball('Bubble', R.uniform(1, 3), (R.uniform(-75, 40), 1.1, R.uniform(-50, 50)), 0x3A2414, 'Plastic',
                refl=0.2, collide=False)
     for _ in range(14):
-        s.cyl('Onion', 0.6, R.uniform(1.5, 2.5), (R.uniform(-75, 40), 1.25, R.uniform(-50, 50)), 0xF0EEDC,
+        s.cyl('Onion', 0.6, R.uniform(1.5, 2.5), (R.uniform(-75, 40), 1.25, R.uniform(-50, 50)), 0x4A341E,
               'SmoothPlastic', tr=0.2, collide=False)
     steam = s.blk('SteamSource', (110, 0.5, 100), (-18, 1.6, 0), 0, tr=1, collide=False, shadow=False, touch=False, query=False)
     particles(steam, 'steam', 18)
     # start tray
-    s.box('StartTray', 44, 0, -24, 62, 1.6, 0, 0x8A5A2A, 'WoodPlanks')
+    s.box('StartTray', 44, 0, -24, 62, 1.6, 0, 0xF6F4EE, 'SmoothPlastic')
     P.sign(s, '66F 짜장 지옥\n빠지면 처음부터!', 61.8, 12, 6, '-x', 10, 4, bg=0x2B1A0E, fg=0xFFD23A, name='Warning')
     g.blk('Checkpoint0', (6, 0.2, 6), (54, 1.7, -12), 0x00FF00, tr=1, collide=False, tags=['Checkpoint'])
     # jump route (loop: south band → west → north band → goal → chopstick bridge back)
@@ -404,32 +404,32 @@ def f66(fb, F):
     for i, (x, z, y) in enumerate(route):
         k = kinds[i % len(kinds)]
         if i in cps:
-            s.cyl('BigDanmuji', 1.6, 10, (x, y - 0.8, z), 0xF2D23A, 'SmoothPlastic')
+            s.cyl('BigDanmuji', 1.6, 10, (x, y - 0.8, z), 0xF6F4EE, 'SmoothPlastic')
             g.blk(cps[i], (6, 0.2, 6), (x, y + 0.1, z), 0x00FF00, tr=1, collide=False, tags=['Checkpoint'])
         elif k == 'danmuji':
-            s.cyl('Danmuji', 1.4, R.uniform(5.5, 7), (x, y - 0.7, z), 0xF2D23A, 'SmoothPlastic')
-            s.cyl('DanmujiRing', 1.42, 1.2, (x, y - 0.7, z), 0xE8C020, 'SmoothPlastic')
+            s.cyl('Danmuji', 1.4, R.uniform(5.5, 7), (x, y - 0.7, z), 0xF6F4EE, 'SmoothPlastic')
+            s.cyl('DanmujiRing', 1.42, 1.2, (x, y - 0.7, z), 0xE2DED2, 'SmoothPlastic')
         elif k == 'mandu':
-            s.blk('Mandu', (6, 1.6, 4), (x, y - 0.8, z), 0xC8904A, 'Sand', rot=Ry(R.uniform(0, 180)))
-            s.blk('ManduCrisp', (5.4, 0.3, 3.4), (x, y - 1.75, z), 0x8A5A22, 'Sand', rot=Ry(R.uniform(0, 180)))
+            s.blk('Mandu', (6, 1.6, 4), (x, y - 0.8, z), 0xF6F4EE, 'SmoothPlastic', rot=Ry(R.uniform(0, 180)))
+            s.blk('ManduCrisp', (5.4, 0.3, 3.4), (x, y - 1.75, z), 0xD8D2C4, 'SmoothPlastic', rot=Ry(R.uniform(0, 180)))
         elif k == 'onion':
-            s.blk('OnionCube', (5, 1.6, 5), (x, y - 0.8, z), 0xF0EEDC, 'Glass', tr=0.25, rot=Ry(R.uniform(0, 90)))
+            s.blk('OnionCube', (5, 1.6, 5), (x, y - 0.8, z), 0xF6F4EE, 'SmoothPlastic', rot=Ry(R.uniform(0, 90)))
         else:
-            s.ball('QuailEgg', 6, (x, y - 3, z), 0xF4EEE0, 'SmoothPlastic')
+            s.ball('QuailEgg', 6, (x, y - 3, z), 0xF6F4EE, 'SmoothPlastic')
         # supports: chopsticks stuck in the sauce
         if y > 6:
             s.cyl('ChopstickPost', y - 1.6, 0.5, (x + 0.6, (y - 1.6) / 2 + 0.6, z + 0.3), 0xC8A050, 'Wood',
                   collide=False)
     # chopstick balance bridge from goal back to start
     gx, gz, gy = 52, 44, route[-1][2]
-    s.cyl('GoalPlate', 1.6, 12, (gx, gy - 0.8, gz), 0xF6F2EA, 'SmoothPlastic')
+    s.cyl('GoalPlate', 1.6, 12, (gx, gy - 0.8, gz), 0xF6F4EE, 'SmoothPlastic')
     s.cyl('GoalPlateRim', 1.0, 13, (gx, gy - 1.4, gz), 0xD8D0C4, 'SmoothPlastic')
     btn = g.blk('ExitButton', (2, 1, 2), (gx, gy + 0.5, gz + 3), 0xE02020, 'Neon', tags=['ExitButton'])
     g.blk('ButtonBase', (3, 0.6, 3), (gx, gy + 0.1, gz + 3), 0x3A3A3A, 'Metal')
     P.sign(g, '이 버튼을 누르면 계단이 열린다', gx, gy + 4, gz + 6, '-z', 6, 1.2, bg=0x111111, fg=0xFFD23A,
            name='ButtonSign')
-    s.beam('ReturnChopstickA', (gx - 0.7, gy - 0.3, gz - 6), (54 - 0.7, 1.4, 0), 1.0, 0.8, 0xC8A050, 'Wood')
-    s.beam('ReturnChopstickB', (gx + 0.7, gy - 0.3, gz - 6), (54 + 0.7, 1.4, 0), 1.0, 0.8, 0xC8A050, 'Wood')
+    s.beam('ReturnChopstickA', (gx - 0.7, gy - 0.3, gz - 6), (54 - 0.7, 1.4, 0), 1.0, 0.8, 0xF6F4EE, 'SmoothPlastic')
+    s.beam('ReturnChopstickB', (gx + 0.7, gy - 0.3, gz - 6), (54 + 0.7, 1.4, 0), 1.0, 0.8, 0xF6F4EE, 'SmoothPlastic')
     # giant bowl island in the middle with noodles and a ladle
     bowl = s.model('GiantBowl')
     bowl.cyl('BowlBase', 3, 22, (-15, 1.5, 0), 0xEDE7DA, 'SmoothPlastic')

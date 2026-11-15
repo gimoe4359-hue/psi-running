@@ -210,10 +210,31 @@ local function openFloor(n, by)
 		for _, c in ipairs(chains88) do setHidden(c, true) end
 		local d = stairDoors[88]
 		if d then
+			-- the padlock drops away and the leaf swings open about its hinge, like the stair doors on the other floors
+			local hingeSide = d:FindFirstChild("FrameL", true)
+			local moving = {}
 			for _, p in ipairs(partsOf(d)) do
-				if p.Name ~= "FrameL" and p.Name ~= "FrameR" and p.Name ~= "FrameT" then setHidden(p, true) end
+				if p.Name == "Padlock" then
+					setHidden(p, true)
+				elseif p.Name ~= "FrameL" and p.Name ~= "FrameR" and p.Name ~= "FrameT" then
+					table.insert(moving, p)
+				end
 			end
 			playAt(workspace, "rbxasset://sounds/snap.mp3", 1, 0.6)
+			if hingeSide then
+				local pivot = CFrame.new(hingeSide.Position)
+				local rel = {}
+				for _, p in ipairs(moving) do rel[p] = pivot:ToObjectSpace(original[p].cf) end
+				task.spawn(function()
+					for k = 1, 12 do
+						local turn = pivot * CFrame.Angles(0, math.rad(80 * k / 12), 0)
+						for _, p in ipairs(moving) do p.CFrame = turn * rel[p] end
+						task.wait(0.03)
+					end
+				end)
+			else
+				for _, p in ipairs(moving) do setHidden(p, true) end
+			end
 		end
 	end
 	local who = if by then (by.DisplayName .. " · ") else ""
@@ -548,7 +569,10 @@ local function onPlayerAdded(player)
 end
 
 Players.PlayerAdded:Connect(onPlayerAdded)
-Players.PlayerRemoving:Connect(function(p) pstate[p] = nil end)
+Players.PlayerRemoving:Connect(function(p)
+	pstate[p] = nil
+	Zzuk.setLooking(p, false)
+end)
 
 -- arriving at a floor's stair landing moves the respawn point there
 task.spawn(function()
@@ -620,6 +644,10 @@ end)
 
 InputEv.OnServerEvent:Connect(function(player, kind, a, b)
 	if not pstate[player] or type(kind) ~= "string" then return end
+	if kind == "look" then
+		Zzuk.setLooking(player, a == true)
+		return
+	end
 	local ok, err = pcall(Floors.onInput, player, kind, a, b)
 	if not ok then warn("[PSI] input:", err) end
 end)

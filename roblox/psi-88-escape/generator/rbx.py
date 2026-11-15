@@ -324,7 +324,7 @@ def light(part, kind='PointLight', color=0xFFF1E0, brightness=1.0, rng=16, shado
 def gui_text(part, text, face='Front', bg=0x111111, fg=0xFFFFFF, bg_tr=0.0, glow=False,
              font=19, ppu=40, stroke=1.0, pad=0.06, rich=False):
     if text and hasattr(part, '_cf'):
-        PREVIEW_TEXT.append((part._cf, part._size, face, text, bg, fg, bg_tr))
+        PREVIEW_TEXT.append((part._cf, part._size, face, text, bg, fg, bg_tr, part))
     g = Inst('SurfaceGui', 'SurfaceGui', part)
     g.prop('token', 'Face', FACE[face])
     g.prop('token', 'SizingMode', 1)

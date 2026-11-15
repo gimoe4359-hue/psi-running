@@ -255,7 +255,9 @@ end
 -- the thing that rushes through: a parka (에스키모) or a hospital gown (레전드 환자)
 local function rushFigure(look)
 	local eskimo = look == "eskimo"
-	local root = part({ Name = "Rush", Size = Vector3.new(4.4, 6.4, 3), Color = if eskimo then Color3.fromRGB(190, 60, 40) else Color3.fromRGB(215, 225, 222),
+	local suit = Color3.fromRGB(44, 48, 58)
+	local skin = Color3.fromRGB(244, 226, 214)
+	local root = part({ Name = "Rush", Size = Vector3.new(4.2, 4.2, 2.2), Color = if eskimo then suit else Color3.fromRGB(215, 225, 222),
 		Material = Enum.Material.Fabric })
 	local function add(size, offset, color, material)
 		local p = part({ Name = "RushPart", Size = size, Color = color, Material = material or Enum.Material.Fabric, Anchored = false,
@@ -267,16 +269,32 @@ local function rushFigure(look)
 		return p
 	end
 	if eskimo then
-		add(Vector3.new(5, 3.4, 3.6), CFrame.new(0, 4.2, 0), Color3.fromRGB(236, 230, 214))               -- fur hood
-		add(Vector3.new(2.6, 2.2, 0.4), CFrame.new(0, 4.2, -1.7), Color3.fromRGB(16, 12, 12), Enum.Material.SmoothPlastic)
-		add(Vector3.new(0.9, 7, 0.9), CFrame.new(3.2, 2.6, -1) * CFrame.Angles(math.rad(25), 0, 0), Color3.fromRGB(110, 80, 50), Enum.Material.Wood)
-		add(Vector3.new(3.4, 2.2, 2.2), CFrame.new(3.2, 6.2, -2.4), Color3.fromRGB(60, 62, 68), Enum.Material.Metal)   -- sledgehammer head
+		-- 에스키모: sandy-brown hair falling over one eye, plain dark suit, and the sledgehammer
+		local plastic = Enum.Material.SmoothPlastic
+		local hair = Color3.fromRGB(201, 169, 122)
+		for _, s in ipairs({ -1, 1 }) do
+			add(Vector3.new(1.8, 3.6, 1.9), CFrame.new(s * 1.05, -3.9, 0), suit)                                  -- legs
+			add(Vector3.new(1.5, 4.0, 1.6), CFrame.new(s * 2.9, 0, 0), suit)                                      -- arms
+			add(Vector3.new(0.6, 2.6, 0.1), CFrame.new(s * 0.75, 0.7, -1.12) * CFrame.Angles(0, 0, math.rad(s * 22)), Color3.fromRGB(30, 33, 40))
+			add(Vector3.new(0.5, 2.6, 2.4), CFrame.new(s * 1.55, 3.3, 0.1), hair, plastic)                         -- side hair
+		end
+		add(Vector3.new(1.4, 2.8, 0.1), CFrame.new(0, 0.6, -1.11), Color3.fromRGB(240, 240, 236))                  -- shirt
+		add(Vector3.new(0.5, 2.4, 0.1), CFrame.new(0, 0.5, -1.17), Color3.fromRGB(70, 78, 96))                     -- tie
+		local head = add(Vector3.new(3.2, 3.2, 3.2), CFrame.new(0, 3.7, 0), skin, plastic)
+		head.Shape = Enum.PartType.Ball
+		local top = add(Vector3.new(3.6, 3.6, 3.6), CFrame.new(0, 4.2, 0.45), hair, plastic)
+		top.Shape = Enum.PartType.Ball
+		add(Vector3.new(2.2, 1.5, 0.5), CFrame.new(-0.6, 4.3, -1.5) * CFrame.Angles(0, 0, math.rad(-12)), hair, plastic)   -- fringe over one eye
+		add(Vector3.new(3.0, 2.6, 0.7), CFrame.new(0, 3.2, 1.5), hair, plastic)
+		add(Vector3.new(0.45, 0.3, 0.1), CFrame.new(0.75, 3.75, -1.56), Color3.fromRGB(40, 40, 46), plastic)             -- the eye that shows
+		add(Vector3.new(0.9, 7, 0.9), CFrame.new(3.6, 1.6, -1) * CFrame.Angles(math.rad(25), 0, 0), Color3.fromRGB(110, 80, 50), Enum.Material.Wood)
+		add(Vector3.new(3.4, 2.2, 2.2), CFrame.new(3.6, 5.2, -2.4), Color3.fromRGB(60, 62, 68), Enum.Material.Metal)       -- sledgehammer head
 	else
-		add(Vector3.new(2.6, 2.6, 2.6), CFrame.new(0, 4.4, 0), Color3.fromRGB(226, 214, 200), Enum.Material.SmoothPlastic)
-		add(Vector3.new(6.4, 0.5, 9), CFrame.new(0, -2.2, 0), Color3.fromRGB(150, 156, 160), Enum.Material.Metal)       -- the stretcher
-	end
-	for _, s in ipairs({ -1, 1 }) do
-		add(Vector3.new(0.5, 0.3, 0.2), CFrame.new(s * 0.6, 4.5, if eskimo then -1.95 else -1.35), RED, Enum.Material.Neon)
+		add(Vector3.new(2.6, 2.6, 2.6), CFrame.new(0, 3.4, 0), Color3.fromRGB(226, 214, 200), Enum.Material.SmoothPlastic)
+		add(Vector3.new(6.4, 0.5, 9), CFrame.new(0, -2.4, 0), Color3.fromRGB(150, 156, 160), Enum.Material.Metal)       -- the stretcher
+		for _, s in ipairs({ -1, 1 }) do
+			add(Vector3.new(0.5, 0.3, 0.2), CFrame.new(s * 0.6, 3.5, -1.35), RED, Enum.Material.Neon)
+		end
 	end
 	glow(root, RED, 26, 2.2)
 	return root
@@ -595,6 +613,7 @@ local function floor80()
 		boxes[i] = { part = p, label = tl }
 		spin(n, p, 0.1)
 		local pp = ctx.prompt(p, "꺼내기", "기밀 상자", 0.8)
+		pp.MaxActivationDistance = 4.5     -- you have to be in the aisle, past the laser
 		pp.Triggered:Connect(function(player)
 			if ctx.isOpen(n) then return end
 			if i == st.target then

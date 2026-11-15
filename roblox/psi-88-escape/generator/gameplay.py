@@ -8,7 +8,8 @@ The scripts find things by CollectionService tag or by part name:
 All coordinates are floor-local: y is measured from the floor's base.
 """
 import os
-from rbx import Inst, T, Ry
+from rbx import Inst, T, Ry, Rz
+import props as P
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LUA = os.path.join(HERE, 'lua')
@@ -127,6 +128,36 @@ def cover_box(b, col=0xB48C5C):
     return m
 
 
+def person(b, name, skin, hair, jacket, shirt, tie, pants, eyes, s=1.0):
+    """A standing figure built from parts, facing local −Z. Feet on y=0."""
+    m = b.model(name)
+    dec = dict(collide=False, shadow=False)
+
+    def blk(nm, size, pos, col, mat='SmoothPlastic', rot=None, **kw):
+        return m.blk(nm, tuple(v * s for v in size), tuple(v * s for v in pos), col, mat, rot=rot, **kw)
+
+    for x in (-0.5, 0.5):
+        blk('Leg', (0.95, 2.0, 0.95), (x, 1.0, 0), pants, 'Fabric')
+        blk('Shoe', (1.0, 0.3, 1.3), (x, 0.15, -0.15), 0x1A1A1A, **dec)
+        blk('Arm', (0.9, 2.0, 0.9), (x * 2.9, 3.0, 0), jacket, 'Fabric')
+        blk('Hand', (0.8, 0.4, 0.8), (x * 2.9, 1.82, 0), skin, **dec)
+        blk('Lapel', (0.42, 1.35, 0.05), (x * 0.92, 3.42, -0.53), jacket, 'Fabric', rot=Rz(x * 30), **dec)
+        blk('Collar', (0.5, 0.3, 0.06), (x * 0.56, 3.98, -0.55), shirt, 'Fabric', rot=Rz(-x * 50), **dec)
+        blk('Eye', (0.3, 0.22, 0.05), (x * 0.68, 5.0, -0.8), eyes, 'Neon', **dec)
+        blk('SideHair', (0.32, 1.35, 1.2), (x * 1.78, 4.85, 0.1), hair, **dec)
+    blk('Torso', (2.0, 2.0, 1.0), (0, 3.0, 0), jacket, 'Fabric')
+    blk('Shirt', (0.72, 1.4, 0.05), (0, 3.38, -0.51), shirt, 'Fabric', **dec)
+    blk('Tie', (0.3, 1.25, 0.05), (0, 3.28, -0.55), tie, 'Fabric', **dec)
+    blk('TieKnot', (0.36, 0.28, 0.08), (0, 3.93, -0.56), tie, 'Fabric', **dec)
+    blk('Neck', (0.6, 0.3, 0.6), (0, 4.12, 0), skin, **dec)
+    m.ball('Head', 1.7 * s, (0, 4.95 * s, 0), skin)
+    blk('Smile', (0.36, 0.05, 0.04), (0, 4.58, -0.8), 0xA05A5A, **dec)
+    m.ball('HairTop', 1.95 * s, (0, 5.22 * s, 0.26 * s), hair, **dec)
+    blk('Bangs', (1.5, 0.42, 0.28), (0, 5.52, -0.72), hair, **dec)
+    blk('BackHair', (1.6, 1.3, 0.4), (0, 4.85, 0.78), hair, **dec)
+    return m
+
+
 def add_floor_gameplay(fb, n):
     """Called once per floor after the floor is built."""
     g = fb.model('Objectives')
@@ -147,6 +178,11 @@ def add_floor_gameplay(fb, n):
         locker(fb.at(T(x, y, z) * Ry(yaw)))
     for x, y, z, yaw in COVER.get(n, []):
         cover_box(fb.at(T(x, y, z) * Ry(yaw)))
+    if n == 44:
+        # MC 백윤례 on the stage: pale mint bob, yellow eyes, white suit, black shirt, green tie
+        person(fb.at(T(-66, 2.6, -5) * Ry(-90)), 'MC_백윤례', skin=0xF6E4E0, hair=0xDCEBC8, jacket=0xF2F2F0, shirt=0x1E2420,
+               tie=0x5E8A4E, pants=0xEDEDEA, eyes=0xF0B020, s=1.25)
+        P.sign(g, 'MC 백윤례', -62.6, 2.6 + 0.9, -5, '+x', 3.4, 0.9, bg=0x1E2420, fg=0xDCEBC8, name='McPlate')
 
 
 def lua(name):

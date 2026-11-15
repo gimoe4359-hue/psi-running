@@ -569,6 +569,44 @@ RunS.Heartbeat:Connect(function(dt)
 	objLbl.Text = objectiveFor(n)
 end)
 
+-- ---------------------------------------------------------------- 77F: is 쭉쭉이 on my screen?
+-- Only this client knows where its camera points, so it tells the server. 쭉쭉이 freezes while anyone reports true.
+local CS = game:GetService("CollectionService")
+local lookParams = RaycastParams.new()
+lookParams.FilterType = Enum.RaycastFilterType.Exclude
+local lastLook = false
+local lastLookSent = 0
+task.spawn(function()
+	while true do
+		task.wait(0.1)
+		local looking = false
+		if lastFloor == 77 then
+			local zz = CS:GetTagged("ZzukZzuk")[1]
+			local cam = workspace.CurrentCamera
+			local char = player.Character
+			if zz and cam and char and zz:IsDescendantOf(workspace) then
+				local centre = zz:GetPivot().Position
+				local from = cam.CFrame.Position
+				lookParams.FilterDescendantsInstances = { char, zz }
+				for _, dy in ipairs({ -3, 0, 4 }) do
+					local pos = centre + Vector3.new(0, dy, 0)
+					local v, onScreen = cam:WorldToViewportPoint(pos)
+					if onScreen and v.Z > 0 and v.Z < 110 and workspace:Raycast(from, pos - from, lookParams) == nil then
+						looking = true
+						break
+					end
+				end
+			end
+		end
+		local now = os.clock()
+		if looking ~= lastLook or (looking and now - lastLookSent > 0.3) then
+			lastLook = looking
+			lastLookSent = now
+			InputEv:FireServer("look", looking)
+		end
+	end
+end)
+
 -- ---------------------------------------------------------------- intro
 task.delay(1, function()
 	showBanner("88층 공유 하우스 — 현관 도어락 암호가 적힌 쪽지 4장을 찾아라", 6, "key")

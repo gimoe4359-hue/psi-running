@@ -649,7 +649,7 @@ def build(fb, F):
         en.blk('Shoe', (0.6, 0.45, 1.25), (x, 0.35, z), col, rot=Ry(a), **NC)
         en.blk('Shoe', (0.6, 0.45, 1.25), (x + 0.5, 0.35, z + 0.3), col, rot=Ry(a + 10), **NC)
     Q.umbrella_stand(en.at(T(60.6, 0.12, -20.6)))
-    note = en.blk('DoorNote', (0.04, 1.2, 0.9), (61.8, FL + 5.2, -11.5), 0xF8F4E8, **DEC)
+    note = en.blk('DoorNote', (0.04, 1.2, 0.9), (61.8, FL + 5.2, -11.5), 0xF8F4E8, tags=['LockedChains'], **DEC)
     gui_text(note, '절대\n열지 마', 'Left', bg=0xF8F4E8, fg=0x8A1010, font=9, ppu=60)
     switch(en, 61.7, -5.5, '-x')
 

@@ -21,12 +21,14 @@ import v2_public as VP
 import v2_special as VS
 import v2_backrooms as VB
 import gameplay as G
+import audit
 import world as W
 import dress as D
 import props as P
 from props import R
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+AUDIT = True
 OUT = os.path.join(HERE, '..', 'PSI_88F_Escape_Map.rbxlx')
 
 # top → bottom. (floor number, title, height, builder, extra)
@@ -172,6 +174,12 @@ def build(preview=False):
     W.exterior(root)
     W.skyline(root)
 
+    # repair pass: coplanar faces that would flicker, and text faces that sit behind something
+    if AUDIT:
+        left = audit.fix_zfight(rbx.PREVIEW)
+        fixed, hidden = audit.fix_signs(rbx.PREVIEW, rbx.PREVIEW_TEXT)
+        print('audit: flickering face pairs left %d · signs repaired %d, still partly hidden %d' % (left, fixed, hidden))
+
     # legend for scripters
     info = Inst('StringValue', 'MapInfo', root.parent)
     info.prop('string', 'Value', 'PSI 88층 탈출 맵 — 태그: PlayerSpawn, StairDoor, ExitGate, ExitButton, Checkpoint, KillBrick, ChaserSpawn, '
@@ -190,7 +198,7 @@ def build(preview=False):
                          [round(cf.R[i][j], 4) for i in range(3) for j in range(3)], color, round(tr, 2),
                          1 if mat == 'Neon' else 0, mats.index(mat), round(refl, 2)])
         texts = []
-        for cf, size, face, text, bg, fg, bg_tr in rbx.PREVIEW_TEXT:
+        for cf, size, face, text, bg, fg, bg_tr, _p in rbx.PREVIEW_TEXT:
             texts.append([[round(v, 2) for v in size], [round(v, 2) for v in cf.p],
                           [round(cf.R[i][j], 4) for i in range(3) for j in range(3)], face, text, bg, fg, 1 if bg_tr >= 1 else 0])
         floors = [dict(n=n, label=label(n), title=title, base=base[n], h=h, objective=G.OBJECTIVES.get(n, '출입 카드를 찾아 계단 창살을 열어라')) for n, title, h, _, _ in FLOORS]

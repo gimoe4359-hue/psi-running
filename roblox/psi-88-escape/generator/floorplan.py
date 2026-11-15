@@ -27,7 +27,7 @@ def dump(path):
                 tags = v.decode('utf-8').replace('\0', ',')
         out.append((p[0] - hx, p[1] - hy, p[2] - hz, p[0] + hx, p[1] + hy, p[2] + hz, 1 if collide else 0, tr, inst.props[0][2], color, tags, kind))
     with open(path, 'wb') as fh:
-        pickle.dump(dict(floors=floors, parts=out, texts=[(cf.p, text) for cf, size, face, text, bg, fg, bg_tr in rbx.PREVIEW_TEXT]), fh)
+        pickle.dump(dict(floors=floors, parts=out, texts=[(cf.p, text) for cf, size, face, text, bg, fg, bg_tr, _p in rbx.PREVIEW_TEXT]), fh)
     print('cached', len(out), 'parts')
 
 

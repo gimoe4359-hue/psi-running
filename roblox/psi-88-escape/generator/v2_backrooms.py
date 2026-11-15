@@ -17,8 +17,9 @@ CARPET = 0xB09A5C
 def zzukzzuk(b, hunch=True):
     """A pale, impossibly stretched figure. Stands ~17 studs tall, so it has to stoop under the 11-stud ceiling."""
     m = b.model('ZzukZzuk')
-    skin = 0xE6E2DA
+    skin = 0xF2D23A
     dark = 0x1A1816
+    green = 0x2E8B4A
     # legs: two very long thin legs, slightly bent
     for s in (-1, 1):
         m.beam('Thigh', (s * 0.7, FL + 4.6, 0), (s * 0.9, FL + 8.6, -0.6), 0.5, 0.5, skin, 'SmoothPlastic')
@@ -29,8 +30,13 @@ def zzukzzuk(b, hunch=True):
     m.beam('Spine', (0, FL + 8.6, -0.6), (0, FL + 10.4, -1.4), 1.1, 0.8, skin, 'SmoothPlastic')
     m.beam('Chest', (0, FL + 10.4, -1.4), (0, FL + 10.6, -5.4), 1.4, 0.9, skin, 'SmoothPlastic')
     for k in range(5):
-        m.beam('Rib', (-0.72, FL + 10.45 - 0.0, -2.0 - k * 0.7), (0.72, FL + 10.45, -2.0 - k * 0.7), 0.08, 0.12, 0xC8C2B8, **DEC)
+        m.beam('Rib', (-0.72, FL + 10.45 - 0.0, -2.0 - k * 0.7), (0.72, FL + 10.45, -2.0 - k * 0.7), 0.08, 0.12, 0xC8A820, **DEC)
     m.beam('Neck', (0, FL + 10.6, -5.4), (0, FL + 9.2, -8.2), 0.45, 0.45, skin, 'SmoothPlastic')
+    # green necktie: knotted where the neck leaves the chest, hanging straight down
+    m.blk('TieKnot', (0.7, 0.55, 0.5), (0, FL + 10.05, -5.5), green, 'Fabric', **DEC)
+    m.beam('Tie', (0, FL + 9.8, -5.5), (0, FL + 6.4, -5.3), 0.85, 0.16, green, 'Fabric', **DEC)
+    m.wedge('TieTip', (0.85, 0.7, 0.16), T(0, FL + 6.05, -5.28) * Rx(180), green, 'Fabric', **DEC)
+    m.beam('Collar', (-0.55, FL + 10.35, -5.45), (0.55, FL + 10.35, -5.45), 0.3, 0.3, 0xF4F2EA, **DEC)
     head = m.at(T(0, FL + 8.7, -8.9) * Rx(25))
     head.ball('Head', 1.6, (0, 0, 0), skin, 'SmoothPlastic')
     head.blk('Jaw', (1.0, 1.4, 1.0), (0, -0.9, -0.15), skin, 'SmoothPlastic')
@@ -156,14 +162,17 @@ def giant_berry(b, s=1.0):
     hd.ball('Cheek', 6 * s, (2.6 * s, -1.8 * s, -2.6 * s), WHITE, FUR)
     hd.ball('Muzzle', 4.4 * s, (4.4 * s, -1.6 * s, 0), WHITE, FUR)
     for z in (-2.8, 2.8):
-        ear = hd.at(T(-0.5 * s, 4.6 * s, z * s) * Rx(-z * 4))
-        ear.wedge('Ear', (2.6 * s, 3.6 * s, 3.2 * s), T(0, 0, 0) * Ry(-90), WHITE, FUR)
-        ear.wedge('EarInner', (1.6 * s, 2.4 * s, 0.4 * s), T(0.9 * s, -0.4 * s, 0) * Ry(-90), 0xE8B0B8, 'SmoothPlastic', **DEC)
+        # Scottish Fold: small ears folded forward and down, lying against the round head
+        ear = hd.at(T(1.3 * s, 4.75 * s, z * 1.15 * s) * Rx(-z * 9) * Rz(-38))
+        ear.blk('Ear', (2.3 * s, 0.8 * s, 2.5 * s), (0, 0, 0), WHITE, FUR)
+        ear.wedge('EarTip', (2.5 * s, 0.8 * s, 1.2 * s), T(1.7 * s, 0, 0) * Ry(-90), WHITE, FUR)
+        ear.blk('EarFoldLine', (2.0 * s, 0.06 * s, 2.0 * s), (0.2 * s, -0.42 * s, 0), 0xF0D8D8, 'SmoothPlastic', **DEC)
     # glowing yellow eyes with slit pupils — the only bright thing in the room
     for z in (-2.1, 2.1):
-        e = hd.cyl('Eye', 0.3 * s, 2.4 * s, (5.0 * s, 0.9 * s, z * s), 0xF6D21A, 'Neon', axis='x', **DEC)
-        hd.blk('Pupil', (0.1 * s, 2.0 * s, 0.35 * s), (5.2 * s, 0.9 * s, z * s), 0x0A0A0A, **DEC)
-        light(e, 'PointLight', 0xFFD020, 1.2, 18)
+        e = hd.cyl('Eye', 0.3 * s, 2.5 * s, (5.0 * s, 0.9 * s, z * s), 0xE8A21C, 'Neon', axis='x', **DEC)
+        hd.cyl('Pupil', 0.12 * s, 1.5 * s, (5.2 * s, 0.9 * s, z * s), 0x0A0A0A, axis='x', **DEC)
+        hd.ball('EyeShine', 0.4 * s, (5.3 * s, 1.35 * s, (z + 0.4) * s), 0xFFFFFF, 'Neon', **DEC)
+        light(e, 'PointLight', 0xFFB830, 1.2, 18)
     hd.wedge('Nose', (0.7 * s, 0.5 * s, 0.9 * s), T(6.5 * s, -1.0 * s, 0) * Rz(90) * Ry(90), 0xE89AA6, 'SmoothPlastic', **DEC)
     for z in (-1, 1):
         for k in range(3):
@@ -176,8 +185,8 @@ def giant_berry(b, s=1.0):
     # tail curling round the front
     pts = [(-20, 3, 4), (-20, 2.4, 9), (-14, 2.0, 11), (-6, 1.8, 11.5), (2, 1.8, 10)]
     for a, c in zip(pts, pts[1:]):
-        m.beam('Tail', (a[0] * s, a[1] * s, a[2] * s), (c[0] * s, c[1] * s, c[2] * s), 2.2 * s, 2.2 * s, WHITE, FUR)
-    m.ball('TailTip', 2.4 * s, (2 * s, 1.8 * s, 10 * s), WHITE, FUR)
+        m.beam('Tail', (a[0] * s, a[1] * s, a[2] * s), (c[0] * s, c[1] * s, c[2] * s), 3.0 * s, 3.0 * s, WHITE, FUR)
+    m.ball('TailTip', 3.2 * s, (2 * s, 1.8 * s, 10 * s), WHITE, FUR)
     tag(m, 'JjangkeunBerry')
     return m
 
