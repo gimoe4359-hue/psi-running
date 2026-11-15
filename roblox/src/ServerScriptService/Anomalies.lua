@@ -591,6 +591,53 @@ end, function(st)
 	end
 end)
 
+-- 14. 화장실 세 번째 칸 노크
+def("Restroom", 1, 35, function(st)
+	local doors = tagged("StallDoor3")
+	local door = pick(doors)
+	st.door = door
+	st.color = door.Color
+	local label = labelOf(door)
+	st.label = label
+	st.text = label and label.Text
+	if label then
+		label.Text = "똑 똑"
+	end
+	task.spawn(function()
+		local lines = { "똑, 똑.", "…거기 누구 있어요?", "똑, 똑, 똑.", "\"휴지 좀 주실래요?\"" }
+		local i = 1
+		while not st.stopped do
+			api.sayNear(door.Position, 30, "(화장실 세 번째 칸) " .. lines[i], 3.5, i == 4 and "red" or "white")
+			api.playSound("Knock", door)
+			i = i % #lines + 1
+			task.wait(5)
+		end
+	end)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "문 열기"
+	prompt.ObjectText = "세 번째 칸"
+	prompt.HoldDuration = 0.8
+	prompt.MaxActivationDistance = 7
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = door
+	st.prompt = prompt
+	prompt.Triggered:Connect(function(player)
+		if st.stopped then
+			return
+		end
+		api.Effect:FireClient(player, "jumpscare")
+		api.addSanity(player, -25, "…안에는 아무도 없었다. 바닥이 젖어 있다.")
+		Anomalies.Stop("Restroom")
+	end)
+end, function(st)
+	if st.prompt then
+		st.prompt:Destroy()
+	end
+	if st.label and st.text then
+		st.label.Text = st.text
+	end
+end)
+
 -- ═════════════════════════ 관리 ═════════════════════════
 function Anomalies.Trigger(name)
 	local d = findDef(name)

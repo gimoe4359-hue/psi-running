@@ -10,7 +10,9 @@ const read = (i) => JSON.parse(fs.readFileSync(path.join(dir, `MapData${i}.lua`)
 // Roblox Enum 이름 (실제 Studio에 있는 것만)
 const MATERIALS = new Set(['Plastic', 'SmoothPlastic', 'Neon', 'Wood', 'WoodPlanks', 'Marble', 'Slate', 'Concrete', 'Granite', 'Brick',
   'Pebble', 'Cobblestone', 'CorrodedMetal', 'DiamondPlate', 'Foil', 'Metal', 'Grass', 'LeafyGrass', 'Sand', 'Fabric', 'Snow', 'Mud',
-  'Ground', 'Asphalt', 'Salt', 'Limestone', 'Pavement', 'Basalt', 'CrackedLava', 'Glacier', 'Ice', 'Rock', 'Sandstone', 'Glass', 'ForceField']);
+  'Ground', 'Asphalt', 'Salt', 'Limestone', 'Pavement', 'Basalt', 'CrackedLava', 'Glacier', 'Ice', 'Rock', 'Sandstone', 'Glass', 'ForceField',
+  'Plaster', 'CeramicTiles', 'Carpet', 'Rubber', 'Leather', 'Cardboard', 'RoofShingles', 'ClayRoofTiles']);
+const TERRAIN = new Set(['Grass', 'LeafyGrass', 'Ground', 'Pavement', 'Rock', 'Sand', 'Mud', 'Asphalt', 'Concrete', 'Slate', 'Snow', 'Basalt', 'Limestone', 'Sandstone', 'Salt', 'Glacier', 'Ice', 'Brick', 'Cobblestone', 'WoodPlanks', 'CrackedLava']);
 const FONTS = new Set(['GothamBold', 'GothamBlack', 'Gotham', 'Merriweather', 'PatrickHand', 'Arial', 'SourceSans', 'Code']);
 const FACES = new Set(['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom']);
 
@@ -21,7 +23,7 @@ for (let i = 1; i <= h.partChunks; i++) parts.push(...read(i));
 if (fs.existsSync(path.join(dir, `MapData${h.partChunks + 1}.lua`))) errors.push('남는 MapData 파일이 있음');
 h.mats.forEach((m) => { if (!MATERIALS.has(m)) errors.push(`없는 재질: ${m}`); });
 parts.forEach((p, i) => {
-  if (p.length !== 16) errors.push(`파트 ${i} 필드 수 ${p.length}`);
+  if (p.length !== 17) errors.push(`파트 ${i} 필드 수 ${p.length}`);
   if (p[0] < 0 || p[0] >= h.groups.length) errors.push(`파트 ${i} 그룹 번호`);
   if (p[11] >= h.colors.length) errors.push(`파트 ${i} 색 번호`);
   if (p[12] >= h.mats.length) errors.push(`파트 ${i} 재질 번호`);
@@ -38,11 +40,12 @@ h.texts.forEach((t) => {
   if (!FONTS.has(t[6])) errors.push(`없는 글꼴: ${t[6]}`);
 });
 h.tags.forEach((t) => { if (t[0] >= parts.length) errors.push(`태그 ${t}`); });
+(h.terrain || []).forEach((t) => { if (!TERRAIN.has(t[1])) errors.push(`지형 재질 ${t[1]}`); });
 h.gtags.forEach((t) => { if (t[0] >= h.groups.length) errors.push(`그룹 태그 ${t}`); });
 
 // 스크립트가 꼭 찾아야 하는 태그가 있는지
 const need = ['BoothSpawn', 'BoothZone', 'BuildingZone', 'RoofStairZone', 'ChairSpot', 'FigureSpot', 'PatrolPoint', 'Phone', 'GateLock',
-  'ClockCenter', 'ClockHour', 'ClockMinute', 'StairSign', 'Blackboard', 'CorridorLight', 'FlickerLight', 'CCTVScreen', 'OnAirSign', 'StatuePedestal'];
+  'ClockCenter', 'ClockHour', 'ClockMinute', 'StairSign', 'Blackboard', 'CorridorLight', 'FlickerLight', 'CCTVScreen', 'OnAirSign', 'StatuePedestal', 'StallDoor3', 'DriverEye'];
 const have = new Set(h.tags.map((t) => t[1]));
 need.forEach((t) => { if (!have.has(t)) errors.push(`필요한 태그 없음: ${t}`); });
 const gneed = ['Classroom', 'DeskSet', 'MainGate', 'IntroCar', 'StatueFigure', 'PlasterBust'];

@@ -55,6 +55,31 @@ function Builder.Build(parent, yield)
 		mats[i - 1] = material(m)
 	end
 
+	-- 지형 (잔디·흙·포장·먼 산). 이미 지형이 있으면 건드리지 않음
+	local terrain = workspace.Terrain
+	if header.terrain and not terrain:GetAttribute("SchoolTerrain") then
+		terrain:SetAttribute("SchoolTerrain", true)
+		for i, t in ipairs(header.terrain) do
+			local mat = material(t[2])
+			if t[1] == 1 then
+				terrain:FillBall(Vector3.new(t[3], t[4], t[5]), t[6], mat)
+			else
+				terrain:FillBlock(CFrame.new(t[3], t[4], t[5]), Vector3.new(t[6], t[7], t[8]), mat)
+			end
+			if yield and i % 4 == 0 then
+				task.wait()
+			end
+		end
+	end
+	pcall(function()
+		terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(92, 104, 58))
+		terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(84, 92, 52))
+		terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(150, 128, 98))
+		terrain:SetMaterialColor(Enum.Material.Pavement, Color3.fromRGB(140, 138, 132))
+		terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(108, 104, 98))
+		terrain.Decoration = true
+	end)
+
 	-- 그룹(모델) 만들기: 경로 순서대로 부모가 먼저 나온다
 	local groupObj, byPath = {}, {}
 	for i, path in ipairs(header.groups) do
@@ -98,6 +123,9 @@ function Builder.Build(parent, yield)
 			p.Color = colors[r[12]]
 			p.Material = mats[r[13]]
 			p.Transparency = r[14]
+			if r[17] and r[17] > 0 then
+				p.Reflectance = r[17]
+			end
 			p.TopSurface = Enum.SurfaceType.Smooth
 			p.BottomSurface = Enum.SurfaceType.Smooth
 			local flags = r[16]

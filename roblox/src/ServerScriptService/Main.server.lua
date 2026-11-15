@@ -44,15 +44,18 @@ end
 
 -- ───────── 밤 분위기 ─────────
 Lighting.ClockTime = 22
-Lighting.Brightness = 0.6
-Lighting.Ambient = Color3.fromRGB(18, 20, 30)
-Lighting.OutdoorAmbient = Color3.fromRGB(48, 54, 76)
-Lighting.EnvironmentDiffuseScale = 0.4
-Lighting.EnvironmentSpecularScale = 0.6
+Lighting.Brightness = 1.2
+Lighting.Ambient = Color3.fromRGB(10, 12, 18)
+Lighting.OutdoorAmbient = Color3.fromRGB(38, 44, 64)
+Lighting.EnvironmentDiffuseScale = 1
+Lighting.EnvironmentSpecularScale = 1
 Lighting.GlobalShadows = true
-Lighting.FogColor = Color3.fromRGB(14, 18, 30)
-Lighting.FogStart = 60
-Lighting.FogEnd = 650
+Lighting.ShadowSoftness = 0.25
+Lighting.ExposureCompensation = 0.15
+Lighting.GeographicLatitude = 37.5 -- 서울
+pcall(function()
+	Lighting.Technology = Enum.Technology.Future -- Studio에서만 바뀌는 경우가 있음. 안 되면 직접 Future로
+end)
 local function effect(class, props)
 	local e = Lighting:FindFirstChildOfClass(class) or Instance.new(class)
 	for k, v in pairs(props) do
@@ -61,10 +64,15 @@ local function effect(class, props)
 	e.Parent = Lighting
 	return e
 end
-effect("Atmosphere", { Density = 0.38, Offset = 0.1, Color = Color3.fromRGB(70, 80, 110), Decay = Color3.fromRGB(20, 22, 36), Glare = 0, Haze = 1.6 })
-effect("ColorCorrectionEffect", { Brightness = 0.02, Contrast = 0.12, Saturation = -0.2, TintColor = Color3.fromRGB(220, 228, 255) })
-effect("BloomEffect", { Intensity = 0.7, Size = 28, Threshold = 1.4 })
-effect("SunRaysEffect", { Intensity = 0.02, Spread = 0.6 })
+effect("Atmosphere", { Density = 0.32, Offset = 0.05, Color = Color3.fromRGB(86, 96, 124), Decay = Color3.fromRGB(26, 28, 44), Glare = 0.2, Haze = 1.4 })
+effect("ColorCorrectionEffect", { Brightness = 0, Contrast = 0.14, Saturation = -0.12, TintColor = Color3.fromRGB(226, 232, 255) })
+effect("BloomEffect", { Intensity = 0.55, Size = 30, Threshold = 1.25 })
+effect("SunRaysEffect", { Intensity = 0.015, Spread = 0.5 })
+local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
+sky.StarCount = 2500
+sky.MoonAngularSize = 13
+sky.CelestialBodiesShown = true
+sky.Parent = Lighting
 
 local function playSound(name, parent, looped)
 	local id = Config.SOUNDS[name]

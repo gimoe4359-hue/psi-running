@@ -53,16 +53,24 @@ local scare = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = C
 make("TextLabel", { Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.25), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "봤 지 ?", TextColor3 = Color3.fromRGB(200, 0, 0), TextScaled = true, ZIndex = 43 }, scare)
 
 -- HUD
-local hud = make("Frame", { Size = UDim2.new(0, 270, 0, 108), Position = UDim2.new(0, 16, 0, 16), BackgroundColor3 = Color3.fromRGB(8, 10, 16), BackgroundTransparency = 0.35, Visible = false, ZIndex = 20 }, gui)
+-- 화면 가장자리 어둡게 (비네트)
+local vignette = make("Frame", { Name = "Vignette", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 5 }, gui)
+for i, spec in ipairs({ { UDim2.fromScale(1, 0.32), UDim2.fromScale(0, 0), 90 }, { UDim2.fromScale(1, 0.32), UDim2.fromScale(0, 0.68), -90 },
+	{ UDim2.fromScale(0.26, 1), UDim2.fromScale(0, 0), 0 }, { UDim2.fromScale(0.26, 1), UDim2.fromScale(0.74, 0), 180 } }) do
+	local f = make("Frame", { Size = spec[1], Position = spec[2], BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, ZIndex = 5 }, vignette)
+	make("UIGradient", { Rotation = spec[3], Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 1) }) }, f)
+	f.Name = "Edge" .. i
+end
+local hud = make("Frame", { Size = UDim2.new(0, 270, 0, 108), Position = UDim2.new(0, 22, 1, -130), BackgroundTransparency = 1, Visible = false, ZIndex = 20 }, gui)
 corner(hud, 12)
-local clockLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 34), Position = UDim2.new(0, 12, 0, 8), BackgroundTransparency = 1, Font = Enum.Font.Code, Text = "PM 10:00", TextColor3 = Color3.fromRGB(255, 90, 90), TextSize = 30, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
+local clockLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 34), Position = UDim2.new(0, 12, 0, 8), BackgroundTransparency = 1, Font = Enum.Font.Code, Text = "PM 10:00", TextColor3 = Color3.fromRGB(230, 236, 240), TextTransparency = 0.25, TextStrokeTransparency = 0.6, TextSize = 26, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
 make("TextLabel", { Size = UDim2.new(0, 60, 0, 16), Position = UDim2.new(0, 12, 0, 48), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "정신력", TextColor3 = Color3.fromRGB(200, 200, 210), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
 local barBg = make("Frame", { Size = UDim2.new(1, -86, 0, 12), Position = UDim2.new(0, 72, 0, 50), BackgroundColor3 = Color3.fromRGB(40, 40, 48), BorderSizePixel = 0, ZIndex = 21 }, hud)
 corner(barBg, 6)
 local barFill = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(110, 220, 130), BorderSizePixel = 0, ZIndex = 22 }, barBg)
 corner(barFill, 6)
 local patrolLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 74), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "", TextColor3 = Color3.fromRGB(220, 220, 230), TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
-local hint = make("TextLabel", { Size = UDim2.new(0, 360, 0, 22), Position = UDim2.new(0, 18, 0, 128), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "[R] 근무 수칙   [F] 손전등", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
+local hint = make("TextLabel", { Size = UDim2.new(0, 460, 0, 22), Position = UDim2.new(0, 24, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "[R] 근무 수칙   [F] 손전등   [Shift] 달리기", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
 
 -- 근무 수칙 종이
 local paper = make("Frame", { Size = UDim2.new(0, 470, 0, 540), Position = UDim2.new(0.5, -235, 0.5, -270), BackgroundColor3 = Color3.fromRGB(242, 234, 208), Visible = false, ZIndex = 60 }, gui)
@@ -78,6 +86,7 @@ local rulesLabel = make("TextLabel", { Size = UDim2.new(1, -44, 1, -150), Positi
 local nine = make("TextLabel", { Size = UDim2.new(1, -44, 0, 44), Position = UDim2.new(0, 22, 1, -86), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = Config.RULE_NINE, TextColor3 = Color3.fromRGB(170, 0, 0), TextSize = 16, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 61 }, paper)
 local closeBtn = make("TextButton", { Size = UDim2.new(0, 140, 0, 34), Position = UDim2.new(0.5, -70, 1, -44), BackgroundColor3 = Color3.fromRGB(60, 48, 36), Font = Enum.Font.GothamBold, Text = "알겠습니다 (R)", TextColor3 = Color3.new(1, 1, 1), TextSize = 16, ZIndex = 62 }, paper)
 corner(closeBtn, 6)
+closeBtn.Modal = true -- 1인칭에서도 마우스로 누를 수 있게
 
 -- 엔딩
 local endPanel = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Visible = false, ZIndex = 70 }, gui)
@@ -132,16 +141,33 @@ local function shake(seconds, power)
 	shakeUntil = math.max(shakeUntil, os.clock() + seconds)
 	shakePower = power
 end
-RunService.RenderStepped:Connect(function()
+-- 1인칭: 걸을 때 화면이 살짝 흔들리고(머리 흔들림), Shift로 달리기(체력 있음)
+local sprinting, stamina = false, Config.STAMINA_SECONDS
+local bobT, bobAmt = 0, 0
+local inFirstPerson = false
+RunService.RenderStepped:Connect(function(dt)
 	local hum = humanoid()
 	if not hum then
 		return
 	end
-	if os.clock() < shakeUntil then
-		hum.CameraOffset = Vector3.new((math.random() - 0.5) * shakePower, (math.random() - 0.5) * shakePower, 0)
-	elseif hum.CameraOffset.Magnitude > 0 then
-		hum.CameraOffset = Vector3.new()
+	local moving = hum.MoveDirection.Magnitude > 0.1 and hum.FloorMaterial ~= Enum.Material.Air
+	local running = sprinting and moving and stamina > 0
+	if inFirstPerson then
+		if running then
+			stamina = math.max(0, stamina - dt)
+		else
+			stamina = math.min(Config.STAMINA_SECONDS, stamina + dt * 0.6)
+		end
+		hum.WalkSpeed = running and Config.SPRINT_SPEED or Config.WALK_SPEED
 	end
+	bobAmt = bobAmt + ((moving and 1 or 0) - bobAmt) * math.min(1, dt * 8)
+	bobT = bobT + dt * (running and 13 or 8.5)
+	local amp = running and 1.6 or 1
+	local offset = Vector3.new(math.sin(bobT) * 0.07 * amp, math.abs(math.cos(bobT)) * 0.11 * amp - 0.05, 0) * bobAmt
+	if os.clock() < shakeUntil then
+		offset = offset + Vector3.new((math.random() - 0.5) * shakePower, (math.random() - 0.5) * shakePower, 0)
+	end
+	hum.CameraOffset = inFirstPerson and offset or Vector3.new()
 end)
 
 Effect.OnClientEvent:Connect(function(kind)
@@ -398,6 +424,18 @@ local function runIntro()
 	local t = 0
 	local fadedIn = false
 	local camPos = Vector3.new(-470, 30, 260)
+	-- 운전석 눈 위치 (차 안에 DriverEye 파트가 있음)
+	local eyePart
+	for _, p in ipairs(car:GetDescendants()) do
+		if p.Name == "DriverEye" then
+			eyePart = p
+		end
+	end
+	local eyeOffset = eyePart and parked:ToObjectSpace(eyePart.CFrame) or CFrame.new(-1.35, 3.0, 1.0)
+	local dof = Instance.new("DepthOfFieldEffect")
+	dof.FarIntensity = 0.35
+	dof.NearIntensity = 0
+	dof.Parent = Lighting
 	while t < T and not skipped do
 		local dt = RunService.RenderStepped:Wait()
 		t = t + dt
@@ -429,35 +467,47 @@ local function runIntro()
 			lineIndex = lineIndex + 1
 		end
 		-- 정문이 저절로 열린다
-		if gate and not gateOpened and t >= 12.6 then
+		if gate and not gateOpened and t >= 14.6 then
 			gateOpened = true
 			moveGateLocal(gate, gateClosed, true, 2)
 		end
-		-- 카메라 연출
-		local wantPos, target
-		if t < 9 then
-			wantPos = (carCF * CFrame.new(7, 6, 26)).Position
-			target = pos + carCF.LookVector * 30 + Vector3.new(0, 2, 0)
-		elseif t < 13 then
-			wantPos = Vector3.new(-40, 6, 256)
-			target = pos + Vector3.new(0, 2, 0)
-		elseif t < 18 then
-			wantPos = Vector3.new(-26, 8, 162)
-			target = pos + Vector3.new(0, 2, 0)
+		-- 카메라 연출: 운전석 시점 → 뒤따라가기 → 길 건너편 → 정문 안쪽 → 운전석 시점(주차)
+		local povShot = (t < 8) or (t >= 21.5)
+		if povShot then
+			local sway = CFrame.Angles(math.sin(t * 1.3) * 0.01, math.sin(t * 0.7) * 0.012, 0)
+			camera.FieldOfView = 64
+			camera.CFrame = carCF * eyeOffset * sway * CFrame.Angles(math.rad(-3), 0, 0)
+			camPos = camera.CFrame.Position
+			dof.FocusDistance = 40
+			dof.InFocusRadius = 40
 		else
-			wantPos = Vector3.new(16, 8, 146)
-			target = pos + Vector3.new(0, 2.5, 0)
+			local wantPos, target
+			if t < 12.5 then
+				wantPos = (carCF * CFrame.new(5, 3.2, 20)).Position
+				target = pos + carCF.LookVector * 30 + Vector3.new(0, 2, 0)
+			elseif t < 16 then
+				wantPos = Vector3.new(-46, 4.5, 254)
+				target = pos + Vector3.new(0, 2.5, 0)
+			else
+				wantPos = Vector3.new(-24, 6, 166)
+				target = pos + Vector3.new(0, 2.5, 0)
+			end
+			if (wantPos - camPos).Magnitude > 40 then
+				camPos = wantPos -- 컷 전환
+			else
+				camPos = camPos:Lerp(wantPos, math.min(1, dt * 4))
+			end
+			camera.FieldOfView = 50
+			camera.CFrame = CFrame.lookAt(camPos, target)
+			dof.FocusDistance = (target - camPos).Magnitude
+			dof.InFocusRadius = 12
 		end
-		if (wantPos - camPos).Magnitude > 40 then
-			camPos = wantPos -- 컷 전환
-		else
-			camPos = camPos:Lerp(wantPos, math.min(1, dt * 4))
-		end
-		camera.CFrame = CFrame.lookAt(camPos, target)
 	end
 	skipConn:Disconnect()
 	skipBtn.Visible = false
 	car:PivotTo(parked)
+	dof:Destroy()
+	camera.FieldOfView = Config.FIELD_OF_VIEW
 
 	tween(fade, 0.6, { BackgroundTransparency = 0 })
 	task.wait(0.7)
@@ -492,8 +542,48 @@ else
 	tween(fade, 1, { BackgroundTransparency = 1 })
 end
 
+-- 로블록스 기본 UI 숨기기 (채팅만 남김) + 1인칭 고정
+pcall(function()
+	local StarterGui = game:GetService("StarterGui")
+	for _, t in ipairs({ Enum.CoreGuiType.PlayerList, Enum.CoreGuiType.Health, Enum.CoreGuiType.Backpack, Enum.CoreGuiType.EmotesMenu }) do
+		StarterGui:SetCoreGuiEnabled(t, false)
+	end
+end)
+player.CameraMode = Enum.CameraMode.LockFirstPerson
+camera.FieldOfView = Config.FIELD_OF_VIEW
+inFirstPerson = true
+-- 다른 사람 머리 위 이름표 숨기기
+local function hideName(ch)
+	local h = ch:WaitForChild("Humanoid", 10)
+	if h then
+		h.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	end
+end
+for _, p in ipairs(Players:GetPlayers()) do
+	if p.Character then
+		task.spawn(hideName, p.Character)
+	end
+	p.CharacterAdded:Connect(hideName)
+end
+Players.PlayerAdded:Connect(function(p)
+	p.CharacterAdded:Connect(hideName)
+end)
+-- 달리기
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not processed and input.KeyCode == Enum.KeyCode.LeftShift then
+		sprinting = true
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.LeftShift then
+		sprinting = false
+	end
+end)
 hud.Visible = true
 hint.Visible = true
+task.delay(25, function()
+	tween(hint, 2, { TextTransparency = 1 })
+end)
 mobile.Visible = UserInputService.TouchEnabled
 setFlash(true)
 task.delay(6.5, function()

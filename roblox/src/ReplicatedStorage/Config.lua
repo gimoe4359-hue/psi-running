@@ -14,6 +14,12 @@ Config.FACE_ID = 0
 Config.SKIN_COLOR = Color3.fromRGB(234, 196, 160)
 Config.HERO_NAME = "공유"
 
+-- ───────── 움직임 (1인칭) ─────────
+Config.WALK_SPEED = 9
+Config.SPRINT_SPEED = 15
+Config.STAMINA_SECONDS = 6
+Config.FIELD_OF_VIEW = 72
+
 -- ───────── 시간 ─────────
 Config.SECONDS_PER_GAME_HOUR = 75 -- 22:00~06:00 = 8시간 = 10분
 Config.SHIFT_START_HOUR = 22
@@ -59,25 +65,25 @@ Config.RULE_NINE = "9. 경비원은 한 명입니다. 경비실에 누가 앉아
 -- ───────── 인트로 (차 타고 학교로) ─────────
 -- 자동차가 지나갈 길 (X, Z). 마지막 점이 주차 위치(IntroCar가 원래 놓인 자리)입니다.
 Config.INTRO_PATH = {
-	Vector3.new(-430, 0, 233),
-	Vector3.new(-200, 0, 233),
-	Vector3.new(-60, 0, 233),
-	Vector3.new(-18, 0, 229),
-	Vector3.new(-1, 0, 214),
-	Vector3.new(0, 0, 196),
-	Vector3.new(0, 0, 182),
-	Vector3.new(14, 0, 176),
-	Vector3.new(34, 0, 172),
-	Vector3.new(43.8, 0, 166),
-	Vector3.new(43.8, 0, 159),
+	Vector3.new(-520, 0, 233),
+	Vector3.new(-260, 0, 233),
+	Vector3.new(-70, 0, 233),
+	Vector3.new(-22, 0, 230),
+	Vector3.new(-2, 0, 216),
+	Vector3.new(0, 0, 198),
+	Vector3.new(0, 0, 184),
+	Vector3.new(12, 0, 178),
+	Vector3.new(32, 0, 175),
+	Vector3.new(40.5, 0, 169),
+	Vector3.new(40.5, 0, 162),
 }
-Config.INTRO_SECONDS = 22
+Config.INTRO_SECONDS = 26
 Config.INTRO_LINES = {
-	{ 0.5, "11월 13일 금요일, 밤 9시 50분." },
-	{ 4.0, "공유: 야간 경비 알바, 시급 3만 원… 이 정도면 꿀알바지." },
-	{ 9.0, "공유: 송천고등학교. 여기구나." },
-	{ 13.5, "철컥— 정문이 혼자 열렸다." },
-	{ 18.0, "공유: …주차하고, 경비실부터 가 보자." },
+	{ 1.0, "11월 13일 금요일, 밤 9시 50분." },
+	{ 5.0, "공유: 야간 경비 알바, 시급 3만 원… 이 정도면 꿀알바지." },
+	{ 10.5, "공유: 송천고등학교. 여기구나." },
+	{ 15.0, "철컥— 정문이 혼자 열렸다." },
+	{ 21.0, "공유: …주차하고, 경비실부터 가 보자." },
 }
 Config.AFTER_INTRO_LINES = {
 	{ 0.0, "끼이이익… 쾅." },

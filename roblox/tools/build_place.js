@@ -52,7 +52,7 @@ function render(item, indent, props = '') {
 
 const tree = [
   { cls: 'Workspace', name: 'Workspace', children: [], props: '\t\t\t<bool name="StreamingEnabled">false</bool>\n\t\t\t<float name="FallenPartsDestroyHeight">-500</float>\n' },
-  { cls: 'Lighting', name: 'Lighting', children: [], props: '\t\t\t<float name="ClockTime">22</float>\n\t\t\t<bool name="GlobalShadows">true</bool>\n' },
+  { cls: 'Lighting', name: 'Lighting', children: [], props: '\t\t\t<float name="ClockTime">22</float>\n\t\t\t<bool name="GlobalShadows">true</bool>\n\t\t\t<token name="Technology">4</token>\n' },
   { cls: 'ReplicatedStorage', name: 'ReplicatedStorage', children: dirItems(path.join(SRC, 'ReplicatedStorage')) },
   { cls: 'ServerScriptService', name: 'ServerScriptService', children: dirItems(path.join(SRC, 'ServerScriptService')) },
   { cls: 'StarterPlayer', name: 'StarterPlayer', children: [
