@@ -621,6 +621,50 @@ function setTubeGlow(rooms) {
   scene.add(tubeGlow);
 }
 
+// ───────── 근무 수칙 수첩 (게임 Client 의 drawRulePage 와 같은 방식: 획을 선으로 그림) ─────────
+const ruleStrokes = await (await fetch('/rule_strokes.json')).json().catch(() => []);
+function drawRulePage(g, pageIndex, x0, y0, em, gap, showNine) {
+  (ruleStrokes[pageIndex] || []).forEach((line, li) => {
+    if (line.kind === 'nine' && !showNine) return;
+    const sc = line.kind === 'title' ? 1.25 : 1, lx = x0 + line.indent * em, ly = y0 + (li + 0.5) * gap;
+    g.strokeStyle = line.kind === 'nine' ? 'rgb(170,14,14)' : 'rgb(28,34,74)';
+    g.lineWidth = Math.max(1.5, em * sc * 0.075); g.lineCap = 'round'; g.lineJoin = 'round';
+    line.strokes.forEach((st) => { g.beginPath(); for (let k = 0; k < st.length; k += 2) g[k ? 'lineTo' : 'moveTo'](lx + st[k] * em * sc, ly + st[k + 1] * em * sc); g.stroke(); });
+  });
+}
+(tagsOf.RulesNotebookPage || []).forEach((i) => {
+  const p = P[i], pps = 150, w = Math.round(p.s[0] * pps), h = Math.round(p.s[2] * pps);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const gap = h / 15.5;
+  drawRulePage(c.getContext('2d'), ((attrOf[i] || {}).Page || 1) - 1, w * 0.1, gap * 0.9, gap * 0.78, gap, false);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(p.s[0], p.s[2]), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.9 }));
+  mesh.position.set(0, p.s[1] / 2 + 0.004, 0); mesh.rotation.set(-Math.PI / 2, 0, 0);
+  const holder = new THREE.Group(); holder.applyMatrix4(partMatrix(p)); holder.add(mesh); scene.add(holder);
+});
+// R 키로 여는 수첩 화면
+window.notebookOverlay = (showNine) => {
+  const c = document.createElement('canvas');
+  c.id = 'cctv'; c.width = W; c.height = H; c.style.cssText = 'position:absolute;left:0;top:0';
+  document.body.appendChild(c);
+  const g = c.getContext('2d');
+  g.drawImage(renderer.domElement, 0, 0);
+  g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(0, 0, W, H);
+  const ox = (W - 820) / 2, oy = (H - 560) / 2;
+  g.fillStyle = 'rgb(44,52,86)'; g.beginPath(); g.roundRect(ox, oy, 820, 560, 10); g.fill();
+  [14, 414].forEach((px, pi) => {
+    g.fillStyle = 'rgb(250,246,230)'; g.fillRect(ox + px, oy + 14, 392, 480);
+    g.fillStyle = 'rgba(150,180,214,0.65)'; for (let i = 1; i <= 14; i++) g.fillRect(ox + px, oy + 14 + 26 + i * 32, 392, 1);
+    g.fillStyle = 'rgba(220,110,110,0.7)'; g.fillRect(ox + px + 34, oy + 14, 1, 480);
+    drawRulePage(g, pi, ox + px + 44, oy + 14 + 26, 25, 32, showNine);
+  });
+  g.fillStyle = 'rgb(196,188,166)'; g.fillRect(ox + 404, oy + 14, 12, 480);
+  g.fillStyle = 'rgb(170,174,180)'; for (let i = 0; i < 12; i++) { g.beginPath(); g.roundRect(ox + 398, oy + 30 + i * 40, 24, 7, 4); g.fill(); }
+  g.fillStyle = 'rgb(226,216,190)'; g.beginPath(); g.roundRect(ox + 330, oy + 510, 160, 36, 6); g.fill();
+  g.fillStyle = 'rgb(40,34,28)'; g.font = '700 16px KR'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('수첩 덮기 (R)', ox + 410, oy + 528);
+  return true;
+};
+
 // ───────── CCTV 화면 (게임의 CCTV 보기 모드와 같은 필터·글자) ─────────
 window.cctvView = (camNo) => {
   const i = (tagsOf.CCTVCam || []).find((k) => (attrOf[k] || {}).Cam === camNo);

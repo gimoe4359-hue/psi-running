@@ -259,19 +259,23 @@ def("Phone", 0, 30, function(st)
 		prompt.Enabled = false
 		if math.random() < 0.45 then
 			api.say(player, "교감: 아, " .. Config.HERO_NAME .. " 씨? 첫날이라 걱정돼서요. 순찰 잘 부탁해요.", 4)
+			api.playSound("PhoneVoiceVice1", base)
 			task.delay(4.2, function()
 				api.say(player, "교감: …혹시 4층에 불이 켜져 있어도 올라가지 마세요. 우리 학교는 3층까지예요.", 5)
+				api.playSound("PhoneVoiceVice2", base)
 			end)
 			task.delay(9.5, function()
 				Anomalies.Stop("Phone")
 			end)
 		else
 			api.say(player, "…………", 2)
+			api.playSound("PhoneBreath", base)
 			task.delay(2.2, function()
 				if st.stopped then
 					return
 				end
 				api.say(player, "???: " .. Config.HERO_NAME .. " 씨… " .. Config.HERO_NAME .. " 씨 거기 있죠? 문 좀 열어 줘요. 추워요.", 5, "red")
+				api.playSound("PhoneVoiceStranger", base)
 				st.waitingHangup = true
 				prompt.ActionText = "전화 끊기"
 				prompt.Enabled = true

@@ -22,6 +22,7 @@ function resolve(url) {
   if (url.startsWith('/three/')) return path.join(NM, 'three', url.slice(7));
   if (url.startsWith('/fonts/')) return path.join(NM, '@fontsource', 'noto-sans-kr', 'files', path.basename(url));
   if (url === '/SongcheonAssets.glb') return path.join(ROOT, 'assets', 'SongcheonAssets.glb');
+  if (url === '/rule_strokes.json') return path.join(ROOT, 'build', 'rule_strokes.json');
   if (url === '/assets_meta.json') return path.join(ROOT, 'build', 'assets_meta.json');
   return null;
 }
@@ -33,7 +34,10 @@ const SHOTS = [
   { name: '04_인트로_도로', mood: 'night', car: [[-140, 0.22, 233], -90], pos: [-174, 4.2, 247.5], target: [-120, 3, 229], fov: 50, lightCenter: [-135, 3, 233], maxLights: 12, shadowLights: 2, grassCenter: [-160, 0, 190] },
   { name: '05_인트로_정문', mood: 'night', car: [[0, 0.56, 205], 0], gateOpen: true, pos: [-22, 6, 168], target: [1, 3.5, 202], fov: 50, lightCenter: [3, 3, 200], maxLights: 14, shadowLights: 2 },
   { name: '06_경비실', mood: 'night', pos: [19, 5.6, 158], target: [30, 4.6, 177], fov: 48, lightCenter: [30, 6, 180], maxLights: 10 },
-  { name: '07_경비실_안_근무수칙', mood: 'night', pos: [23.6, 6.4, 178.6], target: [37.5, 5.2, 183.6], fov: 74, lightCenter: [29.5, 8, 183], maxLights: 4, lightScale: 0.12, grass: 0 , fog: 0.003 },
+  { name: '07_경비실_안', pos: [24.0, 6.6, 178.6], target: [34.5, 4.6, 187.4], fov: 76, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
+  { name: '07b_경비실_책상_수첩', pos: [27.0, 6.3, 185.2], target: [26.9, 3.4, 188.3], fov: 62, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
+  { name: '07c_경비실_문쪽', pos: [26.5, 6.4, 187.6], target: [35.5, 4.2, 177.6], fov: 76, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
+  { name: '07d_수첩_근무수칙', notebook: 1, pos: [27.0, 6.3, 185.2], target: [26.9, 3.4, 188.3], fov: 62, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
   { name: '08_복도_학생', mood: 'night', extras: [['ghost', [-25, 13.5, -167.4], -90]], pos: [-2, 18.7, -167.0], target: [-120, 17.4, -167.6], fov: 58, flashlight: 140, lightCenter: [-40, 20, -167], maxLights: 8, lightScale: 0.12, grass: 0, fog: 0.004 },
   { name: '09_교실_칠판', mood: 'night', roomLights: ['2-2'], pos: [-44.2, 19.2, -143.6], target: [-70.6, 18.9, -151.2], fov: 66, moonDir: [0.3, 0.55, 1], lightCenter: [-56, 21, -150], maxLights: 16, lightScale: 1, shadowLights: 2, grass: 0, fog: 0.002 },
   { name: '09b_교실_밤_칠판경고', mood: 'night', show: ['BoardWarning'], hide: ['F2/2-2/Chalk'], pos: [-46.5, 19.0, -146.5], target: [-70.6, 18.6, -150.5], fov: 62, flashlight: 240, moonDir: [0.3, 0.55, 1], lightCenter: [-55, 20, -150], maxLights: 4, lightScale: 0.2, grass: 0, fog: 0.003 },
@@ -87,11 +91,12 @@ async function main() {
       (s.extras || []).forEach((e) => window.addExtra(e[0], e[1], e[2], e[3] || {}));
       const ok = window.shot(s);
       if (s.cctv) window.cctvOverlay(s.cctv.label, s.cctv.time);
+      if (s.notebook) window.notebookOverlay(s.notebook === 9);
       return ok;
     }, s);
     await page.waitForTimeout(200);
     const file = path.join(OUT, `${s.name}.png`);
-    await page.locator(s.cctv ? '#cctv' : 'canvas').first().screenshot({ path: file });
+    await page.locator(s.cctv || s.notebook ? '#cctv' : 'canvas').first().screenshot({ path: file });
     console.log('saved', s.name, `${((Date.now() - t0) / 1000).toFixed(1)}s`);
   }
   await browser.close();

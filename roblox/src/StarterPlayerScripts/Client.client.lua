@@ -72,19 +72,68 @@ corner(barFill, 6)
 local patrolLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 74), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "", TextColor3 = Color3.fromRGB(220, 220, 230), TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
 local hint = make("TextLabel", { Size = UDim2.new(0, 460, 0, 22), Position = UDim2.new(0, 24, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "[R] 근무 수칙   [F] 손전등   [Shift] 달리기", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
 
--- 근무 수칙 종이
-local paper = make("Frame", { Size = UDim2.new(0, 470, 0, 540), Position = UDim2.new(0.5, -235, 0.5, -270), BackgroundColor3 = Color3.fromRGB(242, 234, 208), Visible = false, ZIndex = 60 }, gui)
-corner(paper, 4)
-make("UIStroke", { Color = Color3.fromRGB(120, 100, 70), Thickness = 2 }, paper)
-make("UISizeConstraint", { MaxSize = Vector2.new(470, 540) }, paper)
-make("TextLabel", { Size = UDim2.new(1, -40, 0, 40), Position = UDim2.new(0, 20, 0, 16), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "[ 야간 경비원 근무 수칙 ]", TextColor3 = Color3.fromRGB(40, 30, 24), TextSize = 26, ZIndex = 61 }, paper)
-local rulesText = {}
-for i, r in ipairs(Config.RULES) do
-	table.insert(rulesText, i .. ". " .. r)
+-- 근무 수칙 수첩 (손글씨: RuleStrokes 의 획을 얇은 막대로 그린다 → 한글도 진짜 손글씨처럼 보임)
+local RuleStrokes = require(ReplicatedStorage:WaitForChild("RuleStrokes"))
+local INK = Color3.fromRGB(28, 34, 74)
+local RED_INK = Color3.fromRGB(170, 14, 14)
+-- parent 안에 한 쪽을 그린다. x0,y0: 첫 줄 왼쪽 위(px), em: 글자 크기(px), gap: 줄 간격(px). 9번 줄들은 따로 묶어서 돌려준다
+local function drawRulePage(parent, pageIndex, x0, y0, em, gap, z)
+	local nineGroup = make("Frame", { Name = "Nine", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, ZIndex = z }, parent)
+	for li, line in ipairs(RuleStrokes[pageIndex] or {}) do
+		local isNine = line.kind == "nine"
+		local scale = line.kind == "title" and 1.25 or 1
+		local holder = isNine and nineGroup or parent
+		local color = isNine and RED_INK or INK
+		local th = math.max(1.5, em * scale * 0.075)
+		local lx = x0 + line.indent * em
+		local ly = y0 + (li - 0.5) * gap
+		for _, st in ipairs(line.strokes) do
+			for k = 1, #st - 3, 2 do
+				local ax, ay = lx + st[k] * em * scale, ly + st[k + 1] * em * scale
+				local bx, by = lx + st[k + 2] * em * scale, ly + st[k + 3] * em * scale
+				local dx, dy = bx - ax, by - ay
+				local len = math.sqrt(dx * dx + dy * dy)
+				make("Frame", {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromOffset((ax + bx) / 2, (ay + by) / 2),
+					Size = UDim2.fromOffset(len + th * 0.8, th),
+					Rotation = math.deg(math.atan2(dy, dx)),
+					BackgroundColor3 = color,
+					BorderSizePixel = 0,
+					ZIndex = z,
+				}, holder)
+			end
+		end
+	end
+	return nineGroup
 end
-local rulesLabel = make("TextLabel", { Size = UDim2.new(1, -44, 1, -150), Position = UDim2.new(0, 22, 0, 64), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = table.concat(rulesText, "\n\n"), TextColor3 = Color3.fromRGB(40, 30, 24), TextSize = 17, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 61 }, paper)
-local nine = make("TextLabel", { Size = UDim2.new(1, -44, 0, 44), Position = UDim2.new(0, 22, 1, -86), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = Config.RULE_NINE, TextColor3 = Color3.fromRGB(170, 0, 0), TextSize = 16, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 61 }, paper)
-local closeBtn = make("TextButton", { Size = UDim2.new(0, 140, 0, 34), Position = UDim2.new(0.5, -70, 1, -44), BackgroundColor3 = Color3.fromRGB(60, 48, 36), Font = Enum.Font.GothamBold, Text = "알겠습니다 (R)", TextColor3 = Color3.new(1, 1, 1), TextSize = 16, ZIndex = 62 }, paper)
+local function notebookPage(parent, pos, size, z, lineGap, firstLine)
+	local pg = make("Frame", { Position = pos, Size = size, BackgroundColor3 = Color3.fromRGB(250, 246, 230), BorderSizePixel = 0, ZIndex = z }, parent)
+	for i = 1, 14 do
+		make("Frame", { Position = UDim2.new(0, 0, 0, firstLine + i * lineGap), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = Color3.fromRGB(150, 180, 214), BackgroundTransparency = 0.35, BorderSizePixel = 0, ZIndex = z }, pg)
+	end
+	make("Frame", { Position = UDim2.new(0, 34, 0, 0), Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = Color3.fromRGB(220, 110, 110), BackgroundTransparency = 0.3, BorderSizePixel = 0, ZIndex = z }, pg)
+	return pg
+end
+local paper = make("Frame", { Name = "Notebook", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.new(0, 820, 0, 560), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = Color3.fromRGB(44, 52, 86), Visible = false, ZIndex = 60 }, gui)
+corner(paper, 10)
+local paperScale = make("UIScale", {}, paper)
+local function fitNotebook()
+	local v = camera.ViewportSize
+	paperScale.Scale = math.min(1, v.X / 860, v.Y / 600)
+end
+fitNotebook()
+camera:GetPropertyChangedSignal("ViewportSize"):Connect(fitNotebook)
+local pageL = notebookPage(paper, UDim2.new(0, 14, 0, 14), UDim2.new(0, 392, 0, 480), 61, 32, 26)
+local pageR = notebookPage(paper, UDim2.new(0, 414, 0, 14), UDim2.new(0, 392, 0, 480), 61, 32, 26)
+make("Frame", { Position = UDim2.new(0, 404, 0, 14), Size = UDim2.new(0, 12, 0, 480), BackgroundColor3 = Color3.fromRGB(196, 188, 166), BorderSizePixel = 0, ZIndex = 62 }, paper)
+for i = 0, 11 do
+	local ring = make("Frame", { Position = UDim2.new(0, 398, 0, 30 + i * 40), Size = UDim2.new(0, 24, 0, 7), BackgroundColor3 = Color3.fromRGB(170, 174, 180), BorderSizePixel = 0, ZIndex = 63 }, paper)
+	corner(ring, 4)
+end
+drawRulePage(pageL, 1, 44, 26, 25, 32, 62)
+local nine = drawRulePage(pageR, 2, 44, 26, 25, 32, 62)
+local closeBtn = make("TextButton", { Size = UDim2.new(0, 160, 0, 36), Position = UDim2.new(0.5, -80, 1, -50), BackgroundColor3 = Color3.fromRGB(226, 216, 190), Font = Enum.Font.GothamBold, Text = "수첩 덮기 (R)", TextColor3 = Color3.fromRGB(40, 34, 28), TextSize = 16, ZIndex = 62 }, paper)
 corner(closeBtn, 6)
 closeBtn.Modal = true -- 1인칭에서도 마우스로 누를 수 있게
 
@@ -215,6 +264,29 @@ end)
 rulesBtn.MouseButton1Click:Connect(function()
 	setRules(not paper.Visible)
 end)
+
+-- 경비실 책상 위 수첩: 펼친 두 쪽에 같은 손글씨, "수첩 보기"로 크게 본다
+do
+	local CS = game:GetService("CollectionService")
+	for _, pg in ipairs(CS:GetTagged("RulesNotebookPage")) do
+		local idx = pg:GetAttribute("Page") or 1
+		local pps = 150
+		local sg = make("SurfaceGui", { Name = "Handwriting", Face = Enum.NormalId.Top, SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud, PixelsPerStud = pps, LightInfluence = 1, ResetOnSpawn = false, Adornee = pg }, player:WaitForChild("PlayerGui"))
+		local w, h = pg.Size.X * pps, pg.Size.Z * pps
+		local holder = make("Frame", { Size = UDim2.fromOffset(w, h), BackgroundTransparency = 1 }, sg)
+		local gap = h / 15.5
+		drawRulePage(holder, idx, w * 0.1, gap * 0.9, gap * 0.78, gap, 1)
+	end
+	local book = CS:GetTagged("RulesNotebook")[1]
+	if book then
+		local pr = make("ProximityPrompt", { ActionText = "수첩 보기", ObjectText = "근무 수칙 수첩", HoldDuration = 0, MaxActivationDistance = 8, RequiresLineOfSight = false }, book)
+		pr.Triggered:Connect(function()
+			if player:GetAttribute("IntroDone") then
+				setRules(true)
+			end
+		end)
+	end
+end
 
 -- ═════════════════════════ 손전등 ═════════════════════════
 local flashPart = make("Part", { Name = "MyFlashlight", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, Transparency = 1, Size = Vector3.new(0.2, 0.2, 0.2), CastShadow = false }, workspace)
