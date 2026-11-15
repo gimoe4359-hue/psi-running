@@ -116,6 +116,16 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
   - 청소함, 쓰레기통·분리수거함
 - **기타**: 시간표, 전등 스위치, 선풍기 조절기, 창틀 화분, 커튼
 
+## 근무 수칙 수첩과 경비실
+
+![수첩](screenshots/07d_수첩_근무수칙.png)
+
+- 근무 수칙은 벽 종이가 아니라 **책상 위 수첩**에 손글씨로 적혀 있다. `R` 키나 수첩의 "수첩 보기"로 크게 본다.
+- 손글씨는 글꼴이 아니라 획을 하나하나 그린 것이다. 수칙을 바꾸면 `tools/make_text.js` 의 `RULE_PAGES` 도 고치고 다시 실행한다.
+- 경비실: 서랍 달린 책상, 탁상 달력(11월 13일 금요일), 스탠드, 무전기 충전대, 냉온 정수기, 간이침대, 열쇠함, 난로, 벽시계, 비상 연락망, 소화기.
+
+![경비실](screenshots/07_경비실_안.png)
+
 ## 맵 구성 (파트 약 45,000개 + Roblox Terrain + 메시 팩)
 
 - **실제 축척**: 1 stud ≈ 0.3 m. 층고 3.75 m, 교실 9 m × 7.5 m, 복도 폭 2.4 m.
@@ -148,7 +158,7 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
 |---|---|
 | ![](screenshots/03_인트로_운전석.png) 인트로: 운전석 시점 | ![](screenshots/04_인트로_도로.png) 인트로: 학교 앞 도로 |
 | ![](screenshots/05_인트로_정문.png) 인트로: 정문 도착 | ![](screenshots/06_경비실.png) 경비실 |
-| ![](screenshots/07_경비실_안_근무수칙.png) 경비실 안 근무 수칙 | ![](screenshots/08_복도_학생.png) 2층 복도의 여학생 |
+| ![](screenshots/07_경비실_안.png) 경비실 안 | ![](screenshots/08_복도_학생.png) 2층 복도의 여학생 |
 | ![](screenshots/09_교실_칠판.png) 교실 (스위치로 불 켬) | ![](screenshots/09b_교실_밤_칠판경고.png) 밤 교실 "뒤를 돌아보지 마" |
 | ![](screenshots/09c_교실_천장TV.png) 천장형 TV 브라켓 | ![](screenshots/09d_복도_미닫이문.png) 교실 미닫이문 |
 | ![](screenshots/10_화장실_3층.png) 3층 화장실 세 번째 칸 | ![](screenshots/11_계단_4층.png) 있을 리 없는 4F |
@@ -206,4 +216,5 @@ NODE_MODULES=<경로> node preview/shoot.js       # 미리보기 사진 (PACK=0 
 
 `Config.SOUNDS` 에 Creator Store 사운드 ID를 넣으면 소리가 난다. 0이면 자막만 나온다.
 - 전화벨, 노크, 종소리, 방송 잡음, 배경음
+- 전화 목소리 (`PhoneVoiceVice1`, `PhoneVoiceVice2`, `PhoneVoiceStranger`, `PhoneBreath`): 직접 녹음한 음성을 올려 ID를 넣으면 수화기에서 들린다
 - 분필 긁는 소리, 미닫이문, 전등 스위치

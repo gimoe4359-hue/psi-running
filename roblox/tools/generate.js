@@ -1564,29 +1564,50 @@ function boardLight(x, z, top) {
 // 천장 회전 선풍기 (보호망 달린 오비트팬)
 function orbitFan(x, z, top, yawDeg) {
   grp('CeilingFan', () => {
-    const white = [238, 238, 233], grey = [204, 206, 208], o = { nc: true, ns: true, min: 0.02 };
-    cylV('FanBase', x, top - 0.14, z, 0.14, 0.95, white, 'SmoothPlastic', { nc: true });
-    cylV('FanOrbit', x, top - 0.62, z, 0.48, 0.66, white, 'SmoothPlastic', { nc: true });
-    cylV('FanOrbitBand', x, top - 0.5, z, 0.06, 0.7, grey, 'SmoothPlastic', o);
+    const white = [238, 238, 233], grey = [200, 202, 206], o = { nc: true, ns: true, min: 0.02 };
+    // 천장 고정판 + 회전 몸통(위가 넓은 종 모양) + 띠
+    cylV('FanBase', x, top - 0.1, z, 0.1, 1.0, white, 'SmoothPlastic', { nc: true });
+    cylV('FanOrbit', x, top - 0.34, z, 0.24, 0.78, white, 'SmoothPlastic', { nc: true });
+    cylV('FanOrbit', x, top - 0.62, z, 0.3, 0.6, white, 'SmoothPlastic', { nc: true });
+    cylV('FanOrbitBand', x, top - 0.36, z, 0.03, 0.8, grey, 'SmoothPlastic', o);
+    ball('FanJoint', x, top - 0.72, z, 0.42, white, 'SmoothPlastic', o);
     const yaw = yawDeg * Math.PI / 180, tilt = 38 * Math.PI / 180;
     const ax = vnorm(vadd(vmul([Math.cos(yaw), 0, -Math.sin(yaw)], Math.sin(tilt)), [0, -Math.cos(tilt), 0]));
-    const piv = [x, top - 0.8, z];
-    rod('FanNeck', [x, top - 0.6, z], piv, 0.2, white, 'SmoothPlastic', o);
-    rod('FanMotor', vadd(piv, vmul(ax, -0.2)), vadd(piv, vmul(ax, 0.32)), 0.46, white, 'SmoothPlastic', o);
-    const cc = vadd(piv, vmul(ax, 0.66));
+    const piv = [x, top - 0.72, z];
+    rod('FanNeck', piv, vadd(piv, vmul(ax, 0.28)), 0.2, white, 'SmoothPlastic', o);
+    // 모터: 뒤가 둥근 통 + 통풍 띠
+    const m0 = vadd(piv, vmul(ax, 0.2)), m1 = vadd(piv, vmul(ax, 0.62));
+    rod('FanMotor', m0, m1, 0.5, white, 'SmoothPlastic', o);
+    ball('FanMotorCap', ...m0, 0.5, white, 'SmoothPlastic', o);
+    rod('FanMotorVent', vadd(piv, vmul(ax, 0.3)), vadd(piv, vmul(ax, 0.36)), 0.52, grey, 'SmoothPlastic', o);
+    const cc = vadd(piv, vmul(ax, 0.86));
     const e1 = vnorm(vcross(ax, [0, 1, 0])), e2 = vcross(ax, e1);
     const rp = (ang, rad, off) => vadd(vadd(cc, vmul(ax, off)), vadd(vmul(e1, Math.cos(ang) * rad), vmul(e2, Math.sin(ang) * rad)));
-    const R0 = 0.74, segs = 10;
-    [0.17, -0.17].forEach((off) => { for (let k = 0; k < segs; k++) rod('FanCage', rp((k * 2 * Math.PI) / segs, R0, off), rp(((k + 1) * 2 * Math.PI) / segs, R0, off), 0.045, white, 'SmoothPlastic', o); });
-    for (let k = 0; k < 8; k++) { const a = (k * 2 * Math.PI) / 8 + 0.2; rod('FanCage', rp(a, 0.15, 0.27), rp(a, R0, 0.17), 0.028, white, 'SmoothPlastic', o); }
-    for (let k = 0; k < 6; k++) { const a = (k * 2 * Math.PI) / 6; rod('FanCage', rp(a, 0.25, -0.26), rp(a, R0, -0.17), 0.028, white, 'SmoothPlastic', o); }
-    disc('FanBadge', vadd(cc, vmul(ax, 0.28)), ax, 0.3, 0.04, [64, 112, 190], 'SmoothPlastic', o);
-    disc('FanHub', cc, ax, 0.24, 0.14, white, 'SmoothPlastic', o);
+    const ring = (rad, off, segs, d, col) => { for (let k = 0; k < segs; k++) rod('FanCage', rp((k * 2 * Math.PI) / segs, rad, off), rp(((k + 1) * 2 * Math.PI) / segs, rad, off), d, col, 'SmoothPlastic', o); };
+    const R0 = 0.76;
+    // 보호망: 가운데 굵은 테 + 앞뒤 테 + 앞쪽 동심원 + 볼록한 살
+    ring(R0 + 0.02, 0, 18, 0.07, grey);
+    ring(R0, 0.17, 18, 0.035, white);
+    ring(R0, -0.17, 18, 0.035, white);
+    ring(0.5, 0.25, 14, 0.025, white);
+    for (let k = 0; k < 16; k++) {
+      const a = (k * 2 * Math.PI) / 16;
+      rod('FanCage', rp(a, 0.16, 0.3), rp(a, 0.5, 0.25), 0.022, white, 'SmoothPlastic', o);
+      rod('FanCage', rp(a, 0.5, 0.25), rp(a, R0, 0.17), 0.022, white, 'SmoothPlastic', o);
+      rod('FanCage', rp(a, R0, 0.17), rp(a, R0 + 0.02, 0), 0.022, white, 'SmoothPlastic', o);
+      if (k % 2 === 0) { rod('FanCage', rp(a, 0.26, -0.25), rp(a, R0, -0.17), 0.022, white, 'SmoothPlastic', o); rod('FanCage', rp(a, R0, -0.17), rp(a, R0 + 0.02, 0), 0.022, white, 'SmoothPlastic', o); }
+    }
+    disc('FanBadge', vadd(cc, vmul(ax, 0.3)), ax, 0.34, 0.04, [236, 236, 232], 'SmoothPlastic', o);
+    disc('FanBadgeLogo', vadd(cc, vmul(ax, 0.325)), ax, 0.2, 0.012, [60, 108, 186], 'SmoothPlastic', { ...o, min: 0.01 });
+    disc('FanHub', vadd(cc, vmul(ax, 0.02)), ax, 0.26, 0.2, [196, 214, 232], 'SmoothPlastic', o);
+    // 날개 3장: 뿌리는 좁고 끝은 넓게, 비틀림 (반투명 하늘색)
     for (let k = 0; k < 3; k++) {
       const a = (k * 2 * Math.PI) / 3 + yaw;
-      const rad = vadd(vmul(e1, Math.cos(a)), vmul(e2, Math.sin(a)));
-      const Yb = vadd(vmul(vcross(ax, rad), Math.cos(0.4)), vmul(ax, Math.sin(0.4)));
-      P('FanBlade', [0.56, 0.34, 0.03], vadd(cc, vmul(rad, 0.4)), [170, 204, 230], 'SmoothPlastic', { ...o, t: 0.25, r: eulerFromBasis(rad, Yb, vcross(rad, Yb)) });
+      const rad = vadd(vmul(e1, Math.cos(a)), vmul(e2, Math.sin(a))), tan = vcross(ax, rad);
+      [[0.24, 0.2, 0.2, 0.5], [0.44, 0.24, 0.3, 0.38], [0.6, 0.14, 0.26, 0.3]].forEach(([rr, len, wid, tw]) => {
+        const Yb = vadd(vmul(tan, Math.cos(tw)), vmul(ax, Math.sin(tw)));
+        P('FanBlade', [len + 0.03, wid, 0.025], vadd(vadd(cc, vmul(rad, rr)), vmul(tan, (rr - 0.24) * 0.25)), [176, 208, 234], 'SmoothPlastic', { ...o, t: 0.3, r: eulerFromBasis(rad, Yb, vcross(rad, Yb)) });
+      });
     }
   });
 }
@@ -1649,23 +1670,81 @@ function standAC(x0, za, L) {
   });
 }
 
+// 창틀 화분: 받침 접시 + 아래가 좁은 화분 + 흙 + 잎. kind 0 산세베리아(곧은 잎), 1 둥근 잎 화초, 2 선인장
+function pottedPlant(x, y, z, kind = 0) {
+  grp('PottedPlant', () => {
+    const so = { nc: true, ns: true, min: 0.02 };
+    const pc = pick([[178, 98, 66], [232, 232, 226], [98, 122, 160], [70, 72, 76]]);
+    cylV('Saucer', x, y, z, 0.05, 0.56, pc.map((v) => v - 20), 'SmoothPlastic', so);
+    cylV('Pot', x, y + 0.05, z, 0.2, 0.36, pc, 'SmoothPlastic', { nc: true });
+    cylV('Pot', x, y + 0.25, z, 0.2, 0.44, pc, 'SmoothPlastic', { nc: true });
+    cylV('PotRim', x, y + 0.45, z, 0.07, 0.52, pc.map((v) => Math.min(255, v + 12)), 'SmoothPlastic', so);
+    cylV('Soil', x, y + 0.47, z, 0.06, 0.44, [58, 44, 34], 'Sand', so);
+    const base = [x, y + 0.5, z];
+    if (kind === 0) {
+      for (let k = 0; k < 8; k++) {
+        const a = rnd() * 6.28, lean = 0.05 + rnd() * 0.22, h = 0.7 + rnd() * 0.7, r0 = 0.04 + rnd() * 0.1;
+        const dir = vnorm([Math.cos(a) * lean, 1, Math.sin(a) * lean]);
+        const p0 = vadd(base, [Math.cos(a) * r0, 0, Math.sin(a) * r0]), p1 = vadd(p0, vmul(dir, h));
+        const side = vnorm(vcross(dir, [Math.cos(a), 0, Math.sin(a)]));
+        const rot = eulerFromBasis(dir, vcross(side, dir), side);
+        P('Leaf', [h, 0.03, 0.15], vmul(vadd(p0, p1), 0.5), jit([44, 92, 52], 12), 'SmoothPlastic', { ...so, r: rot });
+        P('LeafEdge', [h * 0.96, 0.034, 0.03], vadd(vmul(vadd(p0, p1), 0.5), vmul(side, 0.07)), [186, 190, 96], 'SmoothPlastic', { ...so, r: rot });
+        P('LeafTip', [0.16, 0.03, 0.09], vadd(p1, vmul(dir, 0.07)), [44, 92, 52], 'SmoothPlastic', { ...so, r: rot });
+      }
+    } else if (kind === 1) {
+      for (let k = 0; k < 9; k++) {
+        const a = k * 2.4 + rnd() * 0.5, h = 0.35 + rnd() * 0.55, out = 0.12 + rnd() * 0.25;
+        const tip = vadd(base, [Math.cos(a) * out, h, Math.sin(a) * out]);
+        rod('Stem', base, tip, 0.03, [70, 110, 60], 'SmoothPlastic', so);
+        const n = vnorm([Math.cos(a) * 0.5, 1, Math.sin(a) * 0.5]);
+        disc('Leaf', vadd(tip, [Math.cos(a) * 0.08, 0.01, Math.sin(a) * 0.08]), n, 0.24 + rnd() * 0.12, 0.02, jit([62, 128, 66], 16), 'SmoothPlastic', so);
+      }
+    } else {
+      cylV('Cactus', x, y + 0.5, z, 0.55, 0.3, [72, 124, 78], 'SmoothPlastic', so);
+      ball('CactusTop', x, y + 1.05, z, 0.3, [72, 124, 78], 'SmoothPlastic', so);
+      rod('CactusArm', [x + 0.1, y + 0.75, z], [x + 0.3, y + 0.82, z], 0.14, [80, 132, 84], 'SmoothPlastic', so);
+      rod('CactusArm', [x + 0.3, y + 0.8, z], [x + 0.3, y + 1.0, z], 0.14, [80, 132, 84], 'SmoothPlastic', so);
+      ball('Flower', x + 0.05, y + 1.2, z, 0.1, [236, 96, 140], 'SmoothPlastic', so);
+    }
+  });
+}
+
 // 교탁: 학생 쪽(+X)은 막힌 앞판, 선생님 쪽은 선반
 function lectern(x0, zc, L) {
   grp('Lectern', () => {
-    const wood = [148, 104, 64], wood2 = [172, 126, 82], dark = [66, 46, 30], so = { nc: true, ns: true };
-    const x1 = x0 + 1.55, w = 1.5, h = 3.35;
-    B('LecternPlinth', x0 + 0.08, L, zc - w + 0.08, x1 - 0.08, L + 0.25, zc + w - 0.08, dark, 'Wood');
-    B('LecternSide', x0, L + 0.25, zc - w, x1, L + h, zc - w + 0.12, wood, 'Wood');
-    B('LecternSide', x0, L + 0.25, zc + w - 0.12, x1, L + h, zc + w, wood, 'Wood');
-    B('LecternFront', x1 - 0.12, L + 0.25, zc - w + 0.12, x1, L + h, zc + w - 0.12, wood, 'Wood');
-    B('LecternPanel', x1, L + 0.6, zc - w + 0.35, x1 + 0.04, L + h - 0.45, zc + w - 0.35, wood2, 'Wood', so);
-    B('LecternShelf', x0 + 0.1, L + 1.7, zc - w + 0.12, x1 - 0.12, L + 1.8, zc + w - 0.12, wood, 'Wood', so);
-    B('LecternBottom', x0 + 0.1, L + 0.25, zc - w + 0.12, x1 - 0.12, L + 0.35, zc + w - 0.12, wood, 'Wood', so);
-    B('LecternTop', x0 - 0.1, L + h, zc - w - 0.1, x1 + 0.1, L + h + 0.14, zc + w + 0.1, wood2, 'Wood');
-    B('LecternLedge', x0 - 0.1, L + h + 0.14, zc - w - 0.1, x0, L + h + 0.24, zc + w + 0.1, wood2, 'Wood', so);
-    B('AttendanceBook', x0 + 0.3, L + h + 0.14, zc - 0.9, x0 + 1.25, L + h + 0.27, zc + 0.35, [30, 44, 86], 'Fabric', { nc: true, r: [0, 4, 0] });
-    B('ChalkBox', x0 + 0.5, L + h + 0.14, zc + 0.65, x0 + 0.9, L + h + 0.42, zc + 1.05, [246, 246, 240], 'SmoothPlastic', { nc: true });
-    B('Textbook', x0 + 0.2, L + 1.8, zc - 1.1, x0 + 1.0, L + 2.05, zc - 0.2, [200, 80, 60], 'SmoothPlastic', so);
+    const wood = [150, 104, 62], wood2 = [176, 128, 82], dark = [88, 58, 36], so = { nc: true, ns: true };
+    const x1 = x0 + 1.6, w = 1.55, h = 3.3;
+    B('LecternPlinth', x0 + 0.06, L, zc - w + 0.06, x1 - 0.06, L + 0.3, zc + w - 0.06, dark, 'Wood');
+    B('LecternSide', x0, L + 0.3, zc - w, x1, L + h, zc - w + 0.12, wood, 'Wood');
+    B('LecternSide', x0, L + 0.3, zc + w - 0.12, x1, L + h, zc + w, wood, 'Wood');
+    B('LecternFront', x1 - 0.12, L + 0.3, zc - w + 0.12, x1, L + h, zc + w - 0.12, wood, 'Wood');
+    // 앞판: 테두리 몰딩 안에 밝은 알판 + 학교 표지
+    const fz0 = zc - w + 0.3, fz1 = zc + w - 0.3, fy0 = L + 0.62, fy1 = L + h - 0.38;
+    B('LecternPanel', x1, fy0, fz0, x1 + 0.03, fy1, fz1, wood2, 'Wood', so);
+    [[fy0 - 0.09, fy0, fz0 - 0.09, fz1 + 0.09], [fy1, fy1 + 0.09, fz0 - 0.09, fz1 + 0.09], [fy0, fy1, fz0 - 0.09, fz0], [fy0, fy1, fz1, fz1 + 0.09]]
+      .forEach(([a, b, c, d]) => B('LecternMold', x1, a, c, x1 + 0.06, b, d, dark, 'Wood', so));
+    disc('LecternEmblem', [x1 + 0.05, (fy0 + fy1) / 2 + 0.25, zc], [1, 0, 0], 0.9, 0.04, [186, 152, 78], 'Metal', { ...so, refl: 0.15 });
+    disc('LecternEmblemIn', [x1 + 0.075, (fy0 + fy1) / 2 + 0.25, zc], [1, 0, 0], 0.66, 0.02, [30, 52, 104], 'SmoothPlastic', { ...so, min: 0.015 });
+    B('LecternName', x1 + 0.03, fy0 + 0.25, zc - 0.75, x1 + 0.05, fy0 + 0.6, zc + 0.75, [186, 152, 78], 'Metal', { ...so, min: 0.02,
+      text: { face: 'Right', text: '송천고등학교', color: [40, 28, 16], bgT: 1, lit: 1, font: 'GothamBold', pps: 120 } });
+    // 옆판 몰딩, 모서리 기둥
+    [zc - w - 0.03, zc + w].forEach((z) => B('LecternSidePanel', x0 + 0.25, L + 0.65, z, x1 - 0.25, L + h - 0.4, z + 0.03, wood2, 'Wood', so));
+    [zc - w - 0.02, zc + w - 0.1].forEach((z) => B('LecternPost', x1 - 0.1, L + 0.3, z, x1 + 0.02, L + h, z + 0.12, dark, 'Wood', so));
+    // 선생님 쪽: 선반 2단
+    B('LecternShelf', x0 + 0.08, L + 1.75, zc - w + 0.12, x1 - 0.12, L + 1.85, zc + w - 0.12, wood, 'Wood', so);
+    B('LecternBottom', x0 + 0.08, L + 0.3, zc - w + 0.12, x1 - 0.12, L + 0.4, zc + w - 0.12, wood, 'Wood', so);
+    // 윗판: 처마 몰딩 + 선생님 쪽으로 기운 독서대 + 분필 턱
+    B('LecternCornice', x0 - 0.12, L + h, zc - w - 0.12, x1 + 0.14, L + h + 0.12, zc + w + 0.12, dark, 'Wood');
+    B('LecternTop', x0 - 0.08, L + h + 0.12, zc - w - 0.08, x1 + 0.1, L + h + 0.2, zc + w + 0.08, wood2, 'Wood');
+    P('LecternSlope', [1.3, 0.06, 2.5], [x0 + 0.72, L + h + 0.36, zc], wood2, 'Wood', { nc: true, r: [0, 0, 12] });
+    B('LecternLedge', x0 + 0.02, L + h + 0.2, zc - 1.25, x0 + 0.1, L + h + 0.3, zc + 1.25, dark, 'Wood', so);
+    B('LecternBackLip', x1 - 0.06, L + h + 0.2, zc - w - 0.08, x1 + 0.1, L + h + 0.56, zc + w + 0.08, wood, 'Wood', so);
+    P('AttendanceBook', [0.95, 0.1, 1.25], [x0 + 0.7, L + h + 0.44, zc - 0.3], [30, 44, 86], 'Fabric', { nc: true, r: [0, 5, 12] });
+    B('ChalkBox', x1 - 0.5, L + h + 0.2, zc + 0.85, x1 - 0.1, L + h + 0.45, zc + 1.3, [246, 246, 240], 'SmoothPlastic', { nc: true });
+    B('Textbook', x0 + 0.2, L + 1.85, zc - 1.1, x0 + 1.0, L + 2.1, zc - 0.2, [200, 80, 60], 'SmoothPlastic', so);
+    B('Textbook', x0 + 0.25, L + 2.1, zc - 1.05, x0 + 0.95, L + 2.3, zc - 0.3, [70, 110, 170], 'SmoothPlastic', so);
+    cylV('PenCup', x0 + 0.5, L + 1.85, zc + 0.8, 0.45, 0.32, [60, 62, 66], 'SmoothPlastic', so);
   });
 }
 
@@ -1804,16 +1883,24 @@ function interiorRoom(r) {
   const classLike = isClass(name) || ['과학실', '음악실', '미술실'].includes(name);
   P('SmokeDetector', [0.12, 0.7, 0.7], [xa + 17, top - 0.06, zc], [238, 238, 236], 'SmoothPlastic', { sh: 'Cylinder', r: [0, 0, 90], nc: true, ns: true });
   if (!restroom) {
+    // 커튼: 창 양옆으로 걷어 둔 주름 커튼 (주름 = 세로 원기둥, 레일 고리, 묶는 끈)
+    const cz = z1 - 0.62, ctop = L + CEIL - 0.42;
     for (let k = 0; k < 3; k++) {
       const u0 = xa + 1.2 + k * 9.4, u1 = u0 + 8.8;
-      [[u0 - 0.3, u0 + 1.4], [u1 - 1.4, u1 + 0.3]].forEach(([a, b]) => {
-        for (let q = 0; q < 4; q++) {
-          const w = (b - a) / 4;
-          B('Curtain', a + q * w, L + 2.5, z1 - 0.7 + (q % 2) * 0.18, a + (q + 1) * w + 0.05, L + CEIL - 0.3, z1 - 0.55 + (q % 2) * 0.18, [226, 214, 186], 'Fabric', { nc: true, ns: q % 2 === 1 });
+      [[u0 - 0.25, u0 + 1.25, 1], [u1 - 1.25, u1 + 0.25, -1]].forEach(([a, b, dir]) => {
+        // 촘촘한 주름: 가는 원기둥이 서로 겹치며 앞뒤로 물결친다 (아래로 갈수록 살짝 퍼짐)
+        const n = 11, w = (b - a) / n, col = jit([226, 214, 188], 5);
+        for (let q = 0; q < n; q++) {
+          const x = a + (q + 0.5) * w, d = 0.2 + rnd() * 0.05, wave = Math.sin(q * 1.9) * 0.07;
+          const c2 = col.map((v) => v - (wave < 0 ? 16 : 0) - rnd() * 6);
+          rod('CurtainFold', [x, ctop, cz + wave * 0.6], [x + (q - n / 2) * 0.012, L + 2.55 + rnd() * 0.06, cz + wave], d, c2, 'SmoothPlastic', { nc: true, ns: wave < 0 });
+          if (q % 2 === 0) P('CurtainRing', [0.04, 0.16, 0.16], [x, ctop + 0.06, cz], [196, 198, 202], 'Metal', { nc: true, ns: true, sh: 'Cylinder', min: 0.03 });
         }
+        B('CurtainHeader', a - 0.02, ctop - 0.22, cz - 0.13, b + 0.02, ctop, cz + 0.13, col.map((v) => v - 8), 'SmoothPlastic', { nc: true, ns: true });
       });
     }
-    B('CurtainRail', xa + 0.6, L + CEIL - 0.35, z1 - 0.8, xb - 0.6, L + CEIL - 0.2, z1 - 0.4, C.alum, 'Metal', { nc: true, ns: true });
+    B('CurtainRail', xa + 0.6, L + CEIL - 0.34, cz - 0.07, xb - 0.6, L + CEIL - 0.26, cz + 0.07, [228, 228, 224], 'Metal', { nc: true, ns: true });
+    for (let x = xa + 2; x < xb - 1; x += 5.2) B('RailBracket', x - 0.05, L + CEIL - 0.26, cz - 0.05, x + 0.05, L + CEIL, cz + 0.05, [228, 228, 224], 'Metal', { nc: true, ns: true });
   }
   grp(name, () => {
     const roomIdx = r.f * 8 + r.i * 2 + (r.wing === 'R' ? 1 : 0);
@@ -1903,8 +1990,7 @@ function interiorRoom(r) {
       // 창틀 화분
       for (let k = 0; k < 3; k++) if (rnd() < 0.55) {
         const u = xa + 1.2 + k * 9.4 + 4.4 + (rnd() - 0.5) * 2;
-        cylV('Pot', u, L + 3.05, z1 - 0.2, 0.45, 0.42, pick([[176, 96, 64], [230, 230, 226], [96, 120, 160]]), 'SmoothPlastic', { nc: true });
-        ball('Plant', u, L + 3.75, z1 - 0.2, 0.62, pick([[60, 110, 60], [76, 120, 64]]), 'LeafyGrass', so);
+        pottedPlant(u, L + 3.05, z1 - 0.3, Math.floor(rnd() * 3));
       }
     } else if (name === '교무실') {
       for (let g = 0; g < 4; g++) for (let k = 0; k < 6; k++) {

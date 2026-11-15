@@ -12,7 +12,7 @@ const aabb = (p) => {
 const hit = (a, b, m = 0) => a[0] < b[3] - m && a[3] > b[0] + m && a[1] < b[4] - m && a[4] > b[1] + m && a[2] < b[5] - m && a[5] > b[2] + m;
 const inBuilding = (p) => p.g.includes('MainBuilding/F');
 const glass = parts.filter((p) => inBuilding(p) && p.name === 'Glass' && !p.g.includes('Corridor/'));
-const ignore = /^(Glass|WinFrame|Sash|Sill|InnerSill|ExteriorWall|EndWall|PartitionWall|Curtain|CurtainRail|Wainscot|Baseboard|ChairRail|FloorBand|Pilaster|Sunshade|SunshadeLip|Mullion|HighWindow|Frame|Casing|SlidingDoor|DoorWindow|DoorHandle|RoomWall|Threshold|CorridorFloor|WingFloor|HallFloor|CeilingTile|BrassStrip|LightFrame|LightPanel|BaseBand|RoomSign|SignBracket|SmokeDetector|Downpipe|ACOutdoor|Fan|Shoe|TowerFace|ExitDoor|ExitSign|Pict|PictHead|FigureSpot|BuildingZone|CamBody|CamVisor|CamLens|CamLed|CamArm|CCTVCam|Tile[NSWEF]?|TileFloor|Mirror|HallMirror|Lockers|LockerDoor|NameTag|Knob)$/;
+const ignore = /^(Leaf|LeafEdge|LeafTip|Stem|CurtainFold|CurtainRing|CurtainTie|TieHook|RailBracket|Glass|WinFrame|Sash|Sill|InnerSill|ExteriorWall|EndWall|PartitionWall|Curtain|CurtainRail|Wainscot|Baseboard|ChairRail|FloorBand|Pilaster|Sunshade|SunshadeLip|Mullion|HighWindow|Frame|Casing|SlidingDoor|DoorWindow|DoorHandle|RoomWall|Threshold|CorridorFloor|WingFloor|HallFloor|CeilingTile|BrassStrip|LightFrame|LightPanel|BaseBand|RoomSign|SignBracket|SmokeDetector|Downpipe|ACOutdoor|Fan|Shoe|TowerFace|ExitDoor|ExitSign|Pict|PictHead|FigureSpot|BuildingZone|CamBody|CamVisor|CamLens|CamLed|CamArm|CCTVCam|Tile[NSWEF]?|TileFloor|Mirror|HallMirror|Lockers|LockerDoor|NameTag|Knob)$/;
 const objs = parts.filter((p) => inBuilding(p) && !(p.flags & 8) && !ignore.test(p.name));
 const problems = [];
 for (const o of objs) {
