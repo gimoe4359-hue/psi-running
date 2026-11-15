@@ -1619,43 +1619,64 @@ function timetable(c, R_, U_, N_, title, seedIdx) {
   });
 }
 
-// 교실 미닫이문: 복도 쪽 벽면(zFace)에 붙은 레일을 따라 옆으로 밀린다. dir: 열리는 방향(±X), open: 처음에 열려 있는지
-function slidingDoor(a, b, L, zFace, dir, open, gname) {
-  const W = b - a + 0.3, Hh = 7.1, T = 0.14, zc = zFace - 0.27, slide = W - 0.35;
-  const xs = a - 0.15 + (open ? dir * slide : 0); // 문짝 왼쪽 끝
-  const r0 = dir > 0 ? a - 0.3 : a - 0.15 - slide - 0.1, r1 = dir > 0 ? b + 0.15 + slide + 0.1 : b + 0.3;
-  B('DoorTrack', r0, L + 7.2, zFace - 0.46, r1, L + 7.6, zFace, [178, 180, 182], 'Metal', { nc: true });
-  B('TrackCover', r0, L + 7.2, zFace - 0.5, r1, L + 7.6, zFace - 0.46, C.woodDark, 'Wood', { nc: true, ns: true, min: 0.03 });
-  B('FloorRail', r0 + 0.1, L, zc - 0.04, r1 - 0.1, L + 0.035, zc + 0.04, [176, 160, 120], 'Metal', { nc: true, ns: true, min: 0.03 });
+// 교실 미닫이문 (참고 사진): 오크 무늬 쌍미닫이 — 가로 홈이 파인 문짝 2장, 왼쪽 문짝에만 가로로 긴 유리창,
+// 은색 막대 손잡이. 두 문짝은 복도 쪽 레일 두 줄에 있어서 한 장을 밀면 다른 장 뒤(앞)로 겹쳐진다.
+// o.single: 문짝 하나 (화장실), dir 방향으로 벽 쪽으로 밀림
+const OAK = [180, 130, 76], OAK_LINE = [118, 80, 46];
+function doorLeaf(gname, x0, x1, L, zc, slide, open, o = {}) {
   grp(gname, () => {
-    const z0 = zc - T / 2, z1 = zc + T / 2, wood = [186, 142, 96], panel = [170, 126, 84], so = { nc: true, ns: true };
-    const box = (n, u0, v0, u1, v1, w0, w1, col, mat, o) => B(n, xs + u0, L + v0, w0, xs + u1, L + v1, w1, col, mat, o);
-    P('DoorLeaf', [W, Hh, T], [xs + W / 2, L + 0.06 + Hh / 2, zc], wood, 'Wood', { t: 1, ns: true, pri: true, attr: { SlideX: dir * slide, Open: !!open } });
-    const sw = 0.36;
-    box('Stile', 0, 0.06, sw, Hh + 0.06, z0, z1, wood, 'Wood', { nc: true });
-    box('Stile', W - sw, 0.06, W, Hh + 0.06, z0, z1, wood, 'Wood', { nc: true });
-    box('TopRail', sw, Hh - 0.28, W - sw, Hh + 0.06, z0, z1, wood, 'Wood', { nc: true });
-    box('LockRail', sw, 3.6, W - sw, 3.95, z0, z1, wood, 'Wood', { nc: true });
-    box('BottomRail', sw, 0.06, W - sw, 0.9, z0, z1, wood, 'Wood', { nc: true });
-    box('DoorPanel', sw, 0.9, W - sw, 3.6, zc - 0.035, zc + 0.035, panel, 'Wood', so);
-    box('DoorGlass', sw, 3.95, W - sw, Hh - 0.28, zc - 0.012, zc + 0.012, [150, 170, 176], 'Glass', { ...so, t: 0.5, refl: 0.1, min: 0.02 });
-    [[sw, 3.95, sw + 0.07, Hh - 0.28], [W - sw - 0.07, 3.95, W - sw, Hh - 0.28], [sw, 3.95, W - sw, 4.02], [sw, Hh - 0.35, W - sw, Hh - 0.28]]
-      .forEach(([u0, v0, u1, v1]) => box('GlassBead', u0, v0, u1, v1, z0 - 0.02, z1 + 0.02, wood, 'Wood', { ...so, min: 0.03 }));
-    box('KickPlate', 0.05, 0.1, W - 0.05, 0.62, z0 - 0.02, z0, [196, 198, 200], 'Metal', { ...so, refl: 0.12, min: 0.015 });
-    box('KickPlate', 0.05, 0.1, W - 0.05, 0.62, z1, z1 + 0.02, [196, 198, 200], 'Metal', { ...so, refl: 0.12, min: 0.015 });
-    const h0 = dir > 0 ? 0.08 : W - 0.28;
-    box('HandleRecess', h0, 3.15, h0 + 0.2, 4.35, z0 - 0.015, z0 + 0.03, [58, 54, 50], 'Metal', { ...so, min: 0.03 });
-    box('HandleRecess', h0, 3.15, h0 + 0.2, 4.35, z1 - 0.03, z1 + 0.015, [58, 54, 50], 'Metal', { ...so, min: 0.03 });
-    P('KeyCylinder', [0.04, 0.13, 0.13], [xs + h0 + 0.1, L + 2.85, z0 - 0.02], [190, 172, 110], 'Metal', { ...so, sh: 'Cylinder', r: [0, 90, 0], min: 0.03 });
+    const W = x1 - x0, H = 7.1, T = 0.13, z0 = zc - T / 2, z1 = zc + T / 2, so = { nc: true, ns: true };
+    const xs = x0 + (open ? slide : 0);
+    const box = (n, u0, v0, u1, v1, w0, w1, col, mat, op) => B(n, xs + u0, L + v0, w0, xs + u1, L + v1, w1, col, mat, op);
+    P('DoorLeaf', [W, H, T], [xs + W / 2, L + 0.06 + H / 2, zc], OAK, 'Wood', { t: 1, ns: true, pri: true, attr: { SlideX: slide, Open: !!open } });
+    const g0 = 4.2, g1 = 5.2;
+    if (o.glass) {
+      box('DoorSlab', 0, 0.06, W, g0, z0, z1, OAK, 'Wood', { nc: true });
+      box('DoorSlab', 0, g1, W, H + 0.06, z0, z1, OAK, 'Wood', { nc: true });
+      box('DoorSlab', 0, g0, 0.32, g1, z0, z1, OAK, 'Wood', { nc: true });
+      box('DoorSlab', W - 0.32, g0, W, g1, z0, z1, OAK, 'Wood', { nc: true });
+      box('DoorGlass', 0.32, g0, W - 0.32, g1, zc - 0.012, zc + 0.012, [172, 190, 196], 'Glass', { ...so, t: 0.45, refl: 0.12, min: 0.02 });
+      [[0.32, g0 - 0.05, W - 0.32, g0], [0.32, g1, W - 0.32, g1 + 0.05], [0.27, g0, 0.32, g1], [W - 0.32, g0, W - 0.27, g1]]
+        .forEach(([u0, v0, u1, v1]) => box('GlassBead', u0, v0, u1, v1, z0 - 0.015, z1 + 0.015, OAK_LINE, 'Wood', { ...so, min: 0.02 }));
+    } else box('DoorSlab', 0, 0.06, W, H + 0.06, z0, z1, OAK, 'Wood', { nc: true });
+    // 가로 홈 (양면) + 문짝 가장자리 선
+    const grooves = o.glass ? [0.22, 0.38, 0.86] : [0.22, 0.38, 0.55, 0.73, 0.86];
+    grooves.forEach((t) => [[z0 - 0.006, z0 + 0.004], [z1 - 0.004, z1 + 0.006]].forEach(([w0, w1]) =>
+      box('PanelGroove', 0.05, t * H, W - 0.05, t * H + 0.035, w0, w1, OAK_LINE, 'Wood', { ...so, min: 0.008 })));
+    [0, W - 0.035].forEach((u) => box('LeafEdge', u, 0.06, u + 0.035, H + 0.06, z0 - 0.006, z1 + 0.006, OAK_LINE, 'Wood', { ...so, min: 0.02 }));
+    // 은색 막대 손잡이 (양면, 두 문짝이 만나는 쪽)
+    const hu = o.handleAt === 'right' ? W - 0.32 : 0.25;
+    [[z0 - 0.07, z0 - 0.01], [z1 + 0.01, z1 + 0.07]].forEach(([w0, w1]) => {
+      box('Handle', hu, 3.25, hu + 0.07, 4.25, w0, w1, [206, 208, 212], 'Metal', { ...so, refl: 0.25, min: 0.03 });
+      box('HandleFoot', hu, 3.25, hu + 0.07, 3.33, Math.min(w0, w1) - 0.0, Math.max(w0, w1), [180, 182, 186], 'Metal', { ...so, min: 0.03 });
+    });
+    if (o.lock) P('KeyCylinder', [0.04, 0.12, 0.12], [xs + hu + 0.035, L + 2.95, z0 - 0.02], [196, 198, 202], 'Metal', { ...so, sh: 'Cylinder', r: [0, 90, 0], min: 0.03 });
   }, 'SlidingDoor');
 }
+function slidingDoor(a, b, L, zFace, open, gname, o = {}) {
+  // 위 레일(문틀과 같은 오크) + 바닥 레일
+  const r0 = o.single ? Math.min(a - 0.3, a + o.dir * 10) : a - 0.3, r1 = o.single ? (o.dir > 0 ? b + (b - a) + 0.2 : b + 0.3) : b + 0.3;
+  B('DoorTrack', r0, L + 7.15, zFace - 0.52, r1, L + 7.55, zFace, OAK, 'Wood', { nc: true });
+  B('FloorRail', r0 + 0.1, L, zFace - 0.46, r1 - 0.1, L + 0.035, zFace - 0.14, [176, 160, 120], 'Metal', { nc: true, ns: true, min: 0.03 });
+  if (o.single) {
+    const W = b - a + 0.2;
+    doorLeaf(gname, a - 0.1, b + 0.1, L, zFace - 0.3, o.dir * (W - 0.3), open, { glass: true, handleAt: o.dir > 0 ? 'left' : 'right', lock: true });
+    return;
+  }
+  const mid = (a + b) / 2;
+  // 바깥 레일: 왼쪽 문짝(유리창, +X로 밀림) / 안쪽 레일: 오른쪽 문짝(-X로 밀려 왼쪽 문짝 뒤로)
+  // 복도에서 보면 +X 쪽 문짝이 왼쪽에 보인다 → 유리창은 그 문짝에 (참고 사진처럼 왼쪽 문짝)
+  doorLeaf(`${gname}_L`, a - 0.08, mid + 0.06, L, zFace - 0.41, mid - a - 0.3, false, { handleAt: 'right' });
+  doorLeaf(`${gname}_R`, mid - 0.06, b + 0.08, L, zFace - 0.24, -(b - mid - 0.3), open, { glass: true, handleAt: 'left', lock: true });
+}
+
 
 function interiorRoom(r) {
   const { xa, xb, L, name } = r;
   const z0 = PART1, z1 = ROOM1, zc = (z0 + z1) / 2;
   const top = L + CEIL;
   const restroom = name === '화장실';
-  const doors = restroom ? [[xa + 1.5, xa + 5.1]] : [[xa + 1.8, xa + 5.4], [xb - 5.4, xb - 1.8]];
+  const doors = restroom ? [[xa + 1.5, xa + 5.1]] : [[xa + 1.8, xa + 6.8], [xb - 6.8, xb - 1.8]];
   if (restroom) {
     const tile = [218, 226, 230];
     B('TileN', xa, L, z0, xb, L + 7.5, z0 + 0.06, tile, 'CeramicTiles', { nc: true, ns: true });
@@ -1696,7 +1717,7 @@ function interiorRoom(r) {
     (restroom ? [xa + 15] : [xa + 11.5, xa + 22.5]).forEach((x) => P('LampFill', [0.2, 0.2, 0.2], [x, top - 2.8, zc], [255, 255, 255], 'SmoothPlastic',
       { t: 1, hidden: true, light: { type: 'Point', range: 17, brightness: 0, color: [232, 236, 250], enabled: false } }));
     // 앞문 옆 전등 스위치 (불 켜기 / 끄기)
-    const swz = restroom ? z0 + 0.06 : z0, swx = restroom ? xa + 5.6 : xa + 6.0;
+    const swz = restroom ? z0 + 0.06 : z0, swx = restroom ? xa + 5.6 : xa + 7.2;
     B('SwitchPlate', swx, L + 4.0, swz, swx + 0.5, L + 4.75, swz + 0.05, [240, 240, 236], 'SmoothPlastic', { nc: true, ns: true, tag: 'RoomSwitch', attr: { Room: name } });
     for (let k = 0; k < 3; k++) B('Switch', swx + 0.06 + k * 0.14, L + 4.22, swz + 0.05, swx + 0.16 + k * 0.14, L + 4.52, swz + 0.09, [250, 250, 248], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
     if (classLike) {
@@ -1717,11 +1738,11 @@ function interiorRoom(r) {
       orbitFan(xa + 17, zc - 3.8, top, 30 + roomIdx * 17);
       orbitFan(xa + 17, zc + 3.8, top, 200 + roomIdx * 23);
       // 스위치 옆 선풍기 조절기
-      B('FanControl', xa + 6.62, L + 4.0, z0, xa + 6.98, L + 4.75, z0 + 0.06, [240, 240, 236], 'SmoothPlastic', so);
-      P('FanDial', [0.05, 0.22, 0.22], [xa + 6.8, L + 4.45, z0 + 0.08], [70, 72, 76], 'SmoothPlastic', { ...so, sh: 'Cylinder', r: [0, 90, 0], min: 0.03 });
+      B('FanControl', xa + 7.82, L + 4.0, z0, xa + 8.18, L + 4.75, z0 + 0.06, [240, 240, 236], 'SmoothPlastic', so);
+      P('FanDial', [0.05, 0.22, 0.22], [xa + 8.0, L + 4.45, z0 + 0.08], [70, 72, 76], 'SmoothPlastic', { ...so, sh: 'Cylinder', r: [0, 90, 0], min: 0.03 });
     }
     if (isClass(name)) {
-      timetable([xa + 8.6, L + 5.8, z0], [1, 0, 0], [0, 1, 0], [0, 0, 1], `${name[0]}학년 ${name[2]}반 시간표`, roomIdx);
+      timetable([xa + 9.9, L + 5.8, z0], [1, 0, 0], [0, 1, 0], [0, 0, 1], `${name[0]}학년 ${name[2]}반 시간표`, roomIdx);
       // 책상: 2인 1조 3분단 × 5줄
       for (let rr = 0; rr < 5; rr++) for (let p = 0; p < 3; p++) for (let s = 0; s < 2; s++) {
         deskSet(xa + 9.3 + rr * 3.9, zc + (p - 1) * 7.6 + (s ? 1.2 : -1.2), L, `Desk_${rr + 1}_${p * 2 + s + 1}`, { side: s ? 1 : -1 });
@@ -2002,8 +2023,8 @@ grp('MainBuilding', () => {
       });
       fr.forEach((r) => {
         const restroom = r.name === '화장실';
-        const doorList = restroom ? [[r.xa + 1.5, r.xa + 5.1]] : [[r.xa + 1.8, r.xa + 5.4], [r.xb - 5.4, r.xb - 1.8]];
-        const holes = doorList.map(([a, b]) => ({ u0: a, u1: b, v0: L, v1: L + 7.2 }));
+        const doorList = restroom ? [[r.xa + 1.5, r.xa + 5.1]] : [[r.xa + 1.8, r.xa + 6.8], [r.xb - 6.8, r.xb - 1.8]];
+        const holes = doorList.flatMap(([a, b]) => [{ u0: a, u1: b, v0: L, v1: L + 7.2 }, { u0: a, u1: b, v0: L + 7.55, v1: L + 9.3 }]);
         if (!restroom) holes.push({ u0: r.xa + 8, u1: r.xb - 8, v0: L + 7.6, v1: L + 9.4 });
         wallHoles('PartitionWall', 'x', r.xa - WALL / 2, r.xb + WALL / 2, L, top, PART0, PART1, holes, C.wallIvory, 'Plaster');
         if (!restroom) {
@@ -2011,12 +2032,17 @@ grp('MainBuilding', () => {
           for (let k = 0; k < 3; k++) slider('x', r.xa + 8 + (k * hw) / 3, r.xa + 8 + ((k + 1) * hw) / 3, L + 7.6, L + 9.4, (PART0 + PART1) / 2, { depth: 0.6 });
         }
         doorList.forEach(([a, b], di) => {
-          B('Casing', a - 0.3, L, PART0 - 0.12, a, L + 7.5, PART1 + 0.12, C.woodDark, 'Wood');
-          B('Casing', b, L, PART0 - 0.12, b + 0.3, L + 7.5, PART1 + 0.12, C.woodDark, 'Wood');
-          B('Casing', a - 0.3, L + 7.2, PART0 - 0.12, b + 0.3, L + 7.5, PART1 + 0.12, C.woodDark, 'Wood');
-          // 미닫이문: 앞문은 +X(교실 안쪽 벽 쪽)로, 뒷문은 -X로 열린다. 화장실 문은 늘 열어 둔다
+          // 오크 문틀 + 위쪽 채광창 (유리 2장, 가운데 살)
+          const so = { nc: true, ns: true }, zm = (PART0 + PART1) / 2, mid = (a + b) / 2;
+          B('Casing', a - 0.3, L, PART0 - 0.12, a, L + 9.6, PART1 + 0.12, OAK, 'Wood');
+          B('Casing', b, L, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK, 'Wood');
+          B('Casing', a - 0.3, L + 9.3, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK, 'Wood');
+          B('Casing', a, L + 7.2, PART0 - 0.12, b, L + 7.55, PART1 + 0.12, OAK, 'Wood');
+          B('TransomBar', mid - 0.1, L + 7.55, PART0 - 0.08, mid + 0.1, L + 9.3, PART1 + 0.08, OAK, 'Wood');
+          [[a, mid - 0.1], [mid + 0.1, b]].forEach(([u0, u1]) => B('TransomGlass', u0, L + 7.55, zm - 0.02, u1, L + 9.3, zm + 0.02, [178, 196, 202], 'Glass', { ...so, t: 0.55, refl: 0.12, min: 0.02 }));
+          // 미닫이문: 교실은 쌍미닫이(오크 무늬), 화장실은 외짝(늘 열어 둠)
           const ri = r.f * 8 + r.i * 2 + (r.wing === 'R' ? 1 : 0);
-          slidingDoor(a, b, L, PART0, di === 0 ? 1 : -1, restroom || (ri + di) % 5 === 0, `Door_${r.name}_${di + 1}`);
+          slidingDoor(a, b, L, PART0, restroom || (ri + di) % 5 === 0, `Door_${r.name}_${di + 1}`, restroom ? { single: true, dir: 1 } : {});
         });
         const label = isClass(r.name) ? `${r.name[0]}학년 ${r.name[2]}반` : r.name;
         // 교실 번호판: 앞문 옆 벽에서 복도 쪽으로 튀어나온 양면 표지판 (위: 큰 반 번호, 아래: 남색 띠에 "2학년 1반")
@@ -2050,7 +2076,7 @@ grp('MainBuilding', () => {
         wainscot('x', BX0 + 0.8, BX1 - 0.8, CORR0, 1, L);
         fr.forEach((r) => {
           const restroom = r.name === '화장실';
-          const doorList = restroom ? [[r.xa + 1.2, r.xa + 5.4]] : [[r.xa + 1.5, r.xa + 5.7], [r.xb - 5.7, r.xb - 1.5]];
+          const doorList = restroom ? [[r.xa + 1.2, r.xa + 5.4]] : [[r.xa + 1.5, r.xa + 7.1], [r.xb - 7.1, r.xb - 1.5]];
           wainscot('x', r.xa - 0.3, r.xb + 0.3, PART0, -1, L, doorList);
           if (restroom) return;
           const a = r.xa + 9.2, b = r.xb - 9.2;
