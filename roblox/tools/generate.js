@@ -1622,41 +1622,45 @@ function timetable(c, R_, U_, N_, title, seedIdx) {
 // 교실 미닫이문 (참고 사진): 오크 무늬 쌍미닫이 — 가로 홈이 파인 문짝 2장, 왼쪽 문짝에만 가로로 긴 유리창,
 // 은색 막대 손잡이. 두 문짝은 복도 쪽 레일 두 줄에 있어서 한 장을 밀면 다른 장 뒤(앞)로 겹쳐진다.
 // o.single: 문짝 하나 (화장실), dir 방향으로 벽 쪽으로 밀림
-const OAK = [180, 130, 76], OAK_LINE = [118, 80, 46];
+const OAK = [184, 136, 84], OAK_LINE = [96, 64, 36], OAK_FRAME = [158, 110, 64];
 function doorLeaf(gname, x0, x1, L, zc, slide, open, o = {}) {
   grp(gname, () => {
-    const W = x1 - x0, H = 7.1, T = 0.13, z0 = zc - T / 2, z1 = zc + T / 2, so = { nc: true, ns: true };
+    const W = x1 - x0, H = 7.1, T = 0.14, z0 = zc - T / 2, z1 = zc + T / 2, so = { nc: true, ns: true };
     const xs = x0 + (open ? slide : 0);
     const box = (n, u0, v0, u1, v1, w0, w1, col, mat, op) => B(n, xs + u0, L + v0, w0, xs + u1, L + v1, w1, col, mat, op);
     P('DoorLeaf', [W, H, T], [xs + W / 2, L + 0.06 + H / 2, zc], OAK, 'Wood', { t: 1, ns: true, pri: true, attr: { SlideX: slide, Open: !!open } });
-    const g0 = 4.2, g1 = 5.2;
-    if (o.glass) {
-      box('DoorSlab', 0, 0.06, W, g0, z0, z1, OAK, 'Wood', { nc: true });
-      box('DoorSlab', 0, g1, W, H + 0.06, z0, z1, OAK, 'Wood', { nc: true });
-      box('DoorSlab', 0, g0, 0.32, g1, z0, z1, OAK, 'Wood', { nc: true });
-      box('DoorSlab', W - 0.32, g0, W, g1, z0, z1, OAK, 'Wood', { nc: true });
-      box('DoorGlass', 0.32, g0, W - 0.32, g1, zc - 0.012, zc + 0.012, [172, 190, 196], 'Glass', { ...so, t: 0.45, refl: 0.12, min: 0.02 });
-      [[0.32, g0 - 0.05, W - 0.32, g0], [0.32, g1, W - 0.32, g1 + 0.05], [0.27, g0, 0.32, g1], [W - 0.32, g0, W - 0.27, g1]]
-        .forEach(([u0, v0, u1, v1]) => box('GlassBead', u0, v0, u1, v1, z0 - 0.015, z1 + 0.015, OAK_LINE, 'Wood', { ...so, min: 0.02 }));
-    } else box('DoorSlab', 0, 0.06, W, H + 0.06, z0, z1, OAK, 'Wood', { nc: true });
-    // 가로 홈 (양면) + 문짝 가장자리 선
-    const grooves = o.glass ? [0.22, 0.38, 0.86] : [0.22, 0.38, 0.55, 0.73, 0.86];
-    grooves.forEach((t) => [[z0 - 0.006, z0 + 0.004], [z1 - 0.004, z1 + 0.006]].forEach(([w0, w1]) =>
-      box('PanelGroove', 0.05, t * H, W - 0.05, t * H + 0.035, w0, w1, OAK_LINE, 'Wood', { ...so, min: 0.008 })));
-    [0, W - 0.035].forEach((u) => box('LeafEdge', u, 0.06, u + 0.035, H + 0.06, z0 - 0.006, z1 + 0.006, OAK_LINE, 'Wood', { ...so, min: 0.02 }));
-    // 은색 막대 손잡이 (양면, 두 문짝이 만나는 쪽)
-    const hu = o.handleAt === 'right' ? W - 0.32 : 0.25;
-    [[z0 - 0.07, z0 - 0.01], [z1 + 0.01, z1 + 0.07]].forEach(([w0, w1]) => {
-      box('Handle', hu, 3.25, hu + 0.07, 4.25, w0, w1, [206, 208, 212], 'Metal', { ...so, refl: 0.25, min: 0.03 });
-      box('HandleFoot', hu, 3.25, hu + 0.07, 3.33, Math.min(w0, w1) - 0.0, Math.max(w0, w1), [180, 182, 186], 'Metal', { ...so, min: 0.03 });
+    // 속판(어두운 홈 색) 위에 무늬목 판 5장을 띄워 붙여 홈이 진짜로 파여 보이게
+    const gap = 0.045, ph = (H - gap * 4) / 5, e = 0.03;
+    for (let k = 0; k < 5; k++) {
+      const v0 = 0.06 + k * (ph + gap), v1 = v0 + ph, col = jit(OAK, 7);
+      if (o.glass && k === 3) {
+        const fb = 0.16;
+        box('DoorCore', 0, v0 - gap, W, v0, z0 + 0.02, z1 - 0.02, OAK_LINE, 'Wood', so);
+        box('DoorPanel', 0, v0, fb, v1, z0, z1, col, 'Wood', { nc: true });
+        box('DoorPanel', W - fb, v0, W, v1, z0, z1, col, 'Wood', { nc: true });
+        box('DoorPanel', fb, v0, W - fb, v0 + fb * 0.6, z0, z1, col, 'Wood', { nc: true });
+        box('DoorPanel', fb, v1 - fb * 0.6, W - fb, v1, z0, z1, col, 'Wood', { nc: true });
+        box('DoorGlass', fb, v0 + fb * 0.6, W - fb, v1 - fb * 0.6, zc - 0.015, zc + 0.015, [186, 204, 210], 'Glass', { ...so, t: 0.5, refl: 0.15, min: 0.02 });
+        [[fb, v0 + fb * 0.6, W - fb, v0 + fb * 0.6 + 0.035], [fb, v1 - fb * 0.6 - 0.035, W - fb, v1 - fb * 0.6], [fb, v0 + fb * 0.6, fb + 0.035, v1 - fb * 0.6], [W - fb - 0.035, v0 + fb * 0.6, W - fb, v1 - fb * 0.6]]
+          .forEach(([u0, a0, u1, a1]) => box('GlassBead', u0, a0, u1, a1, z0 + 0.03, z1 - 0.03, [60, 62, 66], 'SmoothPlastic', { ...so, min: 0.02 }));
+      } else {
+        box('DoorPanel', 0, v0, W, v1, z0, z1, col, 'Wood', { nc: true });
+        if (k < 4) box('DoorCore', e, v1, W - e, v1 + gap, z0 + 0.025, z1 - 0.025, OAK_LINE, 'Wood', so);
+      }
+    }
+    // 은색 오목 손잡이 (양면, 문짝 바깥쪽 가장자리 — 참고 사진 위치)
+    const hu = o.handleAt === 'right' ? W - 0.3 : 0.14, hv = 0.06 + 2 * (ph + gap) + ph * 0.28;
+    [[z0 - 0.02, z0 + 0.01, z0 - 0.026], [z1 - 0.01, z1 + 0.02, z1 + 0.02]].forEach(([w0, w1, wr]) => {
+      box('HandlePlate', hu, hv, hu + 0.16, hv + 0.62, w0, w1, [208, 210, 214], 'Metal', { ...so, refl: 0.3, min: 0.02 });
+      box('HandleRecess', hu + 0.035, hv + 0.07, hu + 0.125, hv + 0.55, wr, wr + 0.006, [70, 72, 76], 'Metal', { ...so, min: 0.006 });
     });
-    if (o.lock) P('KeyCylinder', [0.04, 0.12, 0.12], [xs + hu + 0.035, L + 2.95, z0 - 0.02], [196, 198, 202], 'Metal', { ...so, sh: 'Cylinder', r: [0, 90, 0], min: 0.03 });
+    if (o.lock) P('KeyCylinder', [0.03, 0.1, 0.1], [xs + hu + 0.08, L + hv - 0.16, z0 - 0.015], [200, 202, 206], 'Metal', { ...so, sh: 'Cylinder', r: [0, 90, 0], min: 0.02 });
   }, 'SlidingDoor');
 }
 function slidingDoor(a, b, L, zFace, open, gname, o = {}) {
   // 위 레일(문틀과 같은 오크) + 바닥 레일
   const r0 = o.single ? Math.min(a - 0.3, a + o.dir * 10) : a - 0.3, r1 = o.single ? (o.dir > 0 ? b + (b - a) + 0.2 : b + 0.3) : b + 0.3;
-  B('DoorTrack', r0, L + 7.15, zFace - 0.52, r1, L + 7.55, zFace, OAK, 'Wood', { nc: true });
+  B('DoorTrack', r0, L + 7.2, zFace - 0.5, r1, L + 7.55, zFace, OAK_FRAME, 'Wood', { nc: true });
   B('FloorRail', r0 + 0.1, L, zFace - 0.46, r1 - 0.1, L + 0.035, zFace - 0.14, [176, 160, 120], 'Metal', { nc: true, ns: true, min: 0.03 });
   if (o.single) {
     const W = b - a + 0.2;
@@ -1666,8 +1670,8 @@ function slidingDoor(a, b, L, zFace, open, gname, o = {}) {
   const mid = (a + b) / 2;
   // 바깥 레일: 왼쪽 문짝(유리창, +X로 밀림) / 안쪽 레일: 오른쪽 문짝(-X로 밀려 왼쪽 문짝 뒤로)
   // 복도에서 보면 +X 쪽 문짝이 왼쪽에 보인다 → 유리창은 그 문짝에 (참고 사진처럼 왼쪽 문짝)
-  doorLeaf(`${gname}_L`, a - 0.08, mid + 0.06, L, zFace - 0.41, mid - a - 0.3, false, { handleAt: 'right' });
-  doorLeaf(`${gname}_R`, mid - 0.06, b + 0.08, L, zFace - 0.24, -(b - mid - 0.3), open, { glass: true, handleAt: 'left', lock: true });
+  doorLeaf(`${gname}_L`, a - 0.08, mid + 0.06, L, zFace - 0.41, mid - a - 0.3, false, { handleAt: 'left' });
+  doorLeaf(`${gname}_R`, mid - 0.06, b + 0.08, L, zFace - 0.24, -(b - mid - 0.3), open, { glass: true, handleAt: 'right', lock: true });
 }
 
 
@@ -2034,11 +2038,11 @@ grp('MainBuilding', () => {
         doorList.forEach(([a, b], di) => {
           // 오크 문틀 + 위쪽 채광창 (유리 2장, 가운데 살)
           const so = { nc: true, ns: true }, zm = (PART0 + PART1) / 2, mid = (a + b) / 2;
-          B('Casing', a - 0.3, L, PART0 - 0.12, a, L + 9.6, PART1 + 0.12, OAK, 'Wood');
-          B('Casing', b, L, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK, 'Wood');
-          B('Casing', a - 0.3, L + 9.3, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK, 'Wood');
-          B('Casing', a, L + 7.2, PART0 - 0.12, b, L + 7.55, PART1 + 0.12, OAK, 'Wood');
-          B('TransomBar', mid - 0.1, L + 7.55, PART0 - 0.08, mid + 0.1, L + 9.3, PART1 + 0.08, OAK, 'Wood');
+          B('Casing', a - 0.3, L, PART0 - 0.12, a, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
+          B('Casing', b, L, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
+          B('Casing', a - 0.3, L + 9.3, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
+          B('Casing', a, L + 7.2, PART0 - 0.12, b, L + 7.55, PART1 + 0.12, OAK_FRAME, 'Wood');
+          B('TransomBar', mid - 0.1, L + 7.55, PART0 - 0.08, mid + 0.1, L + 9.3, PART1 + 0.08, OAK_FRAME, 'Wood');
           [[a, mid - 0.1], [mid + 0.1, b]].forEach(([u0, u1]) => B('TransomGlass', u0, L + 7.55, zm - 0.02, u1, L + 9.3, zm + 0.02, [178, 196, 202], 'Glass', { ...so, t: 0.55, refl: 0.12, min: 0.02 }));
           // 미닫이문: 교실은 쌍미닫이(오크 무늬), 화장실은 외짝(늘 열어 둠)
           const ri = r.f * 8 + r.i * 2 + (r.wing === 'R' ? 1 : 0);

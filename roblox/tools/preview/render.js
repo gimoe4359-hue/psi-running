@@ -69,7 +69,7 @@ const TEXDEF = {
       g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(0, i * s / 8, s, 2); g.fillRect(((i * 97) % 5) * s / 5, i * s / 8, 2, s / 8);
     }
   }],
-  Wood: [6, 1.5, (g, s) => { g.fillStyle = '#eee'; g.fillRect(0, 0, s, s); for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(0,0,0,${0.03 + rr() * 0.08})`; g.fillRect(0, rr() * s, s, 1 + rr() * 2); } }],
+  Wood: [6, 1.5, (g, s) => { g.fillStyle = '#eee'; g.fillRect(0, 0, s, s); for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(0,0,0,${0.015 + rr() * 0.04})`; g.fillRect(0, rr() * s, s, 1); } }],
   Asphalt: [8, 2.5, (g, s) => { g.fillStyle = '#dcdcdc'; g.fillRect(0, 0, s, s); noise(g, s, 26000, 140, 255, 1); noise(g, s, 1500, 90, 140, 2); }],
   Pavement: [8, 4, (g, s) => {
     g.fillStyle = '#6c6c6c'; g.fillRect(0, 0, s, s);
