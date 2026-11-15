@@ -113,7 +113,8 @@ def door_leaf(b, axis, c, plane, w=3.8, open_deg=0, hinge=-1, swing=1, color=0xE
     m = b.model(name)
     hu = c + hinge * (w / 2 - 0.05)
     if axis == 'x':
-        frame = m.at(T(hu, FL, plane) * Ry(-swing * hinge * open_deg))
+        a = -swing * hinge * open_deg
+        frame = P.swing(m, T(hu, FL, plane) * Ry(a), a, P.open_angle(a, -swing * hinge))
         lx = -hinge
         leaf = frame.blk('Leaf', (w - 0.1, DOOR_H - 0.1, 0.2), (lx * (w / 2 - 0.05), DOOR_H / 2, 0), color, 'SmoothPlastic')
         for py in (DOOR_H * 0.68, DOOR_H * 0.28):
@@ -126,7 +127,8 @@ def door_leaf(b, axis, c, plane, w=3.8, open_deg=0, hinge=-1, swing=1, color=0xE
         for hy in (1.2, DOOR_H - 1.2):
             frame.blk('Hinge', (0.12, 0.5, 0.25), (0, hy, 0), 0x8A8A86, 'Metal', **DEC)
     else:
-        frame = m.at(T(plane, FL, hu) * Ry(swing * hinge * open_deg))
+        a = swing * hinge * open_deg
+        frame = P.swing(m, T(plane, FL, hu) * Ry(a), a, P.open_angle(a, swing * hinge))
         lz = -hinge
         frame.blk('Leaf', (0.2, DOOR_H - 0.1, w - 0.1), (0, DOOR_H / 2, lz * (w / 2 - 0.05)), color, 'SmoothPlastic')
         for py in (DOOR_H * 0.68, DOOR_H * 0.28):

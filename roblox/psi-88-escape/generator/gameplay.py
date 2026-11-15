@@ -193,7 +193,7 @@ def services(floors, base, core_top):
     sss = Inst('ServerScriptService', 'ServerScriptService')
     gs = Inst('Script', 'GameServer', sss)
     gs.prop('ProtectedString', 'Source', lua('GameServer.server.lua'))
-    for mod in ('Chaser', 'ZzukZzuk', 'Floors'):
+    for mod in ('Chaser', 'ZzukZzuk', 'Floors', 'Doors'):
         m = Inst('ModuleScript', mod, sss)
         m.prop('ProtectedString', 'Source', lua(mod + '.module.lua'))
     roots.append(sss)

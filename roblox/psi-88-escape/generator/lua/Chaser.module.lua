@@ -196,6 +196,7 @@ local function newChaser(floor, homeCF, patrol)
 				end
 			end
 		end
+		if (best or self.lastSeen) and ctx.openDoorsNear then ctx.openDoorsNear(hrp.Position, 6) end
 		if best then
 			self.lastSeen = best.hrp.Position
 			hum.WalkSpeed = if bestD < 14 then Config.Chaser.SprintSpeed else Config.Chaser.ChaseSpeed

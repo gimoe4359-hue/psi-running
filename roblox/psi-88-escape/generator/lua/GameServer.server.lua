@@ -22,6 +22,7 @@ local InputEv = Remotes:WaitForChild("Input")
 local Chaser = require(SSS:WaitForChild("Chaser"))
 local Zzuk = require(SSS:WaitForChild("ZzukZzuk"))
 local Floors = require(SSS:WaitForChild("Floors"))
+local Doors = require(SSS:WaitForChild("Doors"))
 
 Players.CharacterAutoLoads = false
 
@@ -596,6 +597,7 @@ resetRound = function()
 	Chaser.resetAll()
 	Zzuk.reset()
 	Floors.reset()
+	Doors.reset()
 	for _, p in ipairs(Players:GetPlayers()) do
 		local st = pstate[p]
 		if st then
@@ -640,6 +642,9 @@ local ctx = {
 	setHidden = setHidden, remember = remember,
 }
 
+local okDoors, errDoors = pcall(Doors.start, ctx)
+if not okDoors then warn("[PSI] Doors.start 실패:", errDoors) end
+ctx.openDoorsNear = Doors.openNear
 Chaser.start(ctx)
 Zzuk.start(ctx)
 ctx.Chaser = Chaser

@@ -93,7 +93,8 @@ def glass_door(b, axis, c, plane, open_deg=0, hinge=-1, swing=1, frame_col=0x2A2
     w = 3.8
     hu = c + hinge * (w / 2 - 0.05)
     if axis == 'x':
-        f = m.at(T(hu, FL, plane) * Ry(-swing * hinge * open_deg))
+        a = -swing * hinge * open_deg
+        f = P.swing(m, T(hu, FL, plane) * Ry(a), a, P.open_angle(a, -swing * hinge))
         lx = -hinge
         f.blk('Glass', (w - 0.3, DOOR_H - 0.3, 0.1), (lx * (w / 2), DOOR_H / 2, 0), 0xA8C0C8, 'Glass', tr=0.6, shadow=False)
         f.blk('Stile', (0.15, DOOR_H, 0.2), (0, DOOR_H / 2, 0), frame_col, 'Metal')
@@ -102,7 +103,8 @@ def glass_door(b, axis, c, plane, open_deg=0, hinge=-1, swing=1, frame_col=0x2A2
         f.blk('Rail', (w, 0.2, 0.2), (lx * w / 2, DOOR_H - 0.1, 0), frame_col, 'Metal')
         f.blk('Pull', (0.12, 2.4, 0.12), (lx * (w - 0.5), 3.6, 0.25), STEEL, 'Metal', **NC)
     else:
-        f = m.at(T(plane, FL, hu) * Ry(swing * hinge * open_deg))
+        a = swing * hinge * open_deg
+        f = P.swing(m, T(plane, FL, hu) * Ry(a), a, P.open_angle(a, swing * hinge))
         lz = -hinge
         f.blk('Glass', (0.1, DOOR_H - 0.3, w - 0.3), (0, DOOR_H / 2, lz * (w / 2)), 0xA8C0C8, 'Glass', tr=0.6, shadow=False)
         f.blk('Stile', (0.2, DOOR_H, 0.15), (0, DOOR_H / 2, 0), frame_col, 'Metal')

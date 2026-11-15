@@ -71,6 +71,7 @@
 | `ServerScriptService/GameServer` | 라운드 진행, 스폰·체크포인트, 계단 창살 열기, 정문·열쇠 구멍, 사망 처리, 리더보드(탈출 횟수·최고 기록) |
 | `ServerScriptService/Floors` | **층별 놀이** 전부 (아래 표) |
 | `ServerScriptService/Chaser` | 조수민 AI. 순찰·추격, 경보가 울리면 잠깐 소환, 낮잠 자다 깨기, "무궁화 꽃" 술래 |
+| `ServerScriptService/Doors` | **여닫는 문**. 문 앞에서 "열기 / 닫기"를 누르면 문짝이 경첩을 축으로 돌아요 (82개). 자물쇠 달린 문 16개는 "잠겨 있다"만 나와요. 닫힌 문은 조수민 길도 막지만, 쫓는 중이면 잠깐 뒤에 문을 열고 들어와요. 계단실 문은 항상 열려 있어요 |
 | `ServerScriptService/ZzukZzuk` | 77F 쭉쭉이. 쳐다보는 동안은 멈추고, 정전 때는 그래도 움직여요 |
 | `StarterPlayerScripts/ClientUI` | HUD(층·목표·타이머), 달리기·살금살금·손전등, 쪽지·키패드·타이밍 미니게임 화면, 정전·경고 연출, 점프스케어 |
 | `StarterPlayerScripts/FloorCulling` | **최적화**: 지금 있는 층과 위아래 층만 화면에 남기고 나머지 층은 그 플레이어 화면에서만 잠시 치워 둬요 (계단실에서는 위아래 2층, 건물 밖에서는 전체). 보이는 모습은 같아요 |
@@ -147,6 +148,7 @@
 | `Checkpoint` | 66F | 점프 맵 체크포인트 |
 | `KillBrick` | 66F 짜장, 내핵 용암 | 닿으면 죽거나 체크포인트로 이동 |
 | `ChaserSpawn` | 10F 낮잠방, 40F 미로, B9 복도 | 조수민이 나타나는 위치 (10F는 자고 있음) |
+| `Door` / `DoorLocked` | 방문·유리문 (문짝 묶음 `DoorSwing`) | 여닫는 문 / 잠긴 문. 경첩 기준점 이름이 `DoorPivot_<지금 각도>_<열린 각도>` |
 | `HideSpot` | 60F 부스, 8F·B12 캐비닛, B3 택배 상자 | 이 안에 있으면 돌진·조수민·베리에게 안 들켜요 |
 | `MainGate` / `MainChains` / `KeySlot` | 1F 정문 | 정문 막는 벽 / 쇠사슬 / 열쇠 꽂는 곳 |
 | `Key` | 내핵 | 정문 열쇠 |

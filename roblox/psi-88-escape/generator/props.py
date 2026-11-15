@@ -4,6 +4,7 @@ Convention: every prop is built around its own origin, y=0 is the floor,
 and the prop "faces" -Z (a chair's sitter looks toward -Z, a TV screen
 faces -Z, a desk's user sits on the -Z side).
 """
+import math
 import random
 from rbx import T, Rx, Ry, Rz, light, gui_text, particles, FACING_YAW
 
@@ -320,6 +321,25 @@ def locker_row(b, n=6, color=0x5A6E7A, h=7):
 
 
 # ---------------------------------------------------------------- doors
+def open_angle(cur, sign=1):
+    """Angle a door swings to when a player opens it: at least 80°, on the side it already leans to."""
+    if cur:
+        return math.copysign(max(abs(cur), 80), cur)
+    return 85 * sign
+
+
+def swing(m, hinge_cf, cur, opened, locked=False):
+    """Sub-model for the moving part of a door. Everything built in the returned frame turns about the hinge.
+
+    The Doors script finds it by tag and reads the angles from the pivot's name: DoorPivot_<current>_<opened>.
+    """
+    sw = m.model('DoorSwing')
+    sw.parent.prop('BinaryString', 'Tags', ('DoorLocked' if locked else 'Door').encode('utf-8'))
+    f = sw.at(hinge_cf)
+    f.blk('DoorPivot_%d_%d' % (round(cur), round(opened)), (0.2, 0.2, 0.2), (0, 3.8, 0), 0xFF00FF, tr=1, collide=False, shadow=False)
+    return f
+
+
 def door(b, w=4, h=8, color=WOOD, frame=0xE0DCD4, open_deg=0, locked=False, name='Door', window=False):
     """Door centred on origin in a wall that runs along X (wall thickness ~0.6).
 
@@ -329,7 +349,10 @@ def door(b, w=4, h=8, color=WOOD, frame=0xE0DCD4, open_deg=0, locked=False, name
     m.blk('FrameL', (0.3, h, 0.8), (-w / 2 - 0.15, h / 2, 0), frame, 'Wood')
     m.blk('FrameR', (0.3, h, 0.8), (w / 2 + 0.15, h / 2, 0), frame, 'Wood')
     m.blk('FrameT', (w + 0.6, 0.3, 0.8), (0, h + 0.15, 0), frame, 'Wood')
-    lb = m.at(T(-w / 2, 0, 0) * Ry(open_deg) * T(w / 2, 0, 0))
+    if name == 'StairDoor':      # the way to the stairs never closes on anyone
+        lb = m.at(T(-w / 2, 0, 0) * Ry(open_deg) * T(w / 2, 0, 0))
+    else:
+        lb = swing(m, T(-w / 2, 0, 0) * Ry(open_deg), open_deg, open_angle(open_deg), locked).at(T(w / 2, 0, 0))
     leaf = lb.blk('Leaf', (w - 0.1, h - 0.1, 0.25), (0, h / 2, 0), color, 'Wood')
     lb.blk('Knob', (0.3, 0.3, 0.5), (w / 2 - 0.5, h / 2 - 0.4, 0), STEEL, 'Metal', collide=False)
     if window:
