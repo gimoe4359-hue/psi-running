@@ -349,7 +349,7 @@ const C = {
   facade: [228, 224, 214], facadeShade: [206, 201, 190], sunshade: [214, 210, 200],
   wallIvory: [236, 231, 218], wainscot: [168, 190, 172], baseboard: [70, 92, 78], rail: [150, 112, 74],
   ceiling: [232, 232, 226], tbar: [212, 212, 206], troffer: [236, 238, 240],
-  corridorFloor: [186, 180, 166], classFloor: [150, 108, 66], hallFloor: [164, 162, 150],
+  corridorFloor: [172, 170, 158], classFloor: [150, 108, 66], hallFloor: [164, 162, 150],
   alum: [178, 182, 186], alumDark: [118, 122, 128], glass: [128, 150, 160], glassFrost: [214, 220, 222],
   woodDark: [96, 66, 42], laminate: [214, 188, 146],
   steel: [146, 150, 156], steelDark: [64, 66, 70], board: [34, 60, 48], white: [236, 236, 232],
@@ -394,13 +394,9 @@ function wainscot(axis, uMin, uMax, face, n, L, gaps = [], o = {}) {
       : B(n0, Math.min(face, face + n * t), y0, a, Math.max(face, face + n * t), y1, b, c, m, { nc: true, ns: true }));
     lay('Wainscot', 0.05, L, L + h, o.color || C.wainscot, 'Plaster');
     lay('Baseboard', 0.1, L, L + 0.45, o.base || C.baseboard, 'SmoothPlastic');
-    if (o.rail !== null) lay('ChairRail', 0.13, L + h, L + h + 0.18, o.rail || C.rail, 'Wood');
-    else lay('PaintLine', 0.06, L + h - 0.04, L + h, o.line || [150, 196, 150], 'SmoothPlastic');
+    lay('ChairRail', 0.13, L + h, L + h + 0.18, o.rail || C.rail, 'Wood');
   });
 }
-
-// 복도 벽: 참고 사진처럼 연두색 아랫벽 + 진초록 걸레받이, 몰딩 없이 페인트 경계만
-const CORR_PAINT = { color: [190, 220, 176], base: [40, 86, 58], h: 3.9, rail: null };
 
 // 천장: 흰 텍스 천장 (줄눈은 거의 안 보이게)
 function ceiling(x0, x1, z0, z1, y) {
@@ -1629,22 +1625,22 @@ function slidingDoor(a, b, L, zFace, dir, open, gname) {
   const xs = a - 0.15 + (open ? dir * slide : 0); // 문짝 왼쪽 끝
   const r0 = dir > 0 ? a - 0.3 : a - 0.15 - slide - 0.1, r1 = dir > 0 ? b + 0.15 + slide + 0.1 : b + 0.3;
   B('DoorTrack', r0, L + 7.2, zFace - 0.46, r1, L + 7.6, zFace, [178, 180, 182], 'Metal', { nc: true });
-  B('TrackCover', r0, L + 7.2, zFace - 0.5, r1, L + 7.6, zFace - 0.46, [234, 236, 230], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
+  B('TrackCover', r0, L + 7.2, zFace - 0.5, r1, L + 7.6, zFace - 0.46, C.woodDark, 'Wood', { nc: true, ns: true, min: 0.03 });
   B('FloorRail', r0 + 0.1, L, zc - 0.04, r1 - 0.1, L + 0.035, zc + 0.04, [176, 160, 120], 'Metal', { nc: true, ns: true, min: 0.03 });
   grp(gname, () => {
-    const z0 = zc - T / 2, z1 = zc + T / 2, wood = [228, 231, 224], panel = [170, 206, 166], so = { nc: true, ns: true };
+    const z0 = zc - T / 2, z1 = zc + T / 2, wood = [186, 142, 96], panel = [170, 126, 84], so = { nc: true, ns: true };
     const box = (n, u0, v0, u1, v1, w0, w1, col, mat, o) => B(n, xs + u0, L + v0, w0, xs + u1, L + v1, w1, col, mat, o);
-    P('DoorLeaf', [W, Hh, T], [xs + W / 2, L + 0.06 + Hh / 2, zc], wood, 'SmoothPlastic', { t: 1, ns: true, pri: true, attr: { SlideX: dir * slide, Open: !!open } });
+    P('DoorLeaf', [W, Hh, T], [xs + W / 2, L + 0.06 + Hh / 2, zc], wood, 'Wood', { t: 1, ns: true, pri: true, attr: { SlideX: dir * slide, Open: !!open } });
     const sw = 0.36;
-    box('Stile', 0, 0.06, sw, Hh + 0.06, z0, z1, wood, 'SmoothPlastic', { nc: true });
-    box('Stile', W - sw, 0.06, W, Hh + 0.06, z0, z1, wood, 'SmoothPlastic', { nc: true });
-    box('TopRail', sw, Hh - 0.28, W - sw, Hh + 0.06, z0, z1, wood, 'SmoothPlastic', { nc: true });
-    box('LockRail', sw, 3.6, W - sw, 3.95, z0, z1, wood, 'SmoothPlastic', { nc: true });
-    box('BottomRail', sw, 0.06, W - sw, 0.9, z0, z1, wood, 'SmoothPlastic', { nc: true });
-    box('DoorPanel', sw, 0.9, W - sw, 3.6, zc - 0.035, zc + 0.035, panel, 'SmoothPlastic', so);
-    box('DoorGlass', sw, 3.95, W - sw, Hh - 0.28, zc - 0.012, zc + 0.012, [214, 222, 224], 'Glass', { ...so, t: 0.18, refl: 0.1, min: 0.02 });
+    box('Stile', 0, 0.06, sw, Hh + 0.06, z0, z1, wood, 'Wood', { nc: true });
+    box('Stile', W - sw, 0.06, W, Hh + 0.06, z0, z1, wood, 'Wood', { nc: true });
+    box('TopRail', sw, Hh - 0.28, W - sw, Hh + 0.06, z0, z1, wood, 'Wood', { nc: true });
+    box('LockRail', sw, 3.6, W - sw, 3.95, z0, z1, wood, 'Wood', { nc: true });
+    box('BottomRail', sw, 0.06, W - sw, 0.9, z0, z1, wood, 'Wood', { nc: true });
+    box('DoorPanel', sw, 0.9, W - sw, 3.6, zc - 0.035, zc + 0.035, panel, 'Wood', so);
+    box('DoorGlass', sw, 3.95, W - sw, Hh - 0.28, zc - 0.012, zc + 0.012, [150, 170, 176], 'Glass', { ...so, t: 0.5, refl: 0.1, min: 0.02 });
     [[sw, 3.95, sw + 0.07, Hh - 0.28], [W - sw - 0.07, 3.95, W - sw, Hh - 0.28], [sw, 3.95, W - sw, 4.02], [sw, Hh - 0.35, W - sw, Hh - 0.28]]
-      .forEach(([u0, v0, u1, v1]) => box('GlassBead', u0, v0, u1, v1, z0 - 0.02, z1 + 0.02, wood, 'SmoothPlastic', { ...so, min: 0.03 }));
+      .forEach(([u0, v0, u1, v1]) => box('GlassBead', u0, v0, u1, v1, z0 - 0.02, z1 + 0.02, wood, 'Wood', { ...so, min: 0.03 }));
     box('KickPlate', 0.05, 0.1, W - 0.05, 0.62, z0 - 0.02, z0, [196, 198, 200], 'Metal', { ...so, refl: 0.12, min: 0.015 });
     box('KickPlate', 0.05, 0.1, W - 0.05, 0.62, z1, z1 + 0.02, [196, 198, 200], 'Metal', { ...so, refl: 0.12, min: 0.015 });
     const h0 = dir > 0 ? 0.08 : W - 0.28;
@@ -1942,7 +1938,7 @@ grp('MainBuilding', () => {
     B('WingFloor', BX0, ya, PART1, HALL0, y1, ZS, room, rm);
     B('WingFloor', HALL1, ya, PART1, BX1, y1, ZS, room, rm);
     if (!deck) {
-      for (let x = BX0 + 8; x < BX1 - 4; x += 8) B('FloorJoint', x - 0.03, y1, CORR0, x + 0.03, y1 + 0.015, PART0, [150, 144, 128], 'SmoothPlastic', { nc: true, ns: true, min: 0.015 });
+      terrazzo(BX0 + 0.8, BX1 - 0.8, CORR0, PART0, y1, 4);
       terrazzo(HALL0, STAIR.x0 - 0.2, PART1, ROOM1, y1, 4);
     }
     if (f === 0) B('HallFloor', HALL0, ya, PART1, HALL1, y1, ZS, hall, hm);
@@ -1984,14 +1980,10 @@ grp('MainBuilding', () => {
         B('EntranceFrame', -8.5, L + 8.2, ROOM1 + 0.2, -0.5, L + 8.6, ROOM1 + 0.6, C.alumDark, 'Metal');
       }
       const northHoles = [];
-      for (let x = BX0 + 5; x < BX1 - 12; x += 15.5) northHoles.push({ u0: x, u1: x + 10, v0: L + 3.9, v1: L + 9.4 });
+      for (let x = BX0 + 5; x < BX1 - 12; x += 15.5) northHoles.push({ u0: x, u1: x + 10, v0: L + 3.6, v1: L + 9.4 });
       wallHoles('ExteriorWall', 'x', BX0, BX1, L - 1, top, ZN, CORR0, northHoles, C.facade, 'Plaster');
-      const WHITE_FRAME = { frame: [238, 238, 234], glassColor: [176, 196, 204], glassT: 0.7, depth: 0.6 };
       northHoles.forEach((h) => {
-        slider('x', h.u0, h.u1, h.v0, L + 7.9, ZN + 0.4, WHITE_FRAME);
-        slider('x', h.u0, (h.u0 + h.u1) / 2, L + 7.9, h.v1, ZN + 0.4, WHITE_FRAME);
-        slider('x', (h.u0 + h.u1) / 2, h.u1, L + 7.9, h.v1, ZN + 0.4, WHITE_FRAME);
-        B('InnerSill', h.u0 - 0.15, h.v0 - 0.18, CORR0 - 0.1, h.u1 + 0.15, h.v0, CORR0 + 0.35, [120, 92, 70], 'Wood', { nc: true });
+        slider('x', h.u0, h.u1, h.v0, h.v1, ZN + 0.4);
         B('Sill', h.u0 - 0.2, h.v0 - 0.25, ZN - 0.7, h.u1 + 0.2, h.v0, ZN + 0.1, [196, 192, 184], 'Concrete');
       });
       [[BX0, BX0 + 0.8, -1], [BX1 - 0.8, BX1, 1]].forEach(([x0, x1, s]) => {
@@ -2006,26 +1998,22 @@ grp('MainBuilding', () => {
         B('ExitSign', sx, L + 7.85, -169.4, sx + 0.3, L + 9.05, -165.6, [24, 168, 86], 'Neon', { nc: true, ns: true, tag: 'ExitSign',
           light: { type: 'Point', range: 9, brightness: 0.5, color: [60, 255, 140] } });
         exitPictogram([s > 0 ? sx : sx + 0.3, L + 8.45, -167.5], [0, 0, s > 0 ? 1 : -1], [0, 1, 0], [s > 0 ? -1 : 1, 0, 0], 1.0);
-        wainscot('z', CORR0, PART0, s > 0 ? x0 : x1, -s, L, [[-169.5, -165.5]], CORR_PAINT);
+        wainscot('z', CORR0, PART0, s > 0 ? x0 : x1, -s, L, [[-169.5, -165.5]]);
       });
       fr.forEach((r) => {
         const restroom = r.name === '화장실';
         const doorList = restroom ? [[r.xa + 1.5, r.xa + 5.1]] : [[r.xa + 1.8, r.xa + 5.4], [r.xb - 5.4, r.xb - 1.8]];
         const holes = doorList.map(([a, b]) => ({ u0: a, u1: b, v0: L, v1: L + 7.2 }));
-        if (!restroom) holes.push({ u0: r.xa + 8, u1: r.xb - 8, v0: L + 7.6, v1: L + 9.4 }, { u0: r.xa + 11, u1: r.xb - 9, v0: L + 4.3, v1: L + 7.3 });
+        if (!restroom) holes.push({ u0: r.xa + 8, u1: r.xb - 8, v0: L + 7.6, v1: L + 9.4 });
         wallHoles('PartitionWall', 'x', r.xa - WALL / 2, r.xb + WALL / 2, L, top, PART0, PART1, holes, C.wallIvory, 'Plaster');
         if (!restroom) {
           const hw = r.xb - r.xa - 16;
-          const PW = { depth: 0.6, frame: [238, 238, 234] };
-          for (let k = 0; k < 3; k++) slider('x', r.xa + 8 + (k * hw) / 3, r.xa + 8 + ((k + 1) * hw) / 3, L + 7.6, L + 9.4, (PART0 + PART1) / 2, PW);
-          const ew = r.xb - 9 - (r.xa + 11);
-          for (let k = 0; k < 3; k++) slider('x', r.xa + 11 + (k * ew) / 3, r.xa + 11 + ((k + 1) * ew) / 3, L + 4.3, L + 7.3, (PART0 + PART1) / 2, { ...PW, glassColor: C.glassFrost, glassT: 0.2 });
-          B('PartSill', r.xa + 10.9, L + 4.15, PART0 - 0.2, r.xb - 8.9, L + 4.3, PART1 + 0.1, [238, 238, 234], 'SmoothPlastic', { nc: true });
+          for (let k = 0; k < 3; k++) slider('x', r.xa + 8 + (k * hw) / 3, r.xa + 8 + ((k + 1) * hw) / 3, L + 7.6, L + 9.4, (PART0 + PART1) / 2, { depth: 0.6 });
         }
         doorList.forEach(([a, b], di) => {
-          B('Casing', a - 0.3, L, PART0 - 0.12, a, L + 7.5, PART1 + 0.12, [234, 236, 230], 'SmoothPlastic');
-          B('Casing', b, L, PART0 - 0.12, b + 0.3, L + 7.5, PART1 + 0.12, [234, 236, 230], 'SmoothPlastic');
-          B('Casing', a - 0.3, L + 7.2, PART0 - 0.12, b + 0.3, L + 7.5, PART1 + 0.12, [234, 236, 230], 'SmoothPlastic');
+          B('Casing', a - 0.3, L, PART0 - 0.12, a, L + 7.5, PART1 + 0.12, C.woodDark, 'Wood');
+          B('Casing', b, L, PART0 - 0.12, b + 0.3, L + 7.5, PART1 + 0.12, C.woodDark, 'Wood');
+          B('Casing', a - 0.3, L + 7.2, PART0 - 0.12, b + 0.3, L + 7.5, PART1 + 0.12, C.woodDark, 'Wood');
           // 미닫이문: 앞문은 +X(교실 안쪽 벽 쪽)로, 뒷문은 -X로 열린다. 화장실 문은 늘 열어 둔다
           const ri = r.f * 8 + r.i * 2 + (r.wing === 'R' ? 1 : 0);
           slidingDoor(a, b, L, PART0, di === 0 ? 1 : -1, restroom || (ri + di) % 5 === 0, `Door_${r.name}_${di + 1}`);
@@ -2042,28 +2030,28 @@ grp('MainBuilding', () => {
           const idx = Math.round((x - BX0) / 15.3);
           const on = Math.abs(x) < 40 || idx % 2 === 0;
           const fl = rnd() < 0.22;
-          troffer(x, (CORR0 + PART0) / 2, L + CEIL, on, { w: 2.2, d: 2.2, tag: fl ? ['CorridorLight', 'FlickerLight'] : 'CorridorLight',
+          troffer(x, (CORR0 + PART0) / 2, L + CEIL, on, { w: 4, d: 1.2, tag: fl ? ['CorridorLight', 'FlickerLight'] : 'CorridorLight',
             light: { type: 'Surface', face: 'Bottom', range: 18, angle: 120, brightness: on ? 0.85 : 0, color: [214, 228, 255], enabled: on, shadows: true } });
         }
-        wainscot('x', BX0 + 0.8, BX1 - 0.8, CORR0, 1, L, [], CORR_PAINT);
+        wainscot('x', BX0 + 0.8, BX1 - 0.8, CORR0, 1, L);
         fr.forEach((r) => {
           const restroom = r.name === '화장실';
           const doorList = restroom ? [[r.xa + 1.2, r.xa + 5.4]] : [[r.xa + 1.5, r.xa + 5.7], [r.xb - 5.7, r.xb - 1.5]];
-          wainscot('x', r.xa - 0.3, r.xb + 0.3, PART0, -1, L, doorList, CORR_PAINT);
+          wainscot('x', r.xa - 0.3, r.xb + 0.3, PART0, -1, L, doorList);
           if (restroom) return;
+          const a = r.xa + 9.2, b = r.xb - 9.2;
+          B('HallLockers', a, L + 0.25, PART0 - 1.45, b, L + 6, PART0 - 0.02, [96, 112, 126], 'Metal');
+          B('LockerBase', a + 0.05, L, PART0 - 1.4, b - 0.05, L + 0.25, PART0 - 0.05, [50, 54, 58], 'Metal');
+          B('LockerTop', a - 0.05, L + 6, PART0 - 1.52, b + 0.05, L + 6.1, PART0, [120, 136, 150], 'Metal', { nc: true });
+          const cols = Math.max(1, Math.round((b - a) / 1.55)), cw = (b - a) / cols, rows = 3, rh = 5.75 / rows;
+          for (let c = 0; c < cols; c++) for (let rw = 0; rw < rows; rw++) {
+            const x0 = a + c * cw, y0 = L + 0.25 + rw * rh;
+            const col = jit([150, 168, 182], 6);
+            B('LockerDoor', x0 + 0.04, y0 + 0.04, PART0 - 1.5, x0 + cw - 0.04, y0 + rh - 0.04, PART0 - 1.45, col, 'Metal', { nc: true });
+            B('LockerVent', x0 + 0.35, y0 + rh - 0.6, PART0 - 1.515, x0 + cw - 0.35, y0 + rh - 0.32, PART0 - 1.5, [70, 80, 90], 'Metal', { nc: true, ns: true });
+            B('LockerPull', x0 + cw - 0.32, y0 + rh * 0.42, PART0 - 1.56, x0 + cw - 0.18, y0 + rh * 0.62, PART0 - 1.5, [60, 62, 66], 'Metal', { nc: true, ns: true });
+          }
         });
-        // 방 경계마다 복도를 가로지르는 보 + 교실 쪽 벽기둥 (갈색 모서리 몰딩)
-        const beamXs = [...new Set(fr.map((r) => Math.round((r.xb + WALL / 2) * 10) / 10))].filter((x) => x < BX1 - 2);
-        beamXs.forEach((x) => grp('CorridorBeam', () => {
-          B('Beam', x - 0.45, L + CEIL - 0.85, CORR0, x + 0.45, L + CEIL, PART0, [238, 238, 234], 'Plaster', { nc: true });
-          B('Pilaster', x - 0.45, L, PART0 - 0.45, x + 0.45, L + CEIL, PART0, [238, 238, 234], 'Plaster');
-          [-1, 1].forEach((sd) => {
-            B('BeamTrim', x + sd * 0.45 - 0.06, L + CEIL - 0.9, CORR0, x + sd * 0.45 + 0.06, L + CEIL - 0.85, PART0 - 0.45, [96, 66, 44], 'Wood', { nc: true, ns: true, min: 0.04 });
-            B('BeamTrim', x + sd * 0.45 - 0.06, L, PART0 - 0.51, x + sd * 0.45 + 0.06, L + CEIL - 0.85, PART0 - 0.45, [96, 66, 44], 'Wood', { nc: true, ns: true, min: 0.04 });
-          });
-          B('PilasterPaint', x - 0.46, L, PART0 - 0.47, x + 0.46, L + 3.9, PART0 - 0.44, CORR_PAINT.color, 'Plaster', { nc: true, ns: true, min: 0.02 });
-          B('PilasterBase', x - 0.47, L, PART0 - 0.5, x + 0.47, L + 0.45, PART0 - 0.44, CORR_PAINT.base, 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
-        }));
         // ── 북쪽 벽(창문 쪽): 창문과 창문 사이 벽(기둥)에만 물건을 붙인다 ──
         const piers = [];
         for (let i = 0; i < northHoles.length - 1; i++) piers.push([northHoles[i].u1, northHoles[i + 1].u0]);
