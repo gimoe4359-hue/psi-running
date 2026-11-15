@@ -238,7 +238,26 @@ function Builder.Build(parent, yield)
 		parts[a[1]]:SetAttribute(a[2], a[3])
 	end
 
+	-- 이상현상 소품은 ServerStorage에 보관 (이상현상이 일어날 때 복제해서 씀)
+	local props = root:FindFirstChild("AnomalyProps")
+	if props then
+		local ServerStorage = game:GetService("ServerStorage")
+		local old = ServerStorage:FindFirstChild("AnomalyProps")
+		if old then
+			old:Destroy()
+		end
+		props.Parent = ServerStorage
+	end
+
 	root.Parent = parent
+
+	-- 메시 에셋(SongcheonAssets)을 가져왔다면 나무·책걸상 등을 사실적인 메시로 바꾼다
+	local okLib, AssetLibrary = pcall(function()
+		return require(script.Parent:FindFirstChild("AssetLibrary"))
+	end)
+	if okLib and AssetLibrary then
+		pcall(AssetLibrary.Apply, root, yield)
+	end
 	return root
 end
 

@@ -589,3 +589,234 @@ setFlash(true)
 task.delay(6.5, function()
 	setRules(true)
 end)
+
+-- ═════════════════════════ CCTV ═════════════════════════
+-- 경비실 책상에서 "CCTV 보기" → 카메라 6대를 실제 화면으로 본다 (A/D 전환, E 나가기).
+-- 경비실 모니터 6개에도 각 카메라 화면이 실시간으로 나온다 (ViewportFrame).
+local CollectionService = game:GetService("CollectionService")
+local cams = {}
+for _, c in ipairs(CollectionService:GetTagged("CCTVCam")) do
+	table.insert(cams, c)
+end
+table.sort(cams, function(a, b)
+	return (a:GetAttribute("Cam") or 0) < (b:GetAttribute("Cam") or 0)
+end)
+local camByIndex = {}
+for _, c in ipairs(cams) do
+	camByIndex[c:GetAttribute("Cam")] = c
+end
+
+local function stamp()
+	local m = workspace:GetAttribute("ShiftMinutes") or 0
+	local total = Config.SHIFT_START_HOUR * 60 + m
+	local day = total >= 24 * 60 and 14 or 13
+	local h = math.floor(total / 60) % 24
+	local mm = math.floor(total % 60)
+	local ss = math.floor((m * 60) % 60)
+	return string.format("2026-11-%02d  %02d:%02d:%02d", day, h, mm, ss)
+end
+
+local cctvGui = make("Frame", { Name = "CCTV", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, ZIndex = 35 }, gui)
+for i = 0, 89 do
+	make("Frame", { Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, i / 90, 0), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.8, BorderSizePixel = 0, ZIndex = 36 }, cctvGui)
+end
+local cctvNoise = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(150, 155, 150), BackgroundTransparency = 0.95, BorderSizePixel = 0, ZIndex = 36 }, cctvGui)
+local cctvLabel = make("TextLabel", { Position = UDim2.new(0, 40, 0, 30), Size = UDim2.new(0, 520, 0, 40), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 30, TextColor3 = Color3.fromRGB(235, 242, 235), TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.5, Text = "", ZIndex = 37 }, cctvGui)
+local cctvRec = make("TextLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -40, 0, 30), Size = UDim2.new(0, 200, 0, 40), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 30, TextColor3 = Color3.fromRGB(255, 50, 50), TextXAlignment = Enum.TextXAlignment.Right, Text = "● REC", ZIndex = 37 }, cctvGui)
+local cctvTime = make("TextLabel", { Position = UDim2.new(0, 40, 1, -72), Size = UDim2.new(0, 620, 0, 36), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 26, TextColor3 = Color3.fromRGB(235, 242, 235), TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.5, Text = "", ZIndex = 37 }, cctvGui)
+make("TextLabel", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -40, 1, -36), Size = UDim2.new(0, 600, 0, 30), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 18, TextColor3 = Color3.fromRGB(200, 212, 200), TextXAlignment = Enum.TextXAlignment.Right, Text = "◀ A    D ▶   카메라 바꾸기        E  나가기", ZIndex = 37 }, cctvGui)
+local cctvExit = make("TextButton", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -40, 0, 80), Size = UDim2.new(0, 110, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.3, Font = Enum.Font.GothamBold, TextSize = 18, TextColor3 = Color3.new(1, 1, 1), Text = "나가기", Modal = true, ZIndex = 38 }, cctvGui)
+corner(cctvExit, 8)
+local cctvPrev = make("TextButton", { Position = UDim2.new(0, 36, 0.5, -32), Size = UDim2.new(0, 64, 0, 64), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.4, Font = Enum.Font.GothamBold, TextSize = 28, TextColor3 = Color3.new(1, 1, 1), Text = "◀", ZIndex = 38 }, cctvGui)
+corner(cctvPrev, 32)
+local cctvNext = make("TextButton", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -36, 0.5, -32), Size = UDim2.new(0, 64, 0, 64), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.4, Font = Enum.Font.GothamBold, TextSize = 28, TextColor3 = Color3.new(1, 1, 1), Text = "▶", ZIndex = 38 }, cctvGui)
+corner(cctvNext, 32)
+local cctvCC = make("ColorCorrectionEffect", { Name = "CCTVCC", Enabled = false, Saturation = -0.9, Contrast = 0.32, Brightness = 0.05, TintColor = Color3.fromRGB(214, 236, 218) }, Lighting)
+local cctvBlur = make("BlurEffect", { Name = "CCTVBlur", Enabled = false, Size = 2 }, Lighting)
+
+local cctvOn, cctvIndex, cctvT = false, 1, 0
+local cctvPrompt
+local function cctvSwitch(dir)
+	if #cams == 0 then
+		return
+	end
+	cctvIndex = (cctvIndex - 1 + dir) % #cams + 1
+	cctvNoise.BackgroundTransparency = 0.15
+	tween(cctvNoise, 0.4, { BackgroundTransparency = 0.95 })
+end
+local function setCCTV(on)
+	if on == cctvOn or #cams == 0 then
+		return
+	end
+	cctvOn = on
+	cctvGui.Visible = on
+	cctvCC.Enabled = on
+	cctvBlur.Enabled = on
+	hud.Visible = not on
+	vignette.Visible = not on
+	local hum = humanoid()
+	if on then
+		inFirstPerson = false
+		if hum then
+			hum.WalkSpeed = 0
+		end
+		flash.Enabled = false
+		camera.CameraType = Enum.CameraType.Scriptable
+		cctvSwitch(0)
+		if cctvPrompt then
+			cctvPrompt.Enabled = false
+		end
+	else
+		camera.CameraType = Enum.CameraType.Custom
+		if hum then
+			camera.CameraSubject = hum
+			hum.WalkSpeed = Config.WALK_SPEED
+		end
+		camera.FieldOfView = Config.FIELD_OF_VIEW
+		inFirstPerson = true
+		setFlash(flashWanted)
+		if cctvPrompt then
+			cctvPrompt.Enabled = true
+		end
+	end
+end
+cctvExit.MouseButton1Click:Connect(function()
+	setCCTV(false)
+end)
+cctvPrev.MouseButton1Click:Connect(function()
+	cctvSwitch(-1)
+end)
+cctvNext.MouseButton1Click:Connect(function()
+	cctvSwitch(1)
+end)
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not cctvOn then
+		return
+	end
+	local k = input.KeyCode
+	if k == Enum.KeyCode.A or k == Enum.KeyCode.Left then
+		cctvSwitch(-1)
+	elseif k == Enum.KeyCode.D or k == Enum.KeyCode.Right then
+		cctvSwitch(1)
+	elseif k == Enum.KeyCode.E or k == Enum.KeyCode.Q or k == Enum.KeyCode.Backspace then
+		setCCTV(false)
+	end
+end)
+RunService.RenderStepped:Connect(function(dt)
+	if not cctvOn then
+		return
+	end
+	cctvT = cctvT + dt
+	local c = cams[cctvIndex]
+	local pan = math.rad((c:GetAttribute("Pan") or 10) * math.sin(cctvT * 0.22))
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.FieldOfView = 72
+	camera.CFrame = c.CFrame * CFrame.Angles(0, pan, 0)
+	cctvLabel.Text = string.format("CAM %d   %s", c:GetAttribute("Cam") or cctvIndex, c:GetAttribute("Label") or "")
+	cctvTime.Text = stamp()
+	cctvRec.TextTransparency = (math.floor(cctvT * 1.4) % 2 == 0) and 0 or 1
+	local alert = workspace:GetAttribute("CCTVAlert")
+	if alert and alert == c:GetAttribute("Cam") and math.random() < 0.25 then
+		cctvNoise.BackgroundTransparency = 0.55 + math.random() * 0.35
+	elseif math.random() < 0.08 then
+		cctvNoise.BackgroundTransparency = 0.88 + math.random() * 0.07
+	end
+end)
+local rack = CollectionService:GetTagged("CCTVRack")[1]
+if rack then
+	cctvPrompt = make("ProximityPrompt", { ActionText = "CCTV 보기", ObjectText = "경비실 CCTV", HoldDuration = 0, MaxActivationDistance = 8, RequiresLineOfSight = false }, rack)
+	cctvPrompt.Triggered:Connect(function()
+		setCCTV(true)
+	end)
+end
+-- 죽거나 엔딩이 나면 CCTV 모드에서 빠져나오기
+player.CharacterAdded:Connect(function()
+	if cctvOn then
+		setCCTV(false)
+	end
+end)
+Ending.OnClientEvent:Connect(function()
+	if cctvOn then
+		setCCTV(false)
+	end
+end)
+
+-- 경비실 모니터 6개: 카메라가 보는 장면을 ViewportFrame으로 실시간 표시
+local feeds = {}
+task.spawn(function()
+	local all = {}
+	for i, p in ipairs(school:GetDescendants()) do
+		if p:IsA("BasePart") and p.Transparency < 0.9 and p.Size.Magnitude > 0.35 then
+			table.insert(all, p)
+		end
+		if i % 4000 == 0 then
+			task.wait()
+		end
+	end
+	for _, screen in ipairs(CollectionService:GetTagged("CCTVScreen")) do
+		local c = camByIndex[screen:GetAttribute("Cam")]
+		if c then
+			local sg = make("SurfaceGui", { Name = "CCTVFeed", Face = Enum.NormalId.Front, Adornee = screen, SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud, PixelsPerStud = 80, LightInfluence = 0, Brightness = 1.1, ResetOnSpawn = false, Enabled = false }, player:WaitForChild("PlayerGui"))
+			local vpf = make("ViewportFrame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), Ambient = Color3.fromRGB(105, 110, 105), LightColor = Color3.fromRGB(175, 180, 175), LightDirection = Vector3.new(-0.3, -1, 0.25), ImageColor3 = Color3.fromRGB(200, 222, 205) }, sg)
+			local vcam = make("Camera", { FieldOfView = 72, CFrame = c.CFrame }, vpf)
+			vpf.CurrentCamera = vcam
+			local list = {}
+			for _, p in ipairs(all) do
+				local rel = c.CFrame:PointToObjectSpace(p.Position)
+				local d = -rel.Z
+				local r = p.Size.Magnitude / 2
+				if d > -r and d < 95 and math.abs(rel.X) < d * 0.85 + r and math.abs(rel.Y) < d * 0.55 + r then
+					table.insert(list, { p, r / (math.max(d, 1) + 4) })
+				end
+			end
+			table.sort(list, function(a, b)
+				return a[2] > b[2]
+			end)
+			for i = 1, math.min(420, #list) do
+				local ok, cl = pcall(function()
+					return list[i][1]:Clone()
+				end)
+				if ok and cl then
+					for _, ch in ipairs(cl:GetChildren()) do
+						if not ch:IsA("DataModelMesh") then
+							ch:Destroy()
+						end
+					end
+					cl.Parent = vpf
+				end
+				if i % 150 == 0 then
+					task.wait()
+				end
+			end
+			local dyn = make("Folder", { Name = "Dynamic" }, vpf)
+			make("TextLabel", { Position = UDim2.new(0, 6, 0, 4), Size = UDim2.new(1, -12, 0.16, 0), BackgroundTransparency = 1, Font = Enum.Font.Code, TextScaled = true, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(235, 242, 235), Text = string.format("CAM%d %s", c:GetAttribute("Cam"), c:GetAttribute("Label") or ""), ZIndex = 2 }, sg)
+			local ts = make("TextLabel", { Position = UDim2.new(0, 6, 0.84, -4), Size = UDim2.new(1, -12, 0.14, 0), BackgroundTransparency = 1, Font = Enum.Font.Code, TextScaled = true, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(235, 242, 235), Text = "", ZIndex = 2 }, sg)
+			table.insert(feeds, { sg = sg, dyn = dyn, ts = ts, cam = c })
+		end
+	end
+	local booth = CollectionService:GetTagged("BoothZone")[1]
+	while true do
+		local ch = player.Character
+		local r = ch and ch:FindFirstChild("HumanoidRootPart")
+		local near = booth and r and (r.Position - booth.Position).Magnitude < 45
+		for _, f in ipairs(feeds) do
+			f.sg.Enabled = near and not cctvOn
+			if near then
+				f.dyn:ClearAllChildren()
+				for _, name in ipairs({ "AnomalyStudent", "CCTVGhost", "AnomalyChair" }) do
+					local m = workspace:FindFirstChild(name)
+					if m then
+						local ok, cl = pcall(function()
+							return m:Clone()
+						end)
+						if ok and cl then
+							cl.Parent = f.dyn
+						end
+					end
+				end
+				f.ts.Text = stamp()
+			end
+		end
+		task.wait(1)
+	end
+end)

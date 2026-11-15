@@ -355,6 +355,111 @@ for _, part in ipairs(tagged("FlickerLight")) do
 	end
 end
 
+-- ───────── 교실 미닫이문 ─────────
+-- 문짝(PrimaryPart "DoorLeaf")이 SlideX 만큼 옆으로 밀린다. "문 열기 / 문 닫기" 프롬프트.
+local doors = {}
+function api.slideDoor(door, wantOpen, seconds)
+	local state = doors[door]
+	if not state or state.busy then
+		return false
+	end
+	if wantOpen == nil then
+		wantOpen = not state.open
+	end
+	if wantOpen == state.open then
+		return false
+	end
+	state.busy = true
+	state.open = wantOpen
+	state.prompt.ActionText = wantOpen and "문 닫기" or "문 열기"
+	local v = Instance.new("CFrameValue")
+	v.Value = door:GetPivot()
+	v.Changed:Connect(function(cf)
+		door:PivotTo(cf)
+	end)
+	local tw = TweenService:Create(v, TweenInfo.new(seconds or 0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Value = wantOpen and state.opened or state.closed,
+	})
+	tw:Play()
+	playSound("DoorSlide", door.PrimaryPart)
+	tw.Completed:Connect(function()
+		v:Destroy()
+		state.busy = false
+	end)
+	return true
+end
+function api.doorsNear(pos, radius)
+	local list = {}
+	for door in pairs(doors) do
+		if door.Parent and (door:GetPivot().Position - pos).Magnitude < radius then
+			table.insert(list, door)
+		end
+	end
+	return list
+end
+local function setupDoor(door)
+	local leaf = door:IsA("Model") and door.PrimaryPart
+	if not leaf or doors[door] then
+		return
+	end
+	local offset = Vector3.new(leaf:GetAttribute("SlideX") or 3.5, 0, 0)
+	local state = { open = leaf:GetAttribute("Open") == true, busy = false }
+	local pivot = door:GetPivot()
+	state.closed = state.open and (pivot - offset) or pivot
+	state.opened = state.closed + offset
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = state.open and "문 닫기" or "문 열기"
+	prompt.ObjectText = "미닫이문"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 7
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = leaf
+	state.prompt = prompt
+	doors[door] = state
+	prompt.Triggered:Connect(function()
+		api.slideDoor(door)
+	end)
+end
+for _, door in ipairs(tagged("SlidingDoor")) do
+	setupDoor(door)
+end
+CollectionService:GetInstanceAddedSignal("SlidingDoor"):Connect(setupDoor)
+
+-- ───────── 교실 전등 스위치 ─────────
+-- 앞문 옆 스위치로 그 방의 형광등(Tube)과 조명을 켜고 끈다.
+function api.setRoomLights(room, on)
+	for _, d in ipairs(room:GetDescendants()) do
+		if d:IsA("BasePart") and d.Name == "Tube" then
+			d.Material = on and Enum.Material.Neon or Enum.Material.SmoothPlastic
+			d.Color = on and Color3.fromRGB(246, 248, 255) or Color3.fromRGB(222, 224, 222)
+		elseif d:IsA("Light") and d.Parent and (d.Parent.Name == "LampBody" or d.Parent.Name == "BoardLampBody" or d.Parent.Name == "LampFill") then
+			-- 아래로 비추는 SurfaceLight + 천장·벽을 밝히는 약한 PointLight
+			d.Enabled = on
+			d.Brightness = on and (d:IsA("PointLight") and 0.5 or 1.2) or 0
+		end
+	end
+	room:SetAttribute("LightsOn", on)
+end
+for _, plate in ipairs(tagged("RoomSwitch")) do
+	local room = plate.Parent
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "불 켜기"
+	prompt.ObjectText = "전등 스위치"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 6
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = plate
+	prompt.Triggered:Connect(function()
+		local on = not room:GetAttribute("LightsOn")
+		api.setRoomLights(room, on)
+		prompt.ActionText = on and "불 끄기" or "불 켜기"
+		playSound("Switch", plate)
+	end)
+	room:GetAttributeChangedSignal("LightsOn"):Connect(function()
+		prompt.ActionText = room:GetAttribute("LightsOn") and "불 끄기" or "불 켜기"
+	end)
+end
+
 -- ───────── 순찰함 ─────────
 for _, box in ipairs(tagged("PatrolPoint")) do
 	local floor = box:GetAttribute("Floor")

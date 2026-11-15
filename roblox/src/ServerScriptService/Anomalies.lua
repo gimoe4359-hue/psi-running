@@ -53,29 +53,87 @@ local function block(parent, name, size, cf, color, mat)
 	return p
 end
 
--- 얼굴을 긴 머리로 가린 학생. baseCF = 발밑, LookVector = 바라보는 쪽
-local function makeStudent(baseCF)
-	local m = Instance.new("Model")
-	m.Name = "AnomalyStudent"
-	local uni = Color3.fromRGB(26, 29, 38)
-	local skirt = Color3.fromRGB(58, 26, 30)
-	local pale = Color3.fromRGB(190, 184, 176)
-	local hair = Color3.fromRGB(6, 6, 6)
-	local function at(x, y, z)
-		return baseCF * CFrame.new(x, y, z)
+-- 얼굴을 긴 머리로 가린 여학생 (교복). baseCF = 발밑, LookVector = 바라보는 쪽
+-- SongcheonAssets(메시)를 가져왔으면 사람처럼 매끈한 메시 모델을 쓰고, 없으면 파트로 만든다.
+local function cylinderBetween(parent, name, a, b, d, color, mat)
+	local dir = b - a
+	local p = block(parent, name, Vector3.new(dir.Magnitude, d, d), CFrame.lookAt((a + b) / 2, b) * CFrame.Angles(0, math.rad(90), 0), color, mat)
+	p.Shape = Enum.PartType.Cylinder
+	return p
+end
+local function makeGhost(baseCF, name)
+	local okLib, AssetLibrary = pcall(require, script.Parent:WaitForChild("AssetLibrary", 2))
+	if okLib and AssetLibrary then
+		local m = AssetLibrary.CloneTemplate("Ghost")
+		if m then
+			m.Name = name or "AnomalyStudent"
+			m:PivotTo(baseCF)
+			for _, p in ipairs(m:GetDescendants()) do
+				if p:IsA("BasePart") then
+					p.Anchored = true
+					p.CanCollide = false
+				end
+			end
+			return m
+		end
 	end
-	local torso = block(m, "Torso", Vector3.new(2, 2, 1), at(0, 3, 0), uni, Enum.Material.Fabric)
-	block(m, "Collar", Vector3.new(0.5, 0.9, 0.05), at(0, 3.5, -0.53), Color3.fromRGB(215, 215, 208))
-	block(m, "Skirt", Vector3.new(2.1, 0.9, 1.1), at(0, 1.75, 0), skirt, Enum.Material.Fabric)
-	block(m, "LeftLeg", Vector3.new(0.8, 1.4, 0.8), at(-0.5, 0.7, 0), pale)
-	block(m, "RightLeg", Vector3.new(0.8, 1.4, 0.8), at(0.5, 0.7, 0), pale)
-	block(m, "LeftArm", Vector3.new(1, 2, 1), at(-1.5, 3, 0), uni, Enum.Material.Fabric)
-	block(m, "RightArm", Vector3.new(1, 2, 1), at(1.5, 3, 0), uni, Enum.Material.Fabric)
-	block(m, "Head", Vector3.new(1.2, 1.2, 1.2), at(0, 4.6, 0), pale)
-	block(m, "HairFront", Vector3.new(1.35, 2.6, 0.25), at(0, 4.0, -0.68), hair, Enum.Material.Fabric)
-	block(m, "HairTop", Vector3.new(1.35, 0.5, 1.35), at(0, 5.3, 0), hair, Enum.Material.Fabric)
-	block(m, "HairBack", Vector3.new(1.35, 2.6, 1.1), at(0, 4.0, 0.15), hair, Enum.Material.Fabric)
-	m.PrimaryPart = torso
+	local m = Instance.new("Model")
+	m.Name = name or "AnomalyStudent"
+	local skin = Color3.fromRGB(214, 200, 190)
+	local blouse = Color3.fromRGB(226, 226, 220)
+	local navy = Color3.fromRGB(26, 30, 44)
+	local hair = Color3.fromRGB(8, 7, 7)
+	local function at(x, y, z)
+		return (baseCF * CFrame.new(x, y, z)).Position
+	end
+	local root = block(m, "Root", Vector3.new(0.4, 0.2, 0.4), baseCF * CFrame.new(0, 0.1, 0), skin)
+	root.Transparency = 1
+	-- 다리 (흰 니삭스 + 검은 구두)
+	for _, s in ipairs({ -1, 1 }) do
+		local x = 0.2 * s
+		block(m, "Shoe", Vector3.new(0.34, 0.22, 0.62), baseCF * CFrame.new(x, 0.11, -0.08), Color3.fromRGB(14, 14, 16), Enum.Material.SmoothPlastic)
+		cylinderBetween(m, "Sock", at(x, 0.2, 0), at(x, 1.45, 0.02), 0.27, Color3.fromRGB(232, 232, 228), Enum.Material.Fabric)
+		cylinderBetween(m, "Knee", at(x, 1.42, 0.02), at(x, 2.6, 0.0), 0.3, skin, Enum.Material.SmoothPlastic)
+	end
+	-- 주름치마: 판 12장을 원뿔처럼
+	for i = 0, 11 do
+		local a = i / 12 * math.pi * 2
+		local cf = baseCF * CFrame.new(0, 3.05, 0) * CFrame.Angles(0, a, 0) * CFrame.new(0, 0, -0.5) * CFrame.Angles(math.rad(-9), 0, 0)
+		block(m, "Skirt", Vector3.new(0.3, 1.05, 0.05), cf, navy, Enum.Material.Fabric)
+	end
+	-- 몸통: 블라우스 + 조끼
+	cylinderBetween(m, "Blouse", at(0, 3.45, 0), at(0, 4.62, 0), 0.86, blouse, Enum.Material.Fabric)
+	cylinderBetween(m, "Vest", at(0, 3.5, 0), at(0, 4.35, 0), 0.9, navy, Enum.Material.Fabric)
+	block(m, "Ribbon", Vector3.new(0.22, 0.2, 0.06), baseCF * CFrame.new(0, 4.45, -0.46), Color3.fromRGB(120, 16, 22), Enum.Material.Fabric)
+	-- 팔 (힘없이 늘어뜨림)
+	for _, s in ipairs({ -1, 1 }) do
+		local sh = at(0.5 * s, 4.5, 0)
+		local el = at(0.62 * s, 3.65, 0.04)
+		local wr = at(0.66 * s, 2.85, 0.08)
+		local shBall = block(m, "Shoulder", Vector3.new(0.34, 0.34, 0.34), CFrame.new(sh), blouse, Enum.Material.Fabric)
+		shBall.Shape = Enum.PartType.Ball
+		cylinderBetween(m, "Sleeve", sh, el, 0.26, blouse, Enum.Material.Fabric)
+		cylinderBetween(m, "Forearm", el, wr, 0.2, skin, Enum.Material.SmoothPlastic)
+		block(m, "Hand", Vector3.new(0.12, 0.42, 0.22), CFrame.new(at(0.67 * s, 2.62, 0.09)), skin, Enum.Material.SmoothPlastic)
+	end
+	-- 목, 머리 (고개를 숙임)
+	cylinderBetween(m, "Neck", at(0, 4.6, 0.02), at(0, 4.92, -0.04), 0.24, skin, Enum.Material.SmoothPlastic)
+	local headCF = baseCF * CFrame.new(0, 5.2, -0.06) * CFrame.Angles(math.rad(-16), 0, math.rad(6))
+	local head = block(m, "Head", Vector3.new(0.72, 0.72, 0.72), headCF, skin, Enum.Material.SmoothPlastic)
+	head.Shape = Enum.PartType.Ball
+	local cap = block(m, "HairCap", Vector3.new(0.8, 0.8, 0.8), headCF * CFrame.new(0, 0.06, 0.04), hair, Enum.Material.SmoothPlastic)
+	cap.Shape = Enum.PartType.Ball
+	-- 긴 생머리: 가닥 60개가 얼굴과 등을 덮음
+	local rng = Random.new(13)
+	for i = 1, 60 do
+		local a = rng:NextNumber(0, math.pi * 2)
+		local front = math.cos(a) < 0
+		local len = front and rng:NextNumber(1.7, 2.3) or rng:NextNumber(1.9, 2.6)
+		local top = headCF * CFrame.new(math.sin(a) * 0.36, 0.16, math.cos(a) * 0.36)
+		local cf = CFrame.new(top.Position) * CFrame.Angles(0, -a, 0) * CFrame.Angles(math.rad(rng:NextNumber(-6, 6)) + (front and math.rad(-4) or 0), 0, 0) * CFrame.new(0, -len / 2, front and -0.06 or 0.06)
+		block(m, "Hair", Vector3.new(rng:NextNumber(0.08, 0.16), len, 0.035), cf, hair, Enum.Material.SmoothPlastic)
+	end
+	m.PrimaryPart = root
 	return m
 end
 
@@ -304,7 +362,7 @@ def("Student", 0, 45, function(st)
 	local spot = pick(tagged("FigureSpot"))
 	local pos = Vector3.new(spot.Position.X, spot.Position.Y - 0.05, spot.Position.Z)
 	local look = Vector3.new(pos.X > 0 and -1 or 1, 0, 0)
-	st.model = makeStudent(CFrame.lookAt(pos, pos + look))
+	st.model = makeGhost(CFrame.lookAt(pos, pos + look))
 	st.model.Parent = workspace
 	api.playSound("Whisper", st.model.PrimaryPart)
 	local prompt = Instance.new("ProximityPrompt")
@@ -466,22 +524,79 @@ end, function(st)
 	end
 end)
 
--- 9. 칠판 글씨
-def("Blackboard", 1, 45, function(st)
-	st.saved = {}
-	local line = pick({ "뒤를 보지 마", "아직 안 갔어", Config.HERO_NAME .. " 선생님 안녕하세요", "4층으로 와", "다 같이 기다리는 중" })
-	for _, b in ipairs(tagged("Blackboard")) do
-		local label = labelOf(b)
-		if label then
-			st.saved[label] = { label.Text, label.TextColor3 }
-			label.Text = line
-			label.TextColor3 = Color3.fromRGB(255, 225, 225)
+-- 9. 칠판에 저절로 써지는 분필 글씨 "뒤를 돌아보지 마" (플레이어와 가까운 교실)
+local ServerStorage = game:GetService("ServerStorage")
+local function placeProp(name, targetPos)
+	local folder = ServerStorage:FindFirstChild("AnomalyProps")
+	local tpl = folder and folder:FindFirstChild(name, true)
+	if not tpl or not tpl.PrimaryPart then
+		return nil
+	end
+	local m = tpl:Clone()
+	m:PivotTo(CFrame.new(targetPos))
+	m.Parent = workspace
+	return m
+end
+local function nearestTagged(tag, filter)
+	local best, bestD = nil, math.huge
+	for _, part in ipairs(tagged(tag)) do
+		if not filter or filter(part) then
+			local _, d = nearestPlayer(part.Position, 1e6)
+			if d and d < bestD then
+				best, bestD = part, d
+			end
 		end
 	end
+	return best
+end
+def("Blackboard", 1, 50, function(st)
+	local board = nearestTagged("Blackboard", function(b)
+		return b.Parent and CollectionService:HasTag(b.Parent, "Classroom")
+	end) or pick(tagged("Blackboard"))
+	st.board = board
+	local m = placeProp("BoardWarning", board.Position + Vector3.new(board.Size.X / 2, 0, 0))
+	if not m then
+		return
+	end
+	st.model = m
+	local strokes = {}
+	for _, c in ipairs(m:GetChildren()) do
+		if c:IsA("BasePart") and c.Name ~= "PropAnchor" then
+			table.insert(strokes, { c, c.Transparency, c:GetAttribute("Seq") or 0 })
+			c.Transparency = 1
+		end
+	end
+	table.sort(strokes, function(x, y)
+		return x[3] < y[3]
+	end)
+	-- 원래 칠판 글씨는 지워진다
+	st.chalk = {}
+	local chalk = board.Parent:FindFirstChild("Chalk")
+	if chalk then
+		for _, p in ipairs(chalk:GetDescendants()) do
+			if p:IsA("BasePart") then
+				st.chalk[p] = p.Transparency
+				p.Transparency = 1
+			end
+		end
+	end
+	api.sayNear(board.Position, 45, "끼이익… 어디선가 분필 긁히는 소리가 난다.", 3.5)
+	api.playSound("Chalk", board)
+	task.spawn(function()
+		for _, s in ipairs(strokes) do
+			if st.stopped then
+				return
+			end
+			s[1].Transparency = s[2]
+			task.wait(0.05)
+		end
+	end)
 end, function(st)
-	for label, s in pairs(st.saved) do
-		label.Text = s[1]
-		label.TextColor3 = s[2]
+	if st.model then
+		st.model:Destroy()
+	end
+	for p, t in pairs(st.chalk or {}) do
+		p.Transparency = t
 	end
 end)
 
@@ -562,52 +677,63 @@ def("Knock", 3, 30, function(st)
 	end)
 end)
 
--- 13. CCTV 화면
-def("CCTV", 0, 25, function(st)
-	st.saved = {}
-	local screens = tagged("CCTVScreen")
-	for _, s in ipairs(screens) do
-		st.saved[s] = s.Color
+-- 13. CCTV 4번 화면 (2층 복도, 카메라 앞에 여학생이 서서 카메라를 올려다본다)
+def("CCTV", 0, 35, function(st)
+	local cam
+	for _, c in ipairs(tagged("CCTVCam")) do
+		if c:GetAttribute("Cam") == 4 then
+			cam = c
+		end
 	end
-	api.sayNear(first("BoothZone").Position, 40, "CCTV 화면이 하나씩 빨갛게 변한다.", 3, "red")
+	if not cam then
+		return
+	end
+	-- 카메라 화면(세로 시야 72°) 안에 발끝까지 보이도록 카메라 앞 17 stud 복도에 세운다
+	local look = cam.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z).Unit
+	local spot = cam.Position + flat * 17
+	local floorY = cam:GetAttribute("FloorY") or (cam.Position.Y - 9)
+	local pos = Vector3.new(spot.X, floorY, spot.Z)
+	local face = Vector3.new(cam.Position.X, floorY, cam.Position.Z)
+	st.model = makeGhost(CFrame.lookAt(pos, face), "CCTVGhost")
+	st.model.Parent = workspace
+	workspace:SetAttribute("CCTVAlert", 4)
+	api.sayNear(first("BoothZone").Position, 40, "CCTV 4번 화면이 지지직거린다.", 3, "red")
 	task.spawn(function()
-		for _, s in ipairs(screens) do
-			if st.stopped then
-				return
+		while not st.stopped do
+			local p = nearestPlayer(pos, 10)
+			if p then
+				api.Effect:FireClient(p, "static")
+				Anomalies.Stop("CCTV")
+				break
 			end
-			s.Color = Color3.fromRGB(150, 20, 20)
-			task.wait(0.8)
+			task.wait(0.2)
 		end
-		for _, s in ipairs(screens) do
-			if s:GetAttribute("Cam") == 4 then
-				s.Color = Color3.fromRGB(230, 230, 230)
-			end
-		end
-		api.sayNear(first("BoothZone").Position, 40, "4번 화면에… 누군가 카메라를 올려다보며 서 있다.", 4, "red")
 	end)
 end, function(st)
-	for s, c in pairs(st.saved) do
-		s.Color = c
+	workspace:SetAttribute("CCTVAlert", 0)
+	if st.model then
+		st.model:Destroy()
 	end
 end)
 
--- 14. 화장실 세 번째 칸 노크
-def("Restroom", 1, 35, function(st)
-	local doors = tagged("StallDoor3")
-	local door = pick(doors)
-	st.door = door
-	st.color = door.Color
-	local label = labelOf(door)
-	st.label = label
-	st.text = label and label.Text
-	if label then
-		label.Text = "똑 똑"
+-- 14. 화장실 세 번째 칸: 노크 소리, 거울에 피로 쓴 "열어줘", 문에 손자국 (플레이어와 가까운 층)
+def("Restroom", 1, 45, function(st)
+	local mirror = nearestTagged("RestroomMirror") or pick(tagged("RestroomMirror"))
+	local door
+	for _, d in ipairs(tagged("StallDoor3")) do
+		if math.abs(d.Position.Y - mirror.Position.Y) < 6 then
+			door = d
+		end
 	end
+	door = door or pick(tagged("StallDoor3"))
+	st.door = door
+	st.model = placeProp("RestroomBlood", mirror.Position + Vector3.new(mirror.Size.X / 2, 0, 0))
 	task.spawn(function()
-		local lines = { "똑, 똑.", "…거기 누구 있어요?", "똑, 똑, 똑.", "\"휴지 좀 주실래요?\"" }
+		local lines = { "똑, 똑.", "…거기 누구 있어요?", "똑, 똑, 똑.", "\"…열어줘.\"" }
 		local i = 1
 		while not st.stopped do
-			api.sayNear(door.Position, 30, "(화장실 세 번째 칸) " .. lines[i], 3.5, i == 4 and "red" or "white")
+			api.sayNear(door.Position, 32, "(화장실 세 번째 칸) " .. lines[i], 3.5, i == 4 and "red" or "white")
 			api.playSound("Knock", door)
 			i = i % #lines + 1
 			task.wait(5)
@@ -626,15 +752,102 @@ def("Restroom", 1, 35, function(st)
 			return
 		end
 		api.Effect:FireClient(player, "jumpscare")
-		api.addSanity(player, -25, "…안에는 아무도 없었다. 바닥이 젖어 있다.")
+		api.addSanity(player, -25, "…안에는 아무도 없었다. 변기 안이 새빨갛다.")
 		Anomalies.Stop("Restroom")
 	end)
 end, function(st)
 	if st.prompt then
 		st.prompt:Destroy()
 	end
-	if st.label and st.text then
-		st.label.Text = st.text
+	if st.model then
+		st.model:Destroy()
+	end
+end)
+
+-- 15. 현관 거울에 피로 쓴 "너도 남아"
+def("Mirror", 2, 50, function(st)
+	local mirror = first("HallMirror")
+	if not mirror then
+		return
+	end
+	st.model = placeProp("HallMirrorBlood", mirror.Position + Vector3.new(mirror.Size.X / 2, 0, 0))
+	st.told = {}
+	task.spawn(function()
+		while not st.stopped do
+			for _, p in ipairs(api.activePlayers()) do
+				local r = api.rootOf(p)
+				if r and not st.told[p] and (r.Position - mirror.Position).Magnitude < 24 then
+					st.told[p] = true
+					api.say(p, "현관 거울에… 피로 쓴 글씨가 있다. 아까는 없었는데.", 4, "red")
+				end
+			end
+			task.wait(0.3)
+		end
+	end)
+end, function(st)
+	if st.model then
+		st.model:Destroy()
+	end
+end)
+
+-- 16. 교실 미닫이문이 저절로 열렸다 닫혔다 (드르륵— 탕!)
+def("Door", 0, 20, function(st)
+	local players = api.activePlayers()
+	if #players == 0 or not api.slideDoor then
+		return
+	end
+	local p = pick(players)
+	local r = api.rootOf(p)
+	local list = r and api.doorsNear(r.Position, 45) or {}
+	if #list == 0 then
+		return
+	end
+	local door = pick(list)
+	local pos = door:GetPivot().Position
+	api.sayNear(pos, 50, "드르륵— 탕! 아무도 없는 교실 문이 저절로 움직였다.", 3.5)
+	for _, q in ipairs(api.activePlayers()) do
+		local rq = api.rootOf(q)
+		if rq and (rq.Position - pos).Magnitude < 30 then
+			api.addSanity(q, -3)
+		end
+	end
+	task.spawn(function()
+		for _ = 1, 3 do
+			if st.stopped then
+				break
+			end
+			api.slideDoor(door, nil, 0.22)
+			task.wait(0.8 + math.random() * 1.4)
+		end
+	end)
+end)
+
+-- 17. 아무도 없는 교실에 불이 켜진다 (밖에서도 보인다)
+def("ClassLights", 1, 40, function(st)
+	local rooms = tagged("Classroom")
+	if #rooms == 0 or not api.setRoomLights then
+		return
+	end
+	local room = pick(rooms)
+	st.room = room
+	st.was = room:GetAttribute("LightsOn") == true
+	api.setRoomLights(room, true)
+	api.sayAll(string.format("%s학년 %s반 교실에 불이 켜졌다… 아무도 없을 텐데.", room.Name:sub(1, 1), room.Name:sub(3, 3)), 4)
+	task.spawn(function()
+		task.wait(30)
+		for _ = 1, 4 do
+			if st.stopped then
+				return
+			end
+			api.setRoomLights(room, false)
+			task.wait(0.08 + math.random() * 0.15)
+			api.setRoomLights(room, true)
+			task.wait(0.1 + math.random() * 0.4)
+		end
+	end)
+end, function(st)
+	if st.room then
+		api.setRoomLights(st.room, st.was)
 	end
 end)
 

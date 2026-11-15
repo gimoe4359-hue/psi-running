@@ -1,5 +1,6 @@
 -- 경비원 공유 스킨 (무료)
--- 모든 플레이어를 남색 경비복 + 경비 모자 + 손전등 차림의 "경비원 공유"로 바꿉니다.
+-- 게임에 들어온 플레이어(= 주인공 공유)를 남색 경비복 + 경비 모자 + 이름표 + 손전등 차림의 "경비원 공유"로 바꿉니다.
+-- 따로 서 있는 공유 NPC는 없습니다. 플레이어 자신이 공유입니다.
 -- 옷 이미지는 roblox/clothes/*.png 를 Studio에서 무료 업로드한 뒤 Config에 ID를 넣으면 적용됩니다.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,6 +48,19 @@ local function applyDescription(humanoid)
 	desc.Shirt = 0
 	desc.Pants = 0
 	desc.GraphicTShirt = 0
+	-- 몸은 기본 R15 몸으로 (특수 번들·애니메이션 얼굴이면 경비복이 어긋나므로). 플레이어 = 공유
+	desc.Head = 0
+	desc.Torso = 0
+	desc.LeftArm = 0
+	desc.RightArm = 0
+	desc.LeftLeg = 0
+	desc.RightLeg = 0
+	desc.HeightScale = 1
+	desc.WidthScale = 1
+	desc.DepthScale = 1
+	desc.HeadScale = 1
+	desc.BodyTypeScale = 0
+	desc.ProportionScale = 0
 	pcall(function()
 		desc:SetAccessories({}, true) -- 모자·가방 등 전부 벗기기
 	end)
@@ -135,6 +149,32 @@ function GuardOutfit.Apply(player, character)
 	weldPart(outfit, head, "CapBand", Vector3.new(hs.Y * 0.14, crownD * 0.94, crownD * 0.94), CFrame.new(0, hs.Y * 0.42, 0) * CFrame.Angles(0, 0, math.rad(90)), BLACK, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.95, 0.08, hs.Z * 0.5), CFrame.new(0, hs.Y * 0.4, -hs.Z * 0.66) * CFrame.Angles(math.rad(-12), 0, 0), BLACK, Enum.Material.SmoothPlastic)
 	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.24, hs.Y * 0.24, 0.06), CFrame.new(0, hs.Y * 0.66, -crownD * 0.5), GOLD, Enum.Material.Metal)
+
+	-- 가슴 이름표 "공유" + 왼팔 경비 표지
+	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+	if torso then
+		local ts = torso.Size
+		local tag = weldPart(outfit, torso, "NameTag", Vector3.new(ts.X * 0.3, ts.Y * 0.12, 0.05), CFrame.new(ts.X * 0.24, ts.Y * 0.22, -ts.Z / 2 - 0.03), Color3.fromRGB(240, 240, 236), Enum.Material.SmoothPlastic)
+		local gui = Instance.new("SurfaceGui")
+		gui.Face = Enum.NormalId.Front
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 120
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.Text = Config.HERO_NAME
+		label.TextScaled = true
+		label.Font = Enum.Font.GothamBold
+		label.TextColor3 = Color3.fromRGB(20, 24, 40)
+		label.Parent = gui
+		gui.Parent = tag
+		weldPart(outfit, torso, "ChestBadge", Vector3.new(ts.X * 0.16, ts.Y * 0.16, 0.05), CFrame.new(-ts.X * 0.24, ts.Y * 0.22, -ts.Z / 2 - 0.03), GOLD, Enum.Material.Metal)
+	end
+	local arm = character:FindFirstChild("LeftUpperArm") or character:FindFirstChild("Left Arm")
+	if arm then
+		local as = arm.Size
+		weldPart(outfit, arm, "ArmPatch", Vector3.new(as.X * 1.04, as.Y * (arm.Name == "Left Arm" and 0.14 or 0.3), as.Z * 1.04), CFrame.new(0, as.Y * (arm.Name == "Left Arm" and 0.3 or 0.1), 0), Color3.fromRGB(214, 176, 60), Enum.Material.Fabric)
+	end
 
 	-- 손전등 (오른손에 들고 있음. 빛은 각자 화면에서 켜짐 → Client 스크립트)
 	local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")

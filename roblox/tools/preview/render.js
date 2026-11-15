@@ -81,7 +81,16 @@ const TEXDEF = {
     for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { const v = 238 + rr() * 17; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x * s / 4 + 2, y * s / 4 + 2, s / 4 - 4, s / 4 - 4); }
   }],
   Marble: [10, 1, (g, s) => { g.fillStyle = '#f2f2f2'; g.fillRect(0, 0, s, s); noise(g, s, 7000, 195, 255, 3); g.fillStyle = 'rgba(0,0,0,0.2)'; for (let i = 0; i < 4; i++) { g.fillRect(0, i * s / 4, s, 1); g.fillRect(i * s / 4, 0, 1, s); } }],
-  Granite: [6, 2, (g, s) => { g.fillStyle = '#e4e4e4'; g.fillRect(0, 0, s, s); noise(g, s, 14000, 130, 255, 2); }],
+  Granite: [5, 0.8, (g, s) => {
+    // 인조석(테라조): 밝은 바탕에 크고 작은 돌 조각
+    g.fillStyle = '#e6e4de'; g.fillRect(0, 0, s, s);
+    noise(g, s, 9000, 205, 250, 1);
+    for (let i = 0; i < 1400; i++) {
+      const v = rr() < 0.5 ? 130 + rr() * 60 : 235 + rr() * 20;
+      g.fillStyle = `rgb(${v},${v * (0.97 + rr() * 0.06)},${v * (0.92 + rr() * 0.06)})`;
+      g.beginPath(); g.ellipse(rr() * s, rr() * s, 0.8 + rr() * 2.4, 0.6 + rr() * 1.8, rr() * 3, 0, 7); g.fill();
+    }
+  }],
   Fabric: [3, 1.5, (g, s) => { g.fillStyle = '#eee'; g.fillRect(0, 0, s, s); g.fillStyle = 'rgba(0,0,0,0.09)'; for (let i = 0; i < s; i += 3) { g.fillRect(0, i, s, 1); g.fillRect(i, 0, 1, s); } }],
   Carpet: [3, 2, (g, s) => { g.fillStyle = '#ddd'; g.fillRect(0, 0, s, s); noise(g, s, 20000, 170, 255, 1); }],
   Leather: [3, 1.5, (g, s) => { g.fillStyle = '#e8e8e8'; g.fillRect(0, 0, s, s); noise(g, s, 5000, 200, 255, 3); }],
@@ -104,7 +113,7 @@ for (const k in TEXDEF) {
   nm.wrapS = nm.wrapT = THREE.RepeatWrapping; nm.anisotropy = 8;
   TEX[k] = { map, nm, scale };
 }
-const ROUGH = { SmoothPlastic: 0.42, Plastic: 0.6, Metal: 0.38, Glass: 0.04, Foil: 0.15, DiamondPlate: 0.35, Marble: 0.25, CeramicTiles: 0.22, Leather: 0.55, Rubber: 0.9 };
+const ROUGH = { SmoothPlastic: 0.42, Plastic: 0.6, Metal: 0.38, Glass: 0.04, Foil: 0.15, DiamondPlate: 0.35, Marble: 0.25, CeramicTiles: 0.22, Leather: 0.55, Rubber: 0.9, Granite: 0.35 };
 const METAL = { Metal: 0.6, Foil: 0.85, DiamondPlate: 0.65 };
 
 // ───────── 지오메트리 ─────────
@@ -185,28 +194,105 @@ const P = data.parts.map((a) => ({
 const groupPath = data.groups;
 const tagsOf = {};
 data.tags.forEach(([i, t]) => (tagsOf[t] = tagsOf[t] || []).push(i));
+const attrOf = {};
+data.attrs.forEach(([i, k, v]) => ((attrOf[i] = attrOf[i] || {})[k] = v));
+
+// ───────── 메시 팩 (?pack=1): Studio에서 assets/SongcheonAssets.glb 를 가져온 뒤의 모습 ─────────
+// AssetLibrary.Apply 와 같은 규칙: SwapAnchor 가 있는 묶음의 파트는 숨기고(남기는 파트는 투명 충돌용), 그 자리에 템플릿 메시를 놓는다.
+const PACK = new URLSearchParams(location.search).get('pack') === '1';
+let packMeta = null;
+const packGeo = {};
+const swapped = new Set();
+if (PACK) {
+  const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+  packMeta = await (await fetch('/assets_meta.json')).json();
+  const gltf = await new GLTFLoader().loadAsync('/SongcheonAssets.glb');
+  gltf.scene.traverse((o) => { if (o.isMesh) packGeo[o.name] = o.geometry; });
+  (tagsOf.SwapAnchor || []).forEach((i) => { const t = (attrOf[i] || {}).Template; if (t && packMeta[t]) swapped.add(data.parts[i][0]); });
+}
 
 const MOVABLE = ['School/IntroCar', 'School/Gate/MainGate'];
 const ORIGIN = { 'School/IntroCar': [40.5, 0, 162], 'School/Gate/MainGate': [0, 0, 0] };
 const movableOf = (gi) => MOVABLE.find((m) => groupPath[gi] === m || groupPath[gi].startsWith(m + '/'));
 const movRoots = {};
 MOVABLE.forEach((m) => { const o = new THREE.Group(); scene.add(o); movRoots[m] = o; });
+// 켜고 끄는 묶음: 이상현상 소품(기본 숨김, Roblox에선 ServerStorage에 있다가 이상현상 때만 나옴), 교실 칠판 글씨(기본 보임)
+const TOGGLES = {};
+const isPropKey = (k) => k.startsWith('School/AnomalyProps/');
+const toggleOf = (gi) => {
+  const g = groupPath[gi];
+  if (isPropKey(g)) return g.split('/').slice(0, 3).join('/');
+  const m = g.match(/^(School\/MainBuilding\/F\d\/[^/]+\/Chalk)(\/|$)/);
+  return m ? m[1] : null;
+};
+const toggleRoot = (key) => {
+  if (!TOGGLES[key]) { const o = new THREE.Group(); o.visible = !isPropKey(key); scene.add(o); TOGGLES[key] = o; }
+  return TOGGLES[key];
+};
+const rootFor = (gi) => { const mv = movableOf(gi); if (mv) return movRoots[mv]; const tg = toggleOf(gi); return tg ? toggleRoot(tg) : scene; };
+const roomOf = (gi) => { const m = groupPath[gi].match(/^School\/MainBuilding\/F\d\/([^/]+)/); return m ? m[1] : null; };
 const buckets = {};
 P.forEach((p, i) => {
   if (p.flags & 8 || p.t >= 0.99) return;
-  const key = `${movableOf(p.g) || ''}|${p.mat}|${Math.round(p.t * 20)}|${Math.round(p.refl * 10)}`;
+  if (swapped.has(p.g)) return;
+  const key = `${movableOf(p.g) || ''}|${toggleOf(p.g) || ''}|${p.mat}|${Math.round(p.t * 20)}|${Math.round(p.refl * 10)}`;
   (buckets[key] = buckets[key] || []).push(i);
 });
 for (const key in buckets) {
-  const [mv, mat, tq, rq] = key.split('|');
+  const [mv, tg, mat, tq, rq] = key.split('|');
   const ids = buckets[key];
   for (let k = 0; k < ids.length; k += 6000) {
     const mesh = new THREE.Mesh(mergeGeometries(ids.slice(k, k + 6000).map((i) => partGeometry(P[i]))), makeMaterial(mat, +tq / 20, +rq / 10));
     mesh.castShadow = mat !== 'Glass' && mat !== 'Neon' && +tq < 10;
     mesh.receiveShadow = true;
     if (+tq > 0) mesh.renderOrder = 2;
-    (mv ? movRoots[mv] : scene).add(mesh);
+    (mv ? movRoots[mv] : tg ? toggleRoot(tg) : scene).add(mesh);
   }
+}
+
+function packMaterial(m) {
+  const leafy = /Leaves|Hair/.test(m.mesh);
+  return new THREE.MeshStandardMaterial({
+    color: new THREE.Color().setRGB(m.color[0] / 255, m.color[1] / 255, m.color[2] / 255, THREE.SRGBColorSpace),
+    roughness: leafy ? 0.78 : ROUGH[m.material] ?? 0.82, metalness: METAL[m.material] ?? 0,
+    transparent: (m.transparency || 0) > 0, opacity: 1 - (m.transparency || 0),
+  });
+}
+function packLocal(m) {
+  const geo = packGeo[m.mesh];
+  geo.computeBoundingBox();
+  const sz = new THREE.Vector3(); geo.boundingBox.getSize(sz);
+  return new THREE.Matrix4().compose(new THREE.Vector3(...m.pos), new THREE.Quaternion(),
+    new THREE.Vector3(m.size[0] / Math.max(sz.x, 1e-4), m.size[1] / Math.max(sz.y, 1e-4), m.size[2] / Math.max(sz.z, 1e-4)));
+}
+if (PACK) {
+  const inst = {};
+  (tagsOf.SwapAnchor || []).forEach((i) => {
+    const a = attrOf[i] || {}, spec = packMeta[a.Template];
+    if (!spec) return;
+    const sc = a.Scale || 1;
+    const am = partMatrix(P[i]).multiply(new THREE.Matrix4().makeScale(sc, sc, sc));
+    spec.meshes.forEach((m) => { if (packGeo[m.mesh]) (inst[m.mesh] = inst[m.mesh] || { m, list: [] }).list.push(am.clone().multiply(packLocal(m))); });
+  });
+  for (const key in inst) {
+    const { m, list } = inst[key];
+    const im = new THREE.InstancedMesh(packGeo[key], packMaterial(m), list.length);
+    list.forEach((mm, k) => im.setMatrixAt(k, mm));
+    im.castShadow = m.shadow !== false; im.receiveShadow = true;
+    scene.add(im);
+  }
+}
+function makeGhostMesh() {
+  const spec = packMeta && packMeta.Ghost;
+  if (!spec) return null;
+  const root = new THREE.Group();
+  spec.meshes.forEach((m) => {
+    if (!packGeo[m.mesh]) return;
+    const mesh = new THREE.Mesh(packGeo[m.mesh], packMaterial(m));
+    mesh.applyMatrix4(packLocal(m)); mesh.castShadow = true; mesh.receiveShadow = true;
+    root.add(mesh);
+  });
+  return root;
 }
 
 // ───────── 지형 ─────────
@@ -317,8 +403,7 @@ function drawText(rec) {
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(fw, fh), mat);
   mesh.position.set(...lp); mesh.rotation.set(...lr);
   const holder = new THREE.Group(); holder.applyMatrix4(partMatrix(p)); holder.add(mesh);
-  const mv = movableOf(p.g);
-  (mv ? movRoots[mv] : scene).add(holder);
+  rootFor(p.g).add(holder);
   textMeshes.push({ pi, holder, rec });
 }
 data.texts.forEach(drawText);
@@ -343,7 +428,7 @@ const lightDefs = data.lights.map(([pi, type, range, bright, colI, en, face, ang
   const dir = new THREE.Vector3(...dl).transformDirection(m);
   const pos = new THREE.Vector3(...p.p);
   if (type === 2) pos.addScaledVector(dir, 0.4);
-  return { type, range, bright, color: toColor(colI), en: en && bright > 0, dir, pos, angle, shadows, mv: movableOf(p.g) };
+  return { type, range, bright, color: toColor(colI), en: en && bright > 0, dir, pos, angle, shadows, mv: movableOf(p.g), room: roomOf(p.g), name: p.name };
 });
 let activeLights = [];
 function setupLights(center, maxN, o) {
@@ -351,7 +436,10 @@ function setupLights(center, maxN, o) {
   activeLights = [];
   const c = new THREE.Vector3(...center);
   const k = o.lightScale ?? 1;
-  lightDefs.filter((l) => l.en).map((l) => {
+  // 스위치로 켠 방: 그 방의 형광등 조명(LampBody)을 Roblox 스크립트와 같은 밝기(1.2)로 켠다
+  const litRooms = new Set(o.roomLights || []);
+  const isLit = (l) => l.en || (litRooms.has(l.room) && ['LampBody', 'BoardLampBody', 'LampFill'].includes(l.name));
+  lightDefs.filter(isLit).map((l) => (l.en ? l : { ...l, bright: l.type === 0 ? 0.5 : 1.2 })).map((l) => {
     const wp = l.pos.clone(); if (l.mv) wp.applyMatrix4(movRoots[l.mv].matrixWorld);
     return { l, d: wp.distanceTo(c) };
   }).sort((a, b) => a.d - b.d).slice(0, maxN).forEach(({ l }, idx) => {
@@ -505,7 +593,7 @@ function makeChair() {
 const extras = [];
 window.clearExtras = () => { extras.forEach((e) => e.parent.remove(e)); extras.length = 0; };
 window.addExtra = (kind, pos, ry = 0, opt = {}) => {
-  const o = kind === 'guard' ? makeGuard() : kind === 'student' ? makeStudent() : makeChair();
+  const o = kind === 'guard' ? makeGuard() : kind === 'student' ? makeStudent() : kind === 'ghost' ? (makeGhostMesh() || makeStudent()) : makeChair();
   o.position.set(...pos); o.rotation.y = ry * DEG; o.scale.setScalar(opt.scale || 1);
   if (kind === 'guard' && opt.flashlight) o.userData.flashlight();
   scene.add(o); extras.push(o);
@@ -521,8 +609,54 @@ window.driverEye = () => {
   return [v.x, v.y, v.z];
 };
 
+// 스위치로 켠 방의 형광등 관(Tube)을 Neon처럼 빛나게
+let tubeGlow = null;
+function setTubeGlow(rooms) {
+  if (tubeGlow) { scene.remove(tubeGlow); tubeGlow.geometry.dispose(); tubeGlow = null; }
+  const ids = [];
+  P.forEach((p, i) => { if (p.name === 'Tube' && rooms.has(roomOf(p.g))) ids.push(i); });
+  if (!ids.length) return;
+  const glowCol = new THREE.Color().setRGB(246 / 255, 248 / 255, 1, THREE.SRGBColorSpace);
+  tubeGlow = new THREE.Mesh(mergeGeometries(ids.map((i) => partGeometry({ ...P[i], s: P[i].s.map((v) => v * 1.03), color: glowCol }))), makeMaterial('Neon', 0, 0));
+  scene.add(tubeGlow);
+}
+
+// ───────── CCTV 화면 (게임의 CCTV 보기 모드와 같은 필터·글자) ─────────
+window.cctvView = (camNo) => {
+  const i = (tagsOf.CCTVCam || []).find((k) => (attrOf[k] || {}).Cam === camNo);
+  const m = partMatrix(P[i]);
+  const fwd = new THREE.Vector3(0, 0, -1).transformDirection(m);
+  return { pos: P[i].p, target: [P[i].p[0] + fwd.x * 50, P[i].p[1] + fwd.y * 50, P[i].p[2] + fwd.z * 50] };
+};
+window.cctvClear = () => { const c = document.getElementById('cctv'); if (c) c.remove(); };
+window.cctvOverlay = (label, time) => {
+  const c = document.createElement('canvas');
+  c.id = 'cctv'; c.width = W; c.height = H; c.style.cssText = 'position:absolute;left:0;top:0';
+  document.body.appendChild(c);
+  const g = c.getContext('2d');
+  g.filter = 'grayscale(0.9) contrast(1.32) brightness(1.08) blur(1px)';
+  g.drawImage(renderer.domElement, 0, 0);
+  g.filter = 'none';
+  g.globalCompositeOperation = 'multiply'; g.fillStyle = 'rgb(214,236,218)'; g.fillRect(0, 0, W, H);
+  g.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < 90; i++) { g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(0, (i * H) / 90, W, 2); }
+  for (let i = 0; i < 2500; i++) { const v = Math.floor(rr() * 255); g.fillStyle = `rgba(${v},${v},${v},0.08)`; g.fillRect(rr() * W, rr() * H, 2, 2); }
+  g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 3;
+  g.font = '30px monospace'; g.fillStyle = 'rgb(235,242,235)'; g.textAlign = 'left'; g.fillText(label, 40, 64);
+  g.fillStyle = 'rgb(255,50,50)'; g.textAlign = 'right'; g.fillText('\u25CF REC', W - 40, 64);
+  g.font = '26px monospace'; g.fillStyle = 'rgb(235,242,235)'; g.textAlign = 'left'; g.fillText(time, 40, H - 46);
+  g.font = '18px KR'; g.textAlign = 'right'; g.fillStyle = 'rgb(200,212,200)'; g.fillText('\u25C0 A    D \u25B6   카메라 바꾸기        E  나가기', W - 40, H - 42);
+  return true;
+};
+
 let camFlash = null;
 window.shot = (o) => {
+  window.cctvClear();
+  Object.entries(TOGGLES).forEach(([key, g]) => { g.visible = !isPropKey(key); });
+  const match = (want) => Object.keys(TOGGLES).filter((key) => key === want || key.endsWith('/' + want));
+  (o.show || []).forEach((w) => match(w).forEach((key) => (TOGGLES[key].visible = true)));
+  (o.hide || []).forEach((w) => match(w).forEach((key) => (TOGGLES[key].visible = false)));
+  setTubeGlow(new Set(o.roomLights || []));
   camera.fov = o.fov || 55;
   camera.position.set(...o.pos);
   camera.lookAt(new THREE.Vector3(...o.target));
