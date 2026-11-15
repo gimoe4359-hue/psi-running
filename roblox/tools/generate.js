@@ -2200,15 +2200,6 @@ grp('MainBuilding', () => {
         }
         [BX0 + 3, BX1 - 3].forEach((x) =>
           B('FigureSpot', x - 1, L, -168, x + 1, L + 0.1, -166, [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'FigureSpot', attr: { Floor: f + 1 } }));
-        // 층 안내: 복도 천장에 매단 양면 표지
-        {
-          const cz = (CORR0 + PART0) / 2;
-          [[-0.9, cz - 1.2], [-0.9, cz + 1.2]].forEach(([dx, z]) => B('SignRod', dx - 0.04, L + 9.7, z - 0.04, dx + 0.04, L + CEIL, z + 0.04, [150, 152, 156], 'Metal', { nc: true, ns: true }));
-          B('FloorSign', -1.0, L + 8.3, cz - 1.9, -0.8, L + 9.7, cz + 1.9, [30, 50, 100], 'SmoothPlastic', { nc: true,
-            text: { face: 'Right', text: `${f + 1}F   ${['교무실 · 행정실', '2학년 교실', '3학년 교실'][f]}`, color: [255, 255, 255], bg: [30, 50, 100], bgT: 0, lit: 0.7, font: 'GothamBold', pps: 60 } });
-          B('FloorSignBack', -1.01, L + 8.3, cz - 1.9, -0.99, L + 9.7, cz + 1.9, [30, 50, 100], 'SmoothPlastic', { nc: true, ns: true,
-            text: { face: 'Left', text: `${f + 1}F   ${['교무실 · 행정실', '2학년 교실', '3학년 교실'][f]}`, color: [255, 255, 255], bg: [30, 50, 100], bgT: 0, lit: 0.7, font: 'GothamBold', pps: 60 } });
-        }
       });
       B('HallWall', HALL0 - WALL, L, PART1, HALL0, top, ROOM1, C.wallIvory, 'Plaster');
       B('HallWall', HALL1, L, PART1, HALL1 + WALL, top, ROOM1, C.wallIvory, 'Plaster');
