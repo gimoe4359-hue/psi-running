@@ -1635,7 +1635,6 @@ function doorLeaf(gname, x0, x1, L, zc, slide, open, o = {}) {
       const v0 = 0.06 + k * (ph + gap), v1 = v0 + ph, col = jit(OAK, 7);
       if (o.glass && k === 3) {
         const fb = 0.16;
-        box('DoorCore', 0, v0 - gap, W, v0, z0 + 0.02, z1 - 0.02, OAK_LINE, 'Wood', so);
         box('DoorPanel', 0, v0, fb, v1, z0, z1, col, 'Wood', { nc: true });
         box('DoorPanel', W - fb, v0, W, v1, z0, z1, col, 'Wood', { nc: true });
         box('DoorPanel', fb, v0, W - fb, v0 + fb * 0.6, z0, z1, col, 'Wood', { nc: true });
@@ -1645,8 +1644,9 @@ function doorLeaf(gname, x0, x1, L, zc, slide, open, o = {}) {
           .forEach(([u0, a0, u1, a1]) => box('GlassBead', u0, a0, u1, a1, z0 + 0.03, z1 - 0.03, [60, 62, 66], 'SmoothPlastic', { ...so, min: 0.02 }));
       } else {
         box('DoorPanel', 0, v0, W, v1, z0, z1, col, 'Wood', { nc: true });
-        if (k < 4) box('DoorCore', e, v1, W - e, v1 + gap, z0 + 0.025, z1 - 0.025, OAK_LINE, 'Wood', so);
       }
+      // 판 사이 홈: 문짝 폭 전체를 막는 속판 (구멍 없이)
+      if (k < 4) box('DoorCore', 0, v1 - 0.01, W, v1 + gap + 0.01, z0 + 0.02, z1 - 0.02, OAK_LINE, 'Wood', { nc: true, ns: true });
     }
     // 은색 오목 손잡이 (양면, 문짝 바깥쪽 가장자리 — 참고 사진 위치)
     const hu = o.handleAt === 'right' ? W - 0.3 : 0.14, hv = 0.06 + 2 * (ph + gap) + ph * 0.28;
