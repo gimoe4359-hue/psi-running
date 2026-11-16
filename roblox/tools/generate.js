@@ -366,7 +366,7 @@ function wallHoles(name, axis, uMin, uMax, vMin, vMax, w0, w1, holes, color, mat
 
 // ───────────────────────── 색 ─────────────────────────
 const C = {
-  facade: [228, 224, 214], facadeShade: [206, 201, 190], sunshade: [214, 210, 200],
+  facade: [228, 224, 214], facadeShade: [230, 228, 222], sunshade: [214, 210, 200],
   wallIvory: [226, 223, 213], wainscot: [178, 180, 182], baseboard: [38, 38, 40], rail: [196, 200, 204],
   ceiling: [232, 232, 226], tbar: [212, 212, 206], troffer: [236, 238, 240],
   corridorFloor: [150, 152, 154], classFloor: [150, 108, 66], hallFloor: [146, 148, 150],
@@ -1766,6 +1766,7 @@ for (let f = 0; f < 3; f++) for (let i = 0; i < 4; i++) {
   rooms.push({ xa: xaL, xb: xbL, f, L: LV[f], name: ROOMS[f].L[i], wing: 'L', i });
   rooms.push({ xa: xaR, xb: xbR, f, L: LV[f], name: ROOMS[f].R[i], wing: 'R', i });
 }
+const BRICK = [146, 74, 54];
 const isClass = (n) => /^\d-\d$/.test(n);
 // 방마다 복도 쪽 문 자리 [x0, x1]. 화장실은 남자(서쪽 반)·여자(동쪽 반) 문이 따로 있다
 const WC_DOOR = 3.3;
@@ -2806,6 +2807,8 @@ grp('MainBuilding', () => {
       if (f === 0) southHoles.push({ u0: -8, u1: 8, v0: L, v1: L + 9.4 });
       else { southHoles.push({ u0: -8.5, u1: 8.5, v0: L - 1.5, v1: L + 10.6 }); slider('x', -8.5, 0, L - 1.5, L + 10.6, ROOM1 + 0.4); slider('x', 0, 8.5, L - 1.5, L + 10.6, ROOM1 + 0.4); }
       wallHoles('ExteriorWall', 'x', BX0, BX1, L - 1, top, ROOM1, ZS, southHoles, C.facade, 'Plaster');
+      // 바깥 겉면: 붉은 벽돌 (사진 속 학교처럼). 안쪽 면은 칠한 벽 그대로
+      wallHoles('BrickSkin', 'x', BX0 - 0.24, BX1 + 0.24, L - 1, top, ZS, ZS + 0.24, southHoles, BRICK, 'Brick');
       if (f === 0) {
         // 현관 (참고 사진): 알루미늄 틀 + 옆 고정 유리 + 유리문 네 짝(두 쌍) + 문 위 채광창
         const zf = ROOM1 + 0.4, al = C.alumDark, gl = [130, 160, 170];
@@ -2829,6 +2832,7 @@ grp('MainBuilding', () => {
       for (let x = BX0 + 5; x < BX1 - 12; x += 15.5) if (Math.abs(x + 5) > CS.W + 5.5) northHoles.push({ u0: x, u1: x + 10, v0: L + 3.6, v1: L + 9.4 });
       // 중앙 계단실로 들어가는 넓은 입구
       wallHoles('ExteriorWall', 'x', BX0, BX1, L - 1, top, ZN, CORR0, [...northHoles, { u0: -CS.W, u1: CS.W, v0: L, v1: L + CEIL }], C.facade, 'Plaster');
+      wallHoles('BrickSkin', 'x', BX0 - 0.24, BX1 + 0.24, L - 1, top, ZN - 0.24, ZN, [...northHoles, { u0: -CS.W - 0.6, u1: CS.W + 0.6, v0: L - 1, v1: top }], BRICK, 'Brick');
       northHoles.forEach((h) => {
         slider('x', h.u0, h.u1, h.v0, h.v1, ZN + 0.4);
         B('Sill', h.u0 - 0.2, h.v0 - 0.25, ZN - 0.7, h.u1 + 0.2, h.v0, ZN + 0.1, [196, 192, 184], 'Concrete');
@@ -2839,6 +2843,7 @@ grp('MainBuilding', () => {
         const holes = [{ u0: TS.z0, u1: TS.z1, v0: L, v1: L + 7.6 }];
         if (roomWin) holes.push({ u0: -158, u1: -142, v0: L + 3.4, v1: L + 9.4 });
         wallHoles('EndWall', 'z', ZN, ZS, L - 1, top, x0, x1, holes, C.facade, 'Plaster');
+        wallHoles('BrickSkin', 'z', ZN - 0.24, ZS + 0.24, L - 1, top, s > 0 ? x1 : x0 - 0.24, s > 0 ? x1 + 0.24 : x0, [...holes, { u0: TS.z0 - 4.8, u1: TS.z1 + 4.8, v0: L - 1, v1: top }], BRICK, 'Brick');
         if (roomWin) slider('z', -158, -142, L + 3.4, L + 9.4, (x0 + x1) / 2);
         B('StairCasing', x0, L + 7.6, TS.z0 - 0.2, x1, L + 7.8, TS.z1 + 0.2, C.alumDark, 'Metal', { nc: true, ns: true });
         const sx = s > 0 ? x0 - 0.35 : x1 + 0.05;
@@ -3148,6 +3153,9 @@ grp('MainBuilding', () => {
     const wins = [];
     LV.forEach((L) => [[-W + 1, -0.8], [0.8, W - 1]].forEach(([a, b]) => wins.push({ u0: a, u1: b, v0: L + FH / 2 + 2.6, v1: L + FH / 2 + 9.4 })));
     wallHoles('BayWall', 'x', -W - 0.6, W + 0.6, 0, top, zN - 0.6, zN, wins, wc, 'Plaster');
+    wallHoles('BrickSkin', 'x', -W - 0.84, W + 0.84, 0, top, zN - 0.84, zN - 0.6, wins, BRICK, 'Brick');
+    B('BrickSkin', -W - 0.84, 0, zN - 0.6, -W - 0.6, top, ZN - 0.24, BRICK, 'Brick');
+    B('BrickSkin', W + 0.6, 0, zN - 0.6, W + 0.84, top, ZN - 0.24, BRICK, 'Brick');
     wins.forEach((h) => { slider('x', h.u0, h.u1, h.v0, h.v1, zN - 0.3); B('Sill', h.u0 - 0.2, h.v0 - 0.2, zN - 0.2, h.u1 + 0.2, h.v0, zN + 0.5, [220, 216, 206], 'Marble', { nc: true }); });
     LV.forEach((L, fi) => {
       troffer(0, zN + LD / 2, L + FH / 2 + 10.4, fi === 0, { tag: 'CorridorLight', light: { type: 'Surface', face: 'Bottom', range: 18, angle: 120, brightness: fi === 0 ? 0.7 : 0, color: [220, 230, 255], enabled: fi === 0, shadows: true } });
@@ -3173,9 +3181,12 @@ grp('MainBuilding', () => {
     B('Foundation', X0 - 0.3, 0, zc - W - 0.9, X1 + 0.3, 1, zc + W + 0.9, [140, 136, 130], 'Concrete');
     B('TowerWall', X0, 0, zc - W - 0.6, X1, top, zc - W, wc, 'Plaster');
     B('TowerWall', X0, 0, zc + W, X1, top, zc + W + 0.6, wc, 'Plaster');
+    B('BrickSkin', X0, 0, zc - W - 0.84, X1 + (s > 0 ? 0.24 : 0), top, zc - W - 0.6, BRICK, 'Brick');
+    B('BrickSkin', X0 - (s > 0 ? 0 : 0.24), 0, zc + W + 0.6, X1, top, zc + W + 0.84, BRICK, 'Brick');
     const wins = LV.slice(0, 2).map((L) => ({ u0: zc - W + 1, u1: zc + W - 1, v0: L + FH / 2 + 2.6, v1: L + FH / 2 + 9.4 }));
     wallHoles('TowerWall', 'z', zc - W - 0.6, zc + W + 0.6, 0, top, Math.min(xe, xe + s * 0.6), Math.max(xe, xe + s * 0.6), wins, wc, 'Plaster');
     wins.forEach((h) => slider('z', h.u0, h.u1, h.v0, h.v1, xe + s * 0.3));
+    wallHoles('BrickSkin', 'z', zc - W - 0.84, zc + W + 0.84, 0, top, s > 0 ? xe + 0.6 : xe - 0.84, s > 0 ? xe + 0.84 : xe - 0.6, wins, BRICK, 'Brick');
     B('TowerRoof', X0 - 0.4, top, zc - W - 1, X1 + 0.4, top + 0.7, zc + W + 1, [130, 126, 120], 'Concrete');
     LV.forEach((L, fi) => {
       if (fi < 2) B('StairLight', xe - s * 3, L + FH / 2 + 10.2, zc - 1, xe - s * 1, L + FH / 2 + 10.4, zc + 1, [240, 244, 250], 'SmoothPlastic', {
@@ -3199,7 +3210,7 @@ grp('MainBuilding', () => {
     const pil = new Set([BX0, BX1]);
     rooms.filter((r) => r.f === 0).forEach((r) => { pil.add(Math.round((r.xa - WALL / 2) * 10) / 10); pil.add(Math.round((r.xb + WALL / 2) * 10) / 10); });
     [...pil].forEach((x) => {
-      B('Pilaster', x - 0.55, 3.2, ZS - 0.1, x + 0.55, ROOFY + 3.2, ZS + 0.6, [218, 214, 204], 'Plaster');
+      B('Pilaster', x - 0.55, 3.2, ZS - 0.1, x + 0.55, ROOFY + 3.2, ZS + 0.6, BRICK.map((v) => v - 14), 'Brick');
       if (Math.abs(x) > 100 && Math.abs(x) < 110) {
         cylBetween('Downpipe', [x + 0.9, 0.3, ZS + 0.5], [x + 0.9, ROOFY + 0.8, ZS + 0.5], 0.45, [186, 186, 182], 'Plastic', { nc: true });
         B('Shoe', x + 0.6, 0, ZS + 0.3, x + 1.4, 0.4, ZS + 1.4, [186, 186, 182], 'Plastic', { nc: true });
