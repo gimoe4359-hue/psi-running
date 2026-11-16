@@ -403,50 +403,78 @@ end, function(st)
 end)
 
 -- 6. 있을 리 없는 4층 (수칙 3)
-def("FourthFloor", 2, 50, function(st)
-	local sign
-	for _, s in ipairs(tagged("StairSign")) do
-		if s:GetAttribute("Floor") == 3 then
-			sign = s
-		end
+def("FourthFloor", 2, 75, function(st)
+	-- 없어야 할 4층: 옥상 계단실 문 너머에 복도가 생긴다. 표지판은 없다. 올라가면 정신력이 계속 깎이고, 끝까지 가면 끌려 나온다.
+	local folder = ServerStorage:FindFirstChild("AnomalyProps")
+	local tpl = folder and folder:FindFirstChild("FourthFloor", true)
+	local door = first("RoofDoor")
+	if not tpl or not door then
+		return
 	end
-	st.sign = sign
-	local label = labelOf(sign)
-	if label then
-		st.text, st.color = label.Text, label.TextColor3
-		label.Text = "4F ↑"
-		label.TextColor3 = Color3.fromRGB(200, 0, 0)
+	local m = tpl:Clone()
+	m.Parent = workspace
+	st.model = m
+	st.door = door
+	st.doorState = { door.Transparency, door.CanCollide }
+	door.Transparency = 1
+	door.CanCollide = false
+	local zone = m:FindFirstChild("FourthZone", true)
+	local endZone = m:FindFirstChild("FourthEnd", true)
+	local spot = m:FindFirstChild("FourthGhostSpot", true)
+	if spot then
+		st.ghost = makeGhost(CFrame.lookAt(spot.Position, spot.Position + Vector3.new(-1, 0, 0)), "FourthGhost")
+		st.ghost.Parent = workspace
 	end
-	st.light = Instance.new("PointLight")
-	st.light.Color = Color3.fromRGB(255, 30, 30)
-	st.light.Range = 18
-	st.light.Brightness = 2
-	st.light.Parent = sign
-	api.sayNear(sign.Position, 70, "계단 위쪽에서 붉은 불빛이 새어 나온다.", 3, "red")
-	local zone = first("RoofStairZone")
-	st.hit = {}
+	local stairs = first("RoofStairZone")
+	api.sayNear(door.Position, 90, "위층에서 발소리가 난다. …이 학교는 3층까지인데.", 4, "red")
+	st.inside, st.hit = {}, {}
 	task.spawn(function()
 		while not st.stopped do
 			for _, p in ipairs(api.activePlayers()) do
 				local r = api.rootOf(p)
-				if r and zone and not st.hit[p] and api.inside(zone, r.Position) then
-					st.hit[p] = true
-					api.Effect:FireClient(p, "jumpscare")
-					api.addSanity(p, -40, "4층에서… 무언가가 내려다보고 있었다.")
-					api.teleportToBooth(p)
+				if r and not st.hit[p] then
+					if endZone and api.inside(endZone, r.Position) then
+						st.hit[p] = true
+						api.Effect:FireClient(p, "jumpscare")
+						api.addSanity(p, -35, "…누구세요? 4층은 없습니다.")
+						api.teleportToBooth(p)
+					elseif zone and api.inside(zone, r.Position) then
+						if not st.inside[p] then
+							st.inside[p] = true
+							api.Effect:FireClient(p, "static")
+							api.addSanity(p, -8, "4층은 없습니다. 그런데 지금, 어디에 서 있는 거지?")
+						else
+							api.addSanity(p, -2)
+						end
+					elseif stairs and api.inside(stairs, r.Position) and not st.inside[p] and not st.warned then
+						st.warned = true
+						api.say(p, "계단 위에서 붉은 빛이 새어 나온다.", 3, "red")
+					end
 				end
 			end
-			task.wait(0.2)
+			task.wait(1)
 		end
 	end)
 end, function(st)
-	local label = labelOf(st.sign)
-	if label and st.text then
-		label.Text = st.text
-		label.TextColor3 = st.color
+	-- 4층에 남아 있던 사람은 경비실로 돌려보낸 뒤 층을 없앤다
+	if st.model then
+		local zone = st.model:FindFirstChild("FourthZone", true)
+		for _, p in ipairs(api.activePlayers()) do
+			local r = api.rootOf(p)
+			if r and zone and api.inside(zone, r.Position) then
+				api.Effect:FireClient(p, "static")
+				api.teleportToBooth(p)
+				api.say(p, "…정신을 차려 보니 경비실이다. 방금 어디에 있었지?", 4)
+			end
+		end
+		st.model:Destroy()
 	end
-	if st.light then
-		st.light:Destroy()
+	if st.ghost then
+		st.ghost:Destroy()
+	end
+	if st.door and st.doorState then
+		st.door.Transparency = st.doorState[1]
+		st.door.CanCollide = st.doorState[2]
 	end
 end)
 
@@ -563,35 +591,46 @@ def("Blackboard", 1, 50, function(st)
 		return
 	end
 	st.model = m
-	local strokes = {}
-	for _, c in ipairs(m:GetChildren()) do
-		if c:IsA("BasePart") and c.Name ~= "PropAnchor" then
-			table.insert(strokes, { c, c.Transparency, c:GetAttribute("Seq") or 0 })
-			c.Transparency = 1
-		end
-	end
-	table.sort(strokes, function(x, y)
-		return x[3] < y[3]
-	end)
-	-- 원래 칠판 글씨는 지워진다
+	-- 원래 칠판 글씨는 지워진다 (글씨는 SurfaceGui 라 GUI 를 끈다)
 	st.chalk = {}
 	local chalk = board.Parent:FindFirstChild("Chalk")
 	if chalk then
-		for _, p in ipairs(chalk:GetDescendants()) do
-			if p:IsA("BasePart") then
-				st.chalk[p] = p.Transparency
-				p.Transparency = 1
+		for _, d in ipairs(chalk:GetDescendants()) do
+			if d:IsA("SurfaceGui") then
+				st.chalk[d] = d.Enabled
+				d.Enabled = false
+			elseif d:IsA("BasePart") and d.Transparency < 1 then
+				st.chalk[d] = d.Transparency
+				d.Transparency = 1
 			end
+		end
+	end
+	-- 경고 글씨: 왼쪽부터 한 글자씩 써지듯 드러난다 (UIGradient 투명도 경계를 옮김)
+	local grads = {}
+	for _, d in ipairs(m:GetDescendants()) do
+		if d:IsA("GuiObject") and d.Name == "Writing" then
+			local gr = Instance.new("UIGradient")
+			gr.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0),
+				NumberSequenceKeypoint.new(0.48, 0),
+				NumberSequenceKeypoint.new(0.52, 1),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			gr.Offset = Vector2.new(-0.55, 0)
+			gr.Parent = d
+			table.insert(grads, gr)
 		end
 	end
 	api.sayNear(board.Position, 45, "끼이익… 어디선가 분필 긁히는 소리가 난다.", 3.5)
 	api.playSound("Chalk", board)
 	task.spawn(function()
-		for _, s in ipairs(strokes) do
+		for k = 0, 60 do
 			if st.stopped then
 				return
 			end
-			s[1].Transparency = s[2]
+			for _, gr in ipairs(grads) do
+				gr.Offset = Vector2.new(-0.55 + 1.1 * (k / 60), 0)
+			end
 			task.wait(0.05)
 		end
 	end)
@@ -599,8 +638,12 @@ end, function(st)
 	if st.model then
 		st.model:Destroy()
 	end
-	for p, t in pairs(st.chalk or {}) do
-		p.Transparency = t
+	for obj, v in pairs(st.chalk or {}) do
+		if obj:IsA("SurfaceGui") then
+			obj.Enabled = v
+		else
+			obj.Transparency = v
+		end
 	end
 end)
 

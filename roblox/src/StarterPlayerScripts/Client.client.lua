@@ -72,37 +72,19 @@ corner(barFill, 6)
 local patrolLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 74), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "", TextColor3 = Color3.fromRGB(220, 220, 230), TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
 local hint = make("TextLabel", { Size = UDim2.new(0, 460, 0, 22), Position = UDim2.new(0, 24, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "[R] 근무 수칙   [F] 손전등   [Shift] 달리기", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
 
--- 근무 수칙 수첩 (손글씨: RuleStrokes 의 획을 얇은 막대로 그린다 → 한글도 진짜 손글씨처럼 보임)
-local RuleStrokes = require(ReplicatedStorage:WaitForChild("RuleStrokes"))
-local INK = Color3.fromRGB(28, 34, 74)
-local RED_INK = Color3.fromRGB(170, 14, 14)
--- parent 안에 한 쪽을 그린다. x0,y0: 첫 줄 왼쪽 위(px), em: 글자 크기(px), gap: 줄 간격(px). 9번 줄들은 따로 묶어서 돌려준다
+-- 근무 수칙 수첩 (손글씨 그림 글자: TextAtlas 의 한 줄짜리 그림을 줄마다 붙인다)
+local AtlasText = require(ReplicatedStorage:WaitForChild("AtlasText"))
+local TextAtlas = require(ReplicatedStorage:WaitForChild("TextAtlas"))
+-- parent 안에 한 쪽을 그린다. x0,y0: 첫 줄 왼쪽 위(px), em: 글자 높이(px), gap: 줄 간격(px). 9번 줄들은 따로 묶어서 돌려준다
 local function drawRulePage(parent, pageIndex, x0, y0, em, gap, z)
 	local nineGroup = make("Frame", { Name = "Nine", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, ZIndex = z }, parent)
-	for li, line in ipairs(RuleStrokes[pageIndex] or {}) do
-		local isNine = line.kind == "nine"
-		local scale = line.kind == "title" and 1.25 or 1
-		local holder = isNine and nineGroup or parent
-		local color = isNine and RED_INK or INK
-		local th = math.max(1.5, em * scale * 0.075)
-		local lx = x0 + line.indent * em
-		local ly = y0 + (li - 0.5) * gap
-		for _, st in ipairs(line.strokes) do
-			for k = 1, #st - 3, 2 do
-				local ax, ay = lx + st[k] * em * scale, ly + st[k + 1] * em * scale
-				local bx, by = lx + st[k + 2] * em * scale, ly + st[k + 3] * em * scale
-				local dx, dy = bx - ax, by - ay
-				local len = math.sqrt(dx * dx + dy * dy)
-				make("Frame", {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.fromOffset((ax + bx) / 2, (ay + by) / 2),
-					Size = UDim2.fromOffset(len + th * 0.8, th),
-					Rotation = math.deg(math.atan2(dy, dx)),
-					BackgroundColor3 = color,
-					BorderSizePixel = 0,
-					ZIndex = z,
-				}, holder)
-			end
+	for li, line in ipairs(TextAtlas.Notebook[pageIndex] or {}) do
+		if line.key ~= "" then
+			local holder = line.kind == "nine" and nineGroup or parent
+			local h = em * (line.kind == "title" and 1.25 or 1)
+			local w = h * AtlasText.Aspect(line.key)
+			local box = make("Frame", { Position = UDim2.fromOffset(x0 + line.indent * em, y0 + (li - 0.5) * gap - h * 0.62), Size = UDim2.fromOffset(w, h), BackgroundTransparency = 1, ZIndex = z }, holder)
+			AtlasText.Make(line.key, box, z)
 		end
 	end
 	return nineGroup

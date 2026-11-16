@@ -67,8 +67,8 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
 
 1. 근무는 22:00 ~ 06:00. 06시 전엔 절대 정문을 열지 마세요.
 2. 매시 정각 전, 1층·2층·3층 순찰함에 체크하세요.
-3. 4층은 없습니다. 4층 표지판이 보이면 즉시 경비실로.
-4. 전화가 오면 받으세요. 단, 당신 이름을 부르면 끊으세요.
+3. 전화가 오면 받으세요. 단, 당신 이름을 부르면 끊으세요.
+4. 4층은 없습니다.
 5. 운동장에 의자가 있으면 쳐다보지 마세요.
 6. 시계탑이 거꾸로 가면 건물에 들어가지 마세요.
 7. 복도의 학생에게 말을 걸지 마세요. 학생들은 모두 하교했습니다.
@@ -79,11 +79,11 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
 
 | 이상현상 | 수칙 | 내용 |
 |---|---|---|
-| 전화벨 | 4 | 경비실 전화. 이름을 부르면 6초 안에 끊어야 함. 안 받아도 감점 |
+| 전화벨 | 3 | 경비실 전화. 이름을 부르면 6초 안에 끊어야 함. 안 받아도 감점 |
 | 운동장 의자 | 5 | 운동장 한가운데 의자가 경비실을 보고 있음. 쳐다보면 1초마다 감점 |
 | 시계탑 역회전 | 6 | 시계 바늘이 거꾸로 돔. 건물 안에 있으면 매초 감점 |
 | 복도의 학생 | 7 | 얼굴을 머리카락으로 가린 여학생. "말 걸기"를 누르면 크게 감점 |
-| 4층 표지판 | 3 | 3층 계단 표지판이 빨간 "4F". 올라가면 감점 + 경비실로 끌려감 |
+| 4층 | 4 | 옥상 계단실 문 너머에 없어야 할 4층 복도가 생긴다 (표지판 없음). 들어가면 계속 감점, 끝까지 가면 끌려 나옴 |
 | 사라진 소녀상 | 8 | 책 읽는 소녀상이 복도로 이동. 가까이 가면 감점 |
 | 정문 두드림 | 1 | "아저씨 문 좀 열어 주세요!" 문을 열면 배드 엔딩 |
 | 복도 조명 깜빡임 | - | 분위기용 |
@@ -116,12 +116,29 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
   - 청소함, 쓰레기통·분리수거함
 - **기타**: 시간표, 전등 스위치, 선풍기 조절기, 창틀 화분, 커튼
 
+## 손글씨 글자 그림 올리기 (한 번만, 꼭 하기)
+
+로블록스는 글꼴 파일을 직접 쓸 수 없다. 그래서 분필·피·수첩 글씨를 아래 글꼴로 그린 그림 4장(`text_atlas/atlas_1.png ~ atlas_4.png`)으로 만들었다. 게임은 이 그림에서 한 줄씩 잘라 보여 준다. 예전처럼 획마다 파트를 쓰지 않아서 맵이 약 7,000파트 가벼워졌다.
+
+| 글꼴 | 쓰는 곳 |
+|---|---|
+| 그리운 경찰감성체 (무서운 분위기) | 칠판의 "뒤를 돌아보지 마", 피 글씨 "열어줘", "4층은 없습니다", "내려가" |
+| RF대충쓴준우체 v3 (제정신 아닌데 귀여움) | "너도 남아", "누구세요?", "같이 놀자♡", 수첩의 9번 수칙 |
+| 히조이체 ExtraLight (평범한 손글씨) | 칠판 날짜·주번·알림, 급훈, 근무 수칙 수첩 |
+
+**올리는 법**
+1. Studio → **Asset Manager → Images → Import** 로 `roblox/text_atlas/` 의 그림 4장을 올린다(무료).
+2. 각 그림에서 우클릭 → **Copy Asset ID**.
+3. `ReplicatedStorage.Config` 의 `TEXT_ATLAS_IDS = { 0, 0, 0, 0 }` 에 순서대로(1~4번) 넣는다.
+
+넣기 전에는 같은 글이 로블록스 기본 글꼴로 보인다. 글꼴 파일은 저장소에 올리지 않았다. 글을 바꾸려면 `roblox/fonts/` 에 글꼴을 넣고 `node tools/make_atlas.js` 로 그림을 다시 만든 뒤, 그림을 다시 올린다.
+
 ## 근무 수칙 수첩과 경비실
 
 ![수첩](screenshots/07d_수첩_근무수칙.png)
 
 - 근무 수칙은 벽 종이가 아니라 **책상 위 수첩**에 손글씨로 적혀 있다. `R` 키나 수첩의 "수첩 보기"로 크게 본다.
-- 손글씨는 글꼴이 아니라 획을 하나하나 그린 것이다. 수칙을 바꾸면 `tools/make_text.js` 의 `RULE_PAGES` 도 고치고 다시 실행한다.
+- 손글씨는 히조이체 그림 글자(위 "손글씨 글자 그림 올리기")다. 수칙을 바꾸면 `tools/make_atlas.js` 의 `NOTEBOOK` 도 고치고 다시 실행한다.
 - 경비실: 서랍 달린 책상, 탁상 달력(11월 13일 금요일), 스탠드, 무전기 충전대, 냉온 정수기, 간이침대, 열쇠함, 난로, 벽시계, 비상 연락망, 소화기.
 
 ![경비실](screenshots/07_경비실_안.png)
@@ -152,7 +169,7 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
 
 `screenshots/` 폴더에 있다. 아래 사진은 **Roblox 화면 캡처가 아니다.** 게임과 **같은 맵 데이터와 같은 메시 팩**을 three.js로 그린 미리보기다. 실제 Roblox(Future 조명)에서는 색감과 빛이 조금 다르게 보인다.
 - 사진은 **메시 팩을 가져온 뒤의 모습**이다.
-- 여학생, 칠판 경고, 피 글씨, "4F", 의자는 이상현상이 일어난 순간을 보여 주려고 띄운 것이다.
+- 여학생, 칠판 경고, 피 글씨, 4층, 의자는 이상현상이 일어난 순간을 보여 주려고 띄운 것이다.
 
 | | |
 |---|---|
@@ -161,7 +178,7 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
 | ![](screenshots/07_경비실_안.png) 경비실 안 | ![](screenshots/08_복도_학생.png) 2층 복도의 여학생 |
 | ![](screenshots/09_교실_칠판.png) 교실 (스위치로 불 켬) | ![](screenshots/09b_교실_밤_칠판경고.png) 밤 교실 "뒤를 돌아보지 마" |
 | ![](screenshots/09c_교실_천장TV.png) 천장형 TV 브라켓 | ![](screenshots/09d_복도_미닫이문.png) 교실 미닫이문 |
-| ![](screenshots/10_화장실_3층.png) 3층 화장실 세 번째 칸 | ![](screenshots/11_계단_4층.png) 있을 리 없는 4F |
+| ![](screenshots/10_화장실_3층.png) 3층 화장실 세 번째 칸 | ![](screenshots/11_4층_복도.png) 없어야 할 4층 |
 | ![](screenshots/12_운동장_의자.png) 운동장 한가운데 의자 | ![](screenshots/14_CCTV_4번_2층복도.png) CCTV 4번 화면 |
 | ![](screenshots/02_전체_밤.png) 밤의 학교 전체 | ![](screenshots/13_플레이어_공유_스킨.png) 플레이어가 입는 경비원 공유 차림 |
 
@@ -207,7 +224,7 @@ node check_data.js      # 데이터 검사
 node audit_overlap.js   # 복도·교실 물건이 창문과 겹치는지 검사
 node build_place.js     # build/SongcheonNightShift.rbxlx 다시 만들기
 # 아래는 Playwright(Chromium)와 node_modules(three, @fontsource/*) 가 필요
-NODE_MODULES=<경로> node make_text.js           # 분필·피·붓글씨 획 데이터 (text_strokes.json)
+node make_atlas.js                              # 손글씨 글자 그림 (roblox/fonts/ 의 글꼴 필요)
 NODE_MODULES=<경로> node assets/build_assets.js # 메시 팩 GLB + Templates.lua
 NODE_MODULES=<경로> node preview/shoot.js       # 미리보기 사진 (PACK=0 이면 메시 팩 없이)
 ```

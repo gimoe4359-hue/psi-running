@@ -22,7 +22,8 @@ function resolve(url) {
   if (url.startsWith('/three/')) return path.join(NM, 'three', url.slice(7));
   if (url.startsWith('/fonts/')) return path.join(NM, '@fontsource', 'noto-sans-kr', 'files', path.basename(url));
   if (url === '/SongcheonAssets.glb') return path.join(ROOT, 'assets', 'SongcheonAssets.glb');
-  if (url === '/rule_strokes.json') return path.join(ROOT, 'build', 'rule_strokes.json');
+  if (url === '/text_atlas.json') return path.join(ROOT, 'build', 'text_atlas.json');
+  if (url.startsWith('/text_atlas/')) return path.join(ROOT, 'text_atlas', path.basename(url));
   if (url === '/assets_meta.json') return path.join(ROOT, 'build', 'assets_meta.json');
   return null;
 }
@@ -34,8 +35,10 @@ const SHOTS = [
   { name: '04_인트로_도로', mood: 'night', car: [[-140, 0.22, 233], -90], pos: [-174, 4.2, 247.5], target: [-120, 3, 229], fov: 50, lightCenter: [-135, 3, 233], maxLights: 12, shadowLights: 2, grassCenter: [-160, 0, 190] },
   { name: '05_인트로_정문', mood: 'night', car: [[0, 0.56, 205], 0], gateOpen: true, pos: [-22, 6, 168], target: [1, 3.5, 202], fov: 50, lightCenter: [3, 3, 200], maxLights: 14, shadowLights: 2 },
   { name: '06_경비실', mood: 'night', pos: [19, 5.6, 158], target: [30, 4.6, 177], fov: 48, lightCenter: [30, 6, 180], maxLights: 10 },
-  { name: '07_경비실_안', pos: [24.0, 6.6, 178.6], target: [34.5, 4.6, 187.4], fov: 76, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
-  { name: '07b_경비실_책상_수첩', pos: [27.0, 6.3, 185.2], target: [26.9, 3.4, 188.3], fov: 62, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
+  { name: '07_경비실_안', pos: [23.6, 6.6, 178.2], target: [33.5, 4.4, 187.6], fov: 78, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
+  { name: '07e_경비실_CCTV', pos: [31.6, 5.6, 184.6], target: [32.3, 4.6, 188.6], fov: 70, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
+  { name: '07f_경비실_전화기', flashlight: 25, pos: [24.55, 5.15, 186.55], target: [23.85, 3.55, 188.05], fov: 46, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
+  { name: '07b_경비실_책상_수첩', pos: [26.6, 6.5, 184.9], target: [27.0, 3.6, 188.4], fov: 70, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
   { name: '07c_경비실_문쪽', pos: [26.5, 6.4, 187.6], target: [35.5, 4.2, 177.6], fov: 76, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
   { name: '07d_수첩_근무수칙', notebook: 1, pos: [27.0, 6.3, 185.2], target: [26.9, 3.4, 188.3], fov: 62, mood: 'night', lightCenter: [29.5, 8, 183], maxLights: 6, lightScale: 0.14, grass: 0, fog: 0.003 },
   { name: '08_복도_학생', mood: 'night', extras: [['ghost', [-25, 13.5, -167.4], -90]], pos: [-2, 18.7, -167.0], target: [-120, 17.4, -167.6], fov: 58, flashlight: 140, lightCenter: [-40, 20, -167], maxLights: 8, lightScale: 0.12, grass: 0, fog: 0.004 },
@@ -45,7 +48,9 @@ const SHOTS = [
   { name: '09d_복도_미닫이문', mood: 'night', roomLights: ['2-2'], pos: [-46.2, 18.6, -170.7], target: [-45.0, 18.0, -163.2], fov: 60, flashlight: 35, lightCenter: [-45, 20, -166], maxLights: 10, lightScale: 0.7, grass: 0, fog: 0.002 },
   { name: '09e_복도_미닫이문_열림', mood: 'night', roomLights: ['2-2'], pos: [-58.5, 18.6, -170.4], target: [-67.5, 17.6, -163.2], fov: 58, flashlight: 70, lightCenter: [-64, 20, -166], maxLights: 10, lightScale: 0.7, grass: 0, fog: 0.002 },
   { name: '10_화장실_3층', mood: 'night', show: ['RestroomBlood'], pos: [104.5, 31, -160], target: [128, 29.5, -146], fov: 66, flashlight: 300, lightCenter: [115, 32, -150], maxLights: 4, lightScale: 0.2, moonDir: [0.3, 0.55, 1], grass: 0 , fog: 0.003 },
-  { name: '11_계단_4층', mood: 'night', stairText: '4F ↑', pos: [2.6, 31.2, -138.6], target: [2.6, 36.2, -158], fov: 66, flashlight: 90, lightScale: 0.1, lightCenter: [3, 34, -150], maxLights: 4, grass: 0 , fog: 0.003 },
+  { name: '11_4층_복도', mood: 'night', show: ['FourthFloor'], extras: [['ghost', [-90, 38.62, -146], 90]], pos: [-14, 43.6, -143.6], target: [-60, 42.4, -146.6], fov: 66, flashlight: 70, lightCenter: [-30, 44, -146], maxLights: 6, lightScale: 0.6, shadowLights: 2, grass: 0, fog: 0.007 },
+  { name: '11b_4층_책걸상더미', mood: 'night', show: ['FourthFloor'], extras: [['ghost', [-90, 38.62, -146], 90]], pos: [-36, 43.6, -144.2], target: [-70, 42.6, -146.6], fov: 62, flashlight: 60, lightCenter: [-50, 44, -146], maxLights: 6, lightScale: 0.5, shadowLights: 2, grass: 0, fog: 0.012 },
+  { name: '11c_4층_끝', mood: 'night', show: ['FourthFloor'], extras: [['ghost', [-90, 38.62, -146], 90]], pos: [-79, 43.4, -145.6], target: [-97, 42.6, -146], fov: 62, flashlight: 50, lightCenter: [-84, 44, -146], maxLights: 6, lightScale: 0.5, shadowLights: 2, grass: 0, fog: 0.012 },
   { name: '12_운동장_의자', mood: 'night', extras: [['chair', [-113, 0, 48], 166]], pos: [-122, 5.6, 84], target: [-108, 3.8, 10], fov: 55, flashlight: 160, lightCenter: [-60, 5, 100], maxLights: 12, shadowRadius: 300, grassCenter: [-150, 0, 80] },
   { name: '13_플레이어_공유_스킨', mood: 'studio', extras: [['guard', [-2.3, 300, 0], 0], ['guard', [2.3, 300, 0], 180]], pos: [0, 303.3, -11.5], target: [0, 302.7, 0], fov: 36, maxLights: 0, shadowCenter: [0, 300, 0], shadowRadius: 20, grass: 0 },
   { name: '14_CCTV_4번_2층복도', mood: 'night', cctv: { cam: 4, label: 'CAM 4   2F 복도', time: '2026-11-14  01:13:52' }, fov: 72, extras: [['ghost', [111.6, 13.5, -169.8], -90]], lightCenter: [104, 20, -167], maxLights: 10, lightScale: 0.6, grass: 0, fog: 0.004 },

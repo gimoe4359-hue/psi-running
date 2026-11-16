@@ -13,7 +13,7 @@ const MATERIALS = new Set(['Plastic', 'SmoothPlastic', 'Neon', 'Wood', 'WoodPlan
   'Ground', 'Asphalt', 'Salt', 'Limestone', 'Pavement', 'Basalt', 'CrackedLava', 'Glacier', 'Ice', 'Rock', 'Sandstone', 'Glass', 'ForceField',
   'Plaster', 'CeramicTiles', 'Carpet', 'Rubber', 'Leather', 'Cardboard', 'RoofShingles', 'ClayRoofTiles']);
 const TERRAIN = new Set(['Grass', 'LeafyGrass', 'Ground', 'Pavement', 'Rock', 'Sand', 'Mud', 'Asphalt', 'Concrete', 'Slate', 'Snow', 'Basalt', 'Limestone', 'Sandstone', 'Salt', 'Glacier', 'Ice', 'Brick', 'Cobblestone', 'WoodPlanks', 'CrackedLava']);
-const FONTS = new Set(['GothamBold', 'GothamBlack', 'Gotham', 'Merriweather', 'PatrickHand', 'Arial', 'SourceSans', 'Code']);
+const FONTS = new Set(['GothamBold', 'GothamBlack', 'Gotham', 'Merriweather', 'PatrickHand', 'Arial', 'SourceSans', 'Code', 'Atlas']);
 const FACES = new Set(['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom']);
 
 const h = read(0);

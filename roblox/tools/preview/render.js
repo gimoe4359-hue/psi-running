@@ -194,6 +194,10 @@ const P = data.parts.map((a) => ({
 const groupPath = data.groups;
 const tagsOf = {};
 data.tags.forEach(([i, t]) => (tagsOf[t] = tagsOf[t] || []).push(i));
+// 손글씨 그림 글자 아틀라스 (게임에서 Config.TEXT_ATLAS_IDS 에 그림을 올린 뒤의 모습)
+const textAtlas = await (await fetch('/text_atlas.json')).json();
+const atlasImgs = await Promise.all(Array.from({ length: textAtlas.count }, (_, i) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.src = `/text_atlas/atlas_${i + 1}.png`; })));
+const atlasDraw = (g, key, x, y, w, h) => { const e = textAtlas.entries[key]; if (e) g.drawImage(atlasImgs[e.atlas - 1], e.x, e.y, e.w, e.h, x, y, w, h); };
 const attrOf = {};
 data.attrs.forEach(([i, k, v]) => ((attrOf[i] = attrOf[i] || {})[k] = v));
 
@@ -374,10 +378,11 @@ function drawText(rec) {
   const g = c.getContext('2d');
   const col = (i, a = 1) => `rgba(${data.colors[i].join(',')},${a})`;
   if (bgT < 1) { g.fillStyle = col(bc, 1 - bgT); g.fillRect(0, 0, cw, ch); }
+  if (font === 'Atlas') atlasDraw(g, text, 0, 0, cw, ch);
   const fam = FONT[font] || '700 X KR';
   const lines0 = String(text).split('\n');
   let best = null;
-  for (let size = Math.floor(ch * 0.9); size >= 6; size -= Math.max(1, Math.floor(size / 20))) {
+  for (let size = font === 'Atlas' ? 0 : Math.floor(ch * 0.9); size >= 6; size -= Math.max(1, Math.floor(size / 20))) {
     g.font = fam.replace('X', size + 'px');
     const lines = [];
     lines0.forEach((ln) => {
@@ -428,7 +433,7 @@ const lightDefs = data.lights.map(([pi, type, range, bright, colI, en, face, ang
   const dir = new THREE.Vector3(...dl).transformDirection(m);
   const pos = new THREE.Vector3(...p.p);
   if (type === 2) pos.addScaledVector(dir, 0.4);
-  return { type, range, bright, color: toColor(colI), en: en && bright > 0, dir, pos, angle, shadows, mv: movableOf(p.g), room: roomOf(p.g), name: p.name };
+  return { type, range, bright, color: toColor(colI), en: en && bright > 0, dir, pos, angle, shadows, mv: movableOf(p.g), room: roomOf(p.g), name: p.name, tg: toggleOf(p.g) };
 });
 let activeLights = [];
 function setupLights(center, maxN, o) {
@@ -439,7 +444,7 @@ function setupLights(center, maxN, o) {
   // 스위치로 켠 방: 그 방의 형광등 조명(LampBody)을 Roblox 스크립트와 같은 밝기(1.2)로 켠다
   const litRooms = new Set(o.roomLights || []);
   const isLit = (l) => l.en || (litRooms.has(l.room) && ['LampBody', 'BoardLampBody', 'LampFill'].includes(l.name));
-  lightDefs.filter(isLit).map((l) => (l.en ? l : { ...l, bright: l.type === 0 ? 0.5 : 1.2 })).map((l) => {
+  lightDefs.filter(isLit).filter((l) => !l.tg || (TOGGLES[l.tg] && TOGGLES[l.tg].visible)).map((l) => (l.en ? l : { ...l, bright: l.type === 0 ? 0.5 : 1.2 })).map((l) => {
     const wp = l.pos.clone(); if (l.mv) wp.applyMatrix4(movRoots[l.mv].matrixWorld);
     return { l, d: wp.distanceTo(c) };
   }).sort((a, b) => a.d - b.d).slice(0, maxN).forEach(({ l }, idx) => {
@@ -621,15 +626,12 @@ function setTubeGlow(rooms) {
   scene.add(tubeGlow);
 }
 
-// ───────── 근무 수칙 수첩 (게임 Client 의 drawRulePage 와 같은 방식: 획을 선으로 그림) ─────────
-const ruleStrokes = await (await fetch('/rule_strokes.json')).json().catch(() => []);
+// ───────── 근무 수칙 수첩 (게임 Client 의 drawRulePage 와 같은 배치: 줄마다 아틀라스 그림) ─────────
 function drawRulePage(g, pageIndex, x0, y0, em, gap, showNine) {
-  (ruleStrokes[pageIndex] || []).forEach((line, li) => {
-    if (line.kind === 'nine' && !showNine) return;
-    const sc = line.kind === 'title' ? 1.25 : 1, lx = x0 + line.indent * em, ly = y0 + (li + 0.5) * gap;
-    g.strokeStyle = line.kind === 'nine' ? 'rgb(170,14,14)' : 'rgb(28,34,74)';
-    g.lineWidth = Math.max(1.5, em * sc * 0.075); g.lineCap = 'round'; g.lineJoin = 'round';
-    line.strokes.forEach((st) => { g.beginPath(); for (let k = 0; k < st.length; k += 2) g[k ? 'lineTo' : 'moveTo'](lx + st[k] * em * sc, ly + st[k + 1] * em * sc); g.stroke(); });
+  (textAtlas.notebook[pageIndex] || []).forEach((line, li) => {
+    if (!line.key || (line.kind === 'nine' && !showNine)) return;
+    const e = textAtlas.entries[line.key], h = em * (line.kind === 'title' ? 1.25 : 1), w = h * e.w / e.h;
+    atlasDraw(g, line.key, x0 + line.indent * em, y0 + (li + 0.5) * gap - h * 0.62, w, h);
   });
 }
 (tagsOf.RulesNotebookPage || []).forEach((i) => {

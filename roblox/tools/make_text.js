@@ -30,24 +30,13 @@ const PHRASES = {
   openme: ['열어줘', 'East Sea Dokdo'],
   stay: ['너도 남아', 'East Sea Dokdo'],
   motto: ['늦게까지 남지 말자', 'Nanum Brush Script'],
+  fourth: ['4층은 없습니다', 'East Sea Dokdo'],
+  godown: ['내려가', 'East Sea Dokdo'],
+  whoareyou: ['누구세요', 'East Sea Dokdo'],
   mottoTitle: ['급훈', 'Nanum Brush Script'],
 };
 
-// 수첩에 손으로 적은 근무 수칙 (Config.RULES 와 같은 내용을 수첩 폭에 맞게 줄바꿈). 수칙을 바꾸면 여기도 고치고 다시 실행.
-const RULE_PAGES = [
-  [['야간 경비 근무 수칙', 'title'], [''],
-    ['1. 근무는 22:00 ~ 06:00.'], ['   06시 전엔 절대 정문을'], ['   열지 마세요.'],
-    ['2. 매시 정각 전, 1·2·3층'], ['   순찰함에 체크하세요.'],
-    ['3. 4층은 없습니다.'], ['   4층 표지판이 보이면'], ['   즉시 경비실로.'],
-    ['4. 전화가 오면 받으세요.'], ['   단, 당신 이름을 부르면'], ['   끊으세요.']],
-  [['5. 운동장에 의자가 있으면'], ['   쳐다보지 마세요.'],
-    ['6. 시계탑이 거꾸로 가면'], ['   건물에 들어가지 마세요.'],
-    ['7. 복도의 학생에게'], ['   말을 걸지 마세요.'], ['   학생들은 모두 하교했습니다.'],
-    ['8. 동상이 자리에 없다면,'], ['   찾지 마세요.'], [''],
-    ['9. 경비원은 한 명입니다.', 'nine'], ['   경비실에 누가 앉아 있다면,', 'nine'], ['   당신은 누구입니까?', 'nine']],
-];
-RULE_PAGES.forEach((pg, pi) => pg.forEach(([t], li) => { if (t.trim()) PHRASES[`rule_${pi}_${li}`] = [t.trim(), 'Nanum Pen Script']; }));
-
+// (근무 수칙 수첩 글씨는 tools/make_atlas.js 가 사용자 글꼴 그림으로 만든다)
 const FONT_DIRS = { 'Nanum Pen Script': 'nanum-pen-script', 'East Sea Dokdo': 'east-sea-dokdo', 'Nanum Brush Script': 'nanum-brush-script' };
 const PX = 220; // 렌더링 글자 크기
 
@@ -262,36 +251,7 @@ async function main() {
     out[id].ox = r((cx - PX * 0.2) / PX); out[id].oy = r((cy - res.h / 2) / PX); // 글 시작점·줄 가운데에서 본 중심 위치
     console.log(id, text, font, 'strokes', lines.length, 'points', lines.flat().length, res.ok ? '' : '(font missing!)');
   }
-  // 수첩 수칙: 줄마다 [시작점 기준 x, 줄 가운데 기준 y(아래 +)] 좌표의 획 목록으로 내보낸다 (em 단위)
-  const rdp2 = (pts, eps) => {
-    if (pts.length < 3) return pts;
-    const [ax, ay] = pts[0], [bx, by] = pts[pts.length - 1], dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy) || 1e-9;
-    let best = -1, bi = 0;
-    for (let i = 1; i < pts.length - 1; i++) { const d = Math.abs((pts[i][0] - ax) * dy - (pts[i][1] - ay) * dx) / L; if (d > best) { best = d; bi = i; } }
-    return best <= eps ? [pts[0], pts[pts.length - 1]] : rdp2(pts.slice(0, bi + 1), eps).slice(0, -1).concat(rdp2(pts.slice(bi), eps));
-  };
-  const r2 = (v) => Math.round(v * 100) / 100;
-  const pages = RULE_PAGES.map((pg, pi) => pg.map(([t, kind], li) => {
-    const ph = out[`rule_${pi}_${li}`];
-    if (!ph) return { kind: kind || 'ink', indent: 0, strokes: [] };
-    const indent = (t.length - t.trimStart().length) * 0.22;
-    const strokes = ph.strokes.map((st) => {
-      const pts = st.map(([x, y]) => [x + ph.ox, ph.oy - y]);
-      const closed = pts.length > 3 && Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]) < 1e-6;
-      const h = Math.floor(pts.length / 2);
-      const sp = closed ? rdp2(pts.slice(0, h + 1), 0.018).slice(0, -1).concat(rdp2(pts.slice(h), 0.018)) : rdp2(pts, 0.018);
-      return sp.flatMap(([x, y]) => [r2(x), r2(y)]);
-    });
-    (ph.dots || []).forEach(([x, y]) => strokes.push([r2(x - 0.012), r2(y), r2(x + 0.012), r2(y + 0.012)]));
-    return { kind: kind || 'ink', indent, strokes };
-  }));
   Object.keys(out).forEach((k) => { if (k.startsWith('rule_')) delete out[k]; });
-  const ROOT = path.resolve(__dirname, '..');
-  fs.writeFileSync(path.join(ROOT, 'build', 'rule_strokes.json'), JSON.stringify(pages));
-  const lua = '-- 자동 생성 (tools/make_text.js): 수첩에 손글씨로 적힌 근무 수칙의 획 데이터.\n-- pages[쪽][줄] = { kind, indent, strokes = { {x1,y1,x2,y2,...}, ... } } (글자 크기 em 단위, y는 아래가 +)\nreturn {\n'
-    + pages.map((pg) => '\t{\n' + pg.map((ln) => `\t\t{ kind = "${ln.kind}", indent = ${ln.indent}, strokes = { ${ln.strokes.map((st) => '{' + st.join(',') + '}').join(',')} } },`).join('\n') + '\n\t},').join('\n') + '\n}\n';
-  fs.writeFileSync(path.join(ROOT, 'src', 'ReplicatedStorage', 'RuleStrokes.lua'), lua);
-  console.log('rule strokes:', pages.flat().reduce((n, l) => n + l.strokes.reduce((m, st) => m + st.length / 2 - 1, 0), 0), 'segments');
   fs.writeFileSync(OUT, JSON.stringify(out));
   await browser.close();
   server.close();

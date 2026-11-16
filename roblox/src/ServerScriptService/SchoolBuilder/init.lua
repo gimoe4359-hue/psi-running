@@ -6,6 +6,7 @@
 -- 그 다음 파일 저장하면 맵이 장소에 그대로 남습니다. (이미 있으면 게임 시작 때 다시 짓지 않아요)
 
 local HttpService = game:GetService("HttpService")
+local AtlasText = require(game:GetService("ReplicatedStorage"):WaitForChild("AtlasText"))
 local CollectionService = game:GetService("CollectionService")
 
 local Builder = {}
@@ -191,27 +192,32 @@ function Builder.Build(parent, yield)
 			gui.Brightness = 1.6
 		end
 		gui.ResetOnSpawn = false
-		local label = Instance.new("TextLabel")
-		label.Name = "Label"
-		label.Size = UDim2.fromScale(1, 1)
-		label.BackgroundColor3 = colors[T[5]]
-		label.BackgroundTransparency = T[6]
-		label.BorderSizePixel = 0
-		label.TextColor3 = colors[T[4]]
-		label.Font = font(T[7])
-		label.Text = T[3]
-		label.TextScaled = true
-		label.TextWrapped = true
-		if T[9] == "Left" then
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			local pad = Instance.new("UIPadding")
-			pad.PaddingLeft = UDim.new(0.04, 0)
-			pad.PaddingRight = UDim.new(0.04, 0)
-			pad.PaddingTop = UDim.new(0.03, 0)
-			pad.PaddingBottom = UDim.new(0.03, 0)
-			pad.Parent = label
+		if T[7] == "Atlas" then
+			-- 손글씨 그림 글자 (AtlasText)
+			AtlasText.Make(T[3], gui)
+		else
+			local label = Instance.new("TextLabel")
+			label.Name = "Label"
+			label.Size = UDim2.fromScale(1, 1)
+			label.BackgroundColor3 = colors[T[5]]
+			label.BackgroundTransparency = T[6]
+			label.BorderSizePixel = 0
+			label.TextColor3 = colors[T[4]]
+			label.Font = font(T[7])
+			label.Text = T[3]
+			label.TextScaled = true
+			label.TextWrapped = true
+			if T[9] == "Left" then
+				label.TextXAlignment = Enum.TextXAlignment.Left
+				local pad = Instance.new("UIPadding")
+				pad.PaddingLeft = UDim.new(0.04, 0)
+				pad.PaddingRight = UDim.new(0.04, 0)
+				pad.PaddingTop = UDim.new(0.03, 0)
+				pad.PaddingBottom = UDim.new(0.03, 0)
+				pad.Parent = label
+			end
+			label.Parent = gui
 		end
-		label.Parent = gui
 		gui.Parent = p
 	end
 
