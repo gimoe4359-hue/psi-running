@@ -134,8 +134,9 @@ function AssetLibrary.Apply(root, yield)
 			if tpl then
 				local group = anchor.Parent
 				local keep = Templates[tname].keep or {}
+				local show = Templates[tname].show or {} -- 그대로 보여 줄 파트 (전조등·번호판·실내 등)
 				for _, c in ipairs(group:GetChildren()) do
-					if c:IsA("BasePart") and c ~= anchor then
+					if c:IsA("BasePart") and c ~= anchor and not table.find(show, c.Name) then
 						if table.find(keep, c.Name) then
 							c.Transparency = 1 -- 부딪힘 판정만 남김
 							for _, g in ipairs(c:GetChildren()) do

@@ -577,83 +577,104 @@ function car(name, cx, cz, ry, color, o = {}) {
       return P(n, size, W(...lp), col, mat, { ...op, r: [lr[0], ry + lr[1], lr[2]] });
     };
     const trim = [28, 28, 30], chrome = [190, 194, 198], glass = [40, 52, 60], seat = [44, 44, 48];
-    Q('Body', [6.2, 1.5, 15.2], [0, 1.95, 0], color, 'SmoothPlastic', { pri: true, refl: 0.12 });
-    Q('Skirt', [6.3, 0.35, 11.6], [0, 1.05, 0.2], trim, 'SmoothPlastic');
-    Q('Hood', [6.0, 0.45, 4.6], [0, 2.9, -5.1], color, 'SmoothPlastic', { refl: 0.15 });
-    Q('Nose', [6.0, 0.6, 0.8], [0, 2.45, -7.35], color, 'SmoothPlastic', { refl: 0.12 });
-    Q('Trunk', [6.0, 0.45, 3.0], [0, 2.9, 5.9], color, 'SmoothPlastic', { refl: 0.15 });
-    Q('Windshield', [5.6, 2.0, 2.6], [0, 4.12, -1.6], glass, 'Glass', { sh: 'Wedge', t: 0.78, refl: 0.15 });
-    Q('Roof', [5.6, 0.25, 4.4], [0, 5.24, 1.9], color, 'SmoothPlastic', { refl: 0.15 });
-    // ── 차체 다듬기: 모서리를 둥글게, 보닛·트렁크는 비스듬히, 필러와 지붕 테두리 ──
-    const dark = color.map((v) => Math.max(0, v - 14));
-    Q('HoodSlope', [6.0, 0.5, 2.2], [0, 2.82, -6.35], color, 'SmoothPlastic', { sh: 'Wedge', refl: 0.15, r: [0, 180, 0], nc: true });
-    Q('TrunkSlope', [6.0, 0.5, 1.2], [0, 2.82, 7.0], color, 'SmoothPlastic', { sh: 'Wedge', refl: 0.15, nc: true });
-    Q('Cowl', [5.8, 0.25, 0.6], [0, 3.1, -2.95], trim, 'SmoothPlastic', { nc: true });
+    // 2010년대 중형 세단 (K5·SM5·그랜저 느낌): 낮고 긴 차체, 길게 누운 앞유리, 짧은 지붕, 뒤로 흘러내리는 C필러,
+    // 짧은 트렁크, 옆으로 길게 뻗은 헤드램프, 굵은 어깨선, 5스포크 휠. 앞 = -Z, 길이 15(약 4.8 m)
+    const dark = color.map((v) => Math.max(0, v - 18)), paint = { refl: 0.18 };
+    const L0 = -7.5, L1 = 7.5, BW = 6.0;
+    // 아래 차체 + 어깨 (바퀴 위를 지나는 굵은 선)
+    Q('Body', [BW, 1.25, 14.6], [0, 1.72, 0], color, 'SmoothPlastic', { pri: true, ...paint });
+    Q('Shoulder', [BW, 0.62, 10.4], [0, 2.66, 0.6], color, 'SmoothPlastic', paint);
     [-1, 1].forEach((sx) => {
-      // 어깨선·지붕선·범퍼 모서리를 원기둥으로 둥글게
-      Q('ShoulderRound', [15.0, 0.5, 0.5], [sx * 2.92, 2.62, 0], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], refl: 0.15, nc: true });
-      Q('RoofRound', [4.4, 0.34, 0.34], [sx * 2.72, 5.2, 1.9], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], refl: 0.15, nc: true });
-      Q('BumperRound', [0.9, 0.75, 0.75], [sx * 2.85, 1.45, -7.38], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 0, 90], nc: true });
-      Q('BumperRound', [0.9, 0.75, 0.75], [sx * 2.85, 1.45, 7.38], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 0, 90], nc: true });
-      // 필러 (A·C) 와 창틀
-      Q('WindowTrim', [0.1, 0.1, 6.7], [sx * 2.86, 5.02, 1.8], chrome, 'Metal', { nc: true, ns: true });
-      Q('WindowTrim', [0.1, 0.1, 9.0], [sx * 2.9, 3.22, 0.9], chrome, 'Metal', { nc: true, ns: true });
-      // 바퀴집 (검은 반원), 흙받이, 옆 방향지시등, 안개등
-      [-1, 1].forEach((sz) => Q('WheelWell', [0.6, 3.1, 3.1], [sx * 2.62, 1.45, sz * 4.75], [14, 14, 16], 'SmoothPlastic', { sh: 'Cylinder', nc: true, ns: true }));
-      Q('SideSignal', [0.06, 0.16, 0.5], [sx * 3.12, 2.75, -3.6], [255, 150, 30], 'SmoothPlastic', { nc: true, ns: true });
-      Q('FogLight', [0.7, 0.3, 0.12], [sx * 2.3, 1.3, -7.74], [240, 240, 226], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
-      Q('MirrorArm', [0.5, 0.14, 0.2], [sx * 3.05, 3.55, -0.9], trim, 'SmoothPlastic', { nc: true, ns: true });
-      Q('MirrorGlass', [0.6, 0.38, 0.04], [sx * 3.38, 3.65, -0.7], [150, 170, 180], 'Glass', { nc: true, ns: true, refl: 0.5 });
-      Q('Wiper', [2.3, 0.06, 0.08], [sx * 1.3, 3.22, -2.72], [16, 16, 18], 'SmoothPlastic', { r: [0, sx * 8, 0], nc: true, ns: true });
-      Q('Exhaust', [0.5, 0.3, 0.3], [sx * 1.9, 0.95, 7.7], [120, 122, 126], 'Metal', { sh: 'Cylinder', r: [0, 90, 0], nc: true, ns: true });
+      Q('ShoulderRound', [10.4, 0.62, 0.62], [sx * (BW / 2 - 0.05), 2.66, 0.6], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], nc: true, ...paint });
+      Q('BodyRound', [14.4, 1.25, 1.25], [sx * (BW / 2 - 0.35), 1.72, 0], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], nc: true, ...paint });
+      Q('CharacterLine', [0.05, 0.06, 11.8], [sx * (BW / 2 + 0.29), 2.42, 0.1], dark, 'SmoothPlastic', { nc: true, ns: true });
+      Q('Skirt', [0.3, 0.42, 8.0], [sx * (BW / 2 - 0.05), 1.0, 0.1], [36, 38, 42], 'SmoothPlastic', { nc: true });
     });
-    Q('RoofAntenna', [0.12, 0.5, 0.7], [0, 5.5, 3.6], trim, 'SmoothPlastic', { sh: 'Wedge', nc: true, ns: true });
-    Q('RearLightBar', [4.2, 0.12, 0.1], [0, 2.75, 7.66], [150, 10, 14], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
-    Q('Underbody', [5.6, 0.3, 13.6], [0, 0.95, 0], [18, 18, 20], 'SmoothPlastic', { nc: true, ns: true });
-    Q('RearGlass', [5.6, 2.0, 2.2], [0, 4.12, 5.2], glass, 'Glass', { sh: 'Wedge', t: 0.35, refl: 0.2, r: [0, 180, 0] });
+    // 보닛: 앞으로 낮아지는 경사 (앞유리 아래 2.97 → 앞끝 2.3)
+    Q('Hood', [BW - 0.3, 0.67, 4.9], [0, 2.67, -5.05], color, 'SmoothPlastic', { sh: 'Wedge', ...paint });
+    Q('HoodBase', [BW - 0.3, 0.3, 4.9], [0, 2.2, -5.05], color, 'SmoothPlastic', { nc: true, ...paint });
+    // 앞코: 범퍼를 둥글게 감싼다
+    Q('Nose', [BW - 0.6, 1.1, 0.9], [0, 1.85, L0 + 0.45], color, 'SmoothPlastic', paint);
+    Q('NoseRound', [BW - 0.6, 1.1, 1.1], [0, 1.85, L0 + 0.6], color, 'SmoothPlastic', { sh: 'Cylinder', nc: true, ...paint });
+    // 트렁크: 짧고 높은 엉덩이
+    Q('TrunkDeck', [BW - 0.4, 0.42, 1.9], [0, 3.0, 6.25], color, 'SmoothPlastic', paint);
+    Q('Spoiler', [BW - 0.8, 0.12, 0.5], [0, 3.25, 7.0], color, 'SmoothPlastic', { nc: true, ...paint });
+    Q('Tail', [BW - 0.6, 1.4, 0.8], [0, 2.2, L1 - 0.4], color, 'SmoothPlastic', paint);
+    // 유리 온실: 앞유리 → 지붕 → 뒷유리 (지붕은 차체보다 좁다)
+    Q('Windshield', [5.2, 1.85, 3.1], [0, 3.92, -1.5], glass, 'Glass', { sh: 'Wedge', t: 0.55, refl: 0.3 });
+    Q('Roof', [5.0, 0.22, 3.4], [0, 4.95, 1.65], color, 'SmoothPlastic', paint);
+    Q('RoofRound', [3.4, 0.5, 0.5], [0, 4.85, 1.65], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], nc: true });
+    Q('RearGlass', [5.0, 1.85, 2.0], [0, 3.92, 4.35], glass, 'Glass', { sh: 'Wedge', t: 0.45, refl: 0.3, r: [0, 180, 0] });
     [-1, 1].forEach((sx) => {
-      Q('SideGlass', [0.08, 1.75, 6.6], [sx * 2.82, 4.12, 1.8], glass, 'Glass', { t: 0.65, refl: 0.2 });
-      Q('Pillar', [0.2, 2.05, 0.3], [sx * 2.82, 4.12, 2.0], trim, 'SmoothPlastic');
-      Q('BeltLine', [0.25, 0.25, 9], [sx * 3.0, 3.05, 0.3], color, 'SmoothPlastic', { refl: 0.12 });
-      Q('Mirror', [0.75, 0.5, 0.35], [sx * 3.35, 3.65, -0.9], color, 'SmoothPlastic');
-      Q('Handle', [0.1, 0.18, 0.7], [sx * 3.12, 2.7, -0.1], chrome, 'Metal', { nc: true });
-      Q('Handle', [0.1, 0.18, 0.7], [sx * 3.12, 2.7, 3.2], chrome, 'Metal', { nc: true });
-      Q('DoorLine', [0.04, 2.0, 0.05], [sx * 3.11, 2.3, 1.55], trim, 'SmoothPlastic', { nc: true, ns: true });
+      const xs = sx * 2.5;
+      // 옆 유리 (앞뒤 문) + 검은 B필러 + 크롬 창틀
+      Q('SideGlass', [0.06, 1.55, 3.0], [xs, 3.85, 0.0], glass, 'Glass', { t: 0.5, refl: 0.3 });
+      Q('SideGlass', [0.06, 1.55, 2.6], [xs, 3.85, 3.0], glass, 'Glass', { t: 0.5, refl: 0.3 });
+      Q('BPillar', [0.08, 1.6, 0.26], [xs + sx * 0.02, 3.85, 1.6], [16, 16, 18], 'SmoothPlastic', { nc: true });
+      Q('APillar', [0.2, 3.6, 0.22], [xs, 3.92, -1.5], color, 'SmoothPlastic', { r: [59, 0, 0], nc: true });
+      Q('CPillar', [0.22, 2.7, 0.5], [xs, 3.92, 4.35], color, 'SmoothPlastic', { r: [-47, 0, 0], nc: true });
+      Q('WindowTrim', [0.08, 0.08, 6.0], [xs + sx * 0.05, 3.06, 1.4], chrome, 'Metal', { nc: true, ns: true, refl: 0.4 });
+      Q('RoofTrim', [0.08, 0.08, 3.6], [xs + sx * 0.02, 4.78, 1.6], chrome, 'Metal', { nc: true, ns: true, refl: 0.4 });
+      // 문: 틈 두 줄 + 손잡이
+      [-1.6, 1.6, 4.4].forEach((z) => Q('DoorGap', [0.04, 1.9, 0.05], [sx * (BW / 2 + 0.31), 2.15, z], dark, 'SmoothPlastic', { nc: true, ns: true }));
+      [0.2, 2.9].forEach((z) => Q('Handle', [0.08, 0.15, 0.62], [sx * (BW / 2 + 0.33), 2.82, z], chrome, 'Metal', { nc: true, refl: 0.4 }));
+      Q('Mirror', [0.75, 0.42, 0.42], [sx * 3.3, 3.3, -1.0], color, 'SmoothPlastic', paint);
+      Q('MirrorSignal', [0.6, 0.06, 0.06], [sx * 3.35, 3.12, -1.22], [255, 150, 30], 'SmoothPlastic', { nc: true, ns: true });
+      // 바퀴: 타이어 + 5스포크 알루미늄 휠 + 바퀴집
       [-1, 1].forEach((sz) => {
-        Q('Arch', [0.5, 0.5, 3.4], [sx * 2.9, 2.95, sz * 4.75], trim, 'SmoothPlastic');
-        Q('Tire', [0.95, 2.55, 2.55], [sx * 2.75, 1.275, sz * 4.75], [26, 26, 28], 'Rubber', { sh: 'Cylinder' });
-        Q('Rim', [1.0, 1.7, 1.7], [sx * 2.76, 1.275, sz * 4.75], [170, 174, 178], 'Metal', { sh: 'Cylinder' });
-        Q('Hub', [1.04, 0.5, 0.5], [sx * 2.76, 1.275, sz * 4.75], [90, 92, 96], 'Metal', { sh: 'Cylinder' });
+        const wz = sz * 4.6, wx = sx * 2.62;
+        Q('WheelWell', [0.5, 2.95, 2.95], [sx * 2.82, 1.3, wz], [12, 12, 14], 'SmoothPlastic', { sh: 'Cylinder', nc: true, ns: true });
+        Q('Tire', [0.9, 2.3, 2.3], [wx, 1.15, wz], [24, 24, 26], 'Rubber', { sh: 'Cylinder' });
+        Q('Rim', [0.92, 1.6, 1.6], [wx + sx * 0.02, 1.15, wz], [186, 190, 194], 'Metal', { sh: 'Cylinder', nc: true, refl: 0.3 });
+        Q('RimDish', [0.95, 1.1, 1.1], [wx + sx * 0.02, 1.15, wz], [96, 98, 102], 'Metal', { sh: 'Cylinder', nc: true, ns: true });
+        if (false) Q('Spoke', [0.06, 0.7, 0.22], [wx + sx * 0.46, 1.15 + Math.cos((k * 72 * Math.PI) / 180) * 0.4, wz + Math.sin((k * 72 * Math.PI) / 180) * 0.4], [196, 200, 204], 'Metal', { r: [-k * 72, 0, 0], nc: true, ns: true, refl: 0.3 });
+        Q('Hub', [0.96, 0.4, 0.4], [wx + sx * 0.03, 1.15, wz], [150, 154, 158], 'Metal', { sh: 'Cylinder', nc: true, ns: true });
       });
-      Q('Headlight', [1.6, 0.42, 0.25], [sx * 2.2, 2.55, -7.65], [255, 252, 240], 'Neon', {
+      // 헤드램프: 옆으로 길게 찢어진 모양 (펜더 쪽으로 올라감)
+      Q('Headlight', [1.8, 0.36, 0.5], [sx * 1.85, 2.42, L0 + 0.62], [236, 240, 244], o.lightsOn ? 'Neon' : 'Glass', { r: [0, -sx * 14, 0], refl: 0.4,
         tag: 'CarHeadlight', light: { type: 'Spot', face: 'Front', range: 60, brightness: o.lightsOn ? 6 : 0, angle: 50, color: [255, 246, 226], enabled: !!o.lightsOn, shadows: true } });
-      Q('DRL', [1.6, 0.08, 0.2], [sx * 2.2, 2.25, -7.66], [235, 245, 255], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
-      Q('Taillight', [1.7, 0.4, 0.2], [sx * 2.15, 2.75, 7.62], [170, 10, 14], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true });
+      Q('HeadlightTrim', [1.9, 0.1, 0.52], [sx * 1.85, 2.62, L0 + 0.63], chrome, 'Metal', { r: [0, -sx * 14, 0], nc: true, ns: true });
+      Q('DRL', [1.2, 0.06, 0.1], [sx * 1.9, 2.3, L0 + 0.37], [235, 245, 255], o.lightsOn ? 'Neon' : 'SmoothPlastic', { r: [0, -sx * 14, 0], nc: true, ns: true });
+      Q('FogLight', [0.55, 0.28, 0.1], [sx * 2.2, 1.3, L0 - 0.02], [240, 240, 226], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
+      Q('FogBezel', [0.9, 0.5, 0.08], [sx * 2.2, 1.3, L0 + 0.02], [30, 30, 32], 'SmoothPlastic', { nc: true, ns: true });
+      // 뒤: 옆으로 감싸는 빨간 램프
+      Q('Taillight', [1.6, 0.48, 0.25], [sx * 2.1, 2.62, L1 - 0.02], [170, 14, 18], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true });
+      Q('TailWrap', [0.25, 0.48, 0.9], [sx * (BW / 2 - 0.12), 2.62, L1 - 0.5], [150, 12, 16], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
+      Q('Reflector', [0.6, 0.12, 0.06], [sx * 2.2, 1.3, L1 + 0.02], [130, 10, 12], 'SmoothPlastic', { nc: true, ns: true });
+      Q('Exhaust', [0.5, 0.26, 0.26], [sx * 1.8, 0.9, L1 - 0.1], [150, 152, 156], 'Metal', { sh: 'Cylinder', r: [0, 90, 0], nc: true, ns: true });
+      Q('Wiper', [2.2, 0.06, 0.08], [sx * 1.2, 3.02, -3.05], [16, 16, 18], 'SmoothPlastic', { r: [0, sx * 8, 0], nc: true, ns: true });
     });
-    Q('Grille', [2.6, 0.55, 0.15], [0, 2.3, -7.72], [22, 22, 24], 'Metal');
-    Q('Emblem', [0.5, 0.35, 0.05], [0, 2.3, -7.81], chrome, 'Metal', { nc: true });
-    Q('FrontBumper', [6.3, 0.75, 0.6], [0, 1.45, -7.45], color, 'SmoothPlastic', { refl: 0.1 });
-    Q('LowerGrille', [4.2, 0.35, 0.1], [0, 1.25, -7.78], trim, 'SmoothPlastic', { nc: true });
-    Q('RearBumper', [6.3, 0.75, 0.6], [0, 1.45, 7.45], color, 'SmoothPlastic', { refl: 0.1 });
-    Q('Plate', [2.1, 0.5, 0.06], [0, 1.6, -7.8], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Front', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
-    Q('Plate', [2.1, 0.5, 0.06], [0, 2.0, 7.78], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Back', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
+    // 앞 그릴 (호랑이 코 모양의 가로로 넓은 그릴 + 크롬 테두리) + 아래 공기구멍
+    Q('Grille', [2.6, 0.5, 0.12], [0, 2.18, L0 - 0.03], [18, 18, 20], 'Metal');
+    Q('GrilleRim', [2.8, 0.66, 0.08], [0, 2.18, L0 + 0.02], chrome, 'Metal', { nc: true, refl: 0.4 });
+    for (let k = 0; k < 3; k++) Q('GrilleBar', [2.5, 0.04, 0.05], [0, 2.04 + k * 0.14, L0 - 0.1], [70, 72, 76], 'Metal', { nc: true, ns: true });
+    Q('Emblem', [0.45, 0.3, 0.05], [0, 2.18, L0 - 0.12], chrome, 'Metal', { nc: true, refl: 0.5 });
+    Q('LowerGrille', [3.2, 0.42, 0.08], [0, 1.25, L0 - 0.02], [22, 22, 24], 'SmoothPlastic', { nc: true });
+    Q('Plate', [2.1, 0.46, 0.06], [0, 1.65, L0 - 0.05], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Front', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
+    Q('Plate', [2.1, 0.46, 0.06], [0, 2.25, L1 + 0.03], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Back', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
+    Q('TrunkChrome', [3.0, 0.1, 0.06], [0, 2.7, L1 + 0.02], chrome, 'Metal', { nc: true, ns: true, refl: 0.4 });
+    Q('RearDiffuser', [4.6, 0.3, 0.1], [0, 1.05, L1 + 0.0], [30, 30, 32], 'SmoothPlastic', { nc: true, ns: true });
+    Q('Underbody', [5.4, 0.3, 13.4], [0, 0.95, 0], [18, 18, 20], 'SmoothPlastic', { nc: true, ns: true });
+    Q('SharkFin', [0.18, 0.35, 0.8], [0, 5.2, 3.0], dark, 'SmoothPlastic', { sh: 'Wedge', nc: true, ns: true });
+    // 메시 팩이 있으면 매끈한 세단 메시로 바뀐다 (전조등·번호판·실내 파트는 남는다)
+    swapAnchor(yawFrame(W(0, 0, 0), ry), 'Sedan');
     // 실내
     Q('CabinFloor', [5.4, 0.2, 9], [0, 2.75, 1.2], [36, 36, 38], 'Carpet', { nc: true });
-    Q('Dash', [5.4, 1.0, 1.4], [0, 3.35, -2.55], [32, 32, 34], 'Leather', { nc: true });
-    Q('DashTop', [5.4, 0.12, 1.0], [0, 3.9, -2.75], [24, 24, 26], 'Leather', { nc: true });
-    Q('Cluster', [1.3, 0.45, 0.05], [-1.35, 3.68, -1.84], [120, 180, 255], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
-    Q('Screen', [1.2, 0.7, 0.05], [0, 3.6, -1.84], [40, 70, 110], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
-    Q('SteeringWheel', [0.12, 1.45, 1.45], [-1.35, 3.55, -1.35], [20, 20, 22], 'Leather', { sh: 'Cylinder', r: [0, 90, -25], nc: true });
-    Q('Column', [0.25, 0.25, 0.9], [-1.35, 3.45, -1.75], [30, 30, 32], 'SmoothPlastic', { nc: true });
+    Q('Dash', [5.2, 0.9, 1.0], [0, 3.3, -1.0], [32, 32, 34], 'Leather', { nc: true });
+    Q('DashTop', [5.2, 0.12, 0.7], [0, 3.8, -1.2], [24, 24, 26], 'Leather', { nc: true });
+    Q('Cluster', [1.3, 0.45, 0.05], [-1.35, 3.62, -0.48], [120, 180, 255], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
+    Q('Screen', [1.2, 0.6, 0.05], [0, 3.5, -0.48], [40, 70, 110], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
+    Q('SteeringWheel', [0.12, 1.45, 1.45], [-1.35, 3.5, -0.05], [20, 20, 22], 'Leather', { sh: 'Cylinder', r: [0, 90, -25], nc: true });
+    Q('Column', [0.25, 0.25, 0.6], [-1.35, 3.4, -0.4], [30, 30, 32], 'SmoothPlastic', { nc: true });
     [-1.35, 1.35].forEach((sx) => {
-      Q('SeatBase', [2.0, 0.7, 2.2], [sx, 3.15, 0.4], seat, 'Leather', { nc: true });
-      Q('SeatBack', [2.0, 2.2, 0.5], [sx, 4.3, 1.55], seat, 'Leather', { nc: true });
-      Q('Headrest', [1.2, 0.6, 0.45], [sx, 5.55, 1.7], seat, 'Leather', { nc: true });
+      Q('SeatBase', [2.0, 0.7, 2.0], [sx, 3.15, 1.1], seat, 'Leather', { nc: true });
+      Q('SeatBack', [2.0, 1.5, 0.5], [sx, 3.95, 2.2], seat, 'Leather', { nc: true });
+      Q('Headrest', [1.1, 0.45, 0.4], [sx, 4.55, 2.3], seat, 'Leather', { nc: true });
     });
-    Q('RearSeat', [5.0, 0.7, 2.2], [0, 3.15, 4.0], seat, 'Leather', { nc: true });
-    Q('RearBack', [5.0, 1.9, 0.5], [0, 4.2, 4.9], seat, 'Leather', { nc: true });
-    Q('Console', [0.9, 0.9, 2.6], [0, 3.1, -0.4], [28, 28, 30], 'SmoothPlastic', { nc: true });
-    if (o.pov) Q('DriverEye', [0.2, 0.2, 0.2], [-1.35, 4.6, 0.9], [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'DriverEye' });
+    Q('RearSeat', [4.8, 0.7, 1.6], [0, 3.15, 3.5], seat, 'Leather', { nc: true });
+    Q('RearBack', [4.8, 1.0, 0.5], [0, 3.75, 4.35], seat, 'Leather', { nc: true });
+    Q('Console', [0.9, 0.8, 2.2], [0, 3.05, 0.6], [28, 28, 30], 'SmoothPlastic', { nc: true });
+    if (o.pov) Q('DriverEye', [0.2, 0.2, 0.2], [-1.35, 4.45, 1.6], [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'DriverEye' });
   }, o.tag);
 }
 
@@ -1433,22 +1454,25 @@ grp('GuardBooth', () => {
 SHIFT = null;
 grp('Grounds', () => {
   const PZ = 92 - GD; // 주차장 북쪽 끝
-  B('Driveway', -12, 0, -116, 12, 0.2, GZ - 2.8, C.asphalt, 'Asphalt');
-  B('Curb', -12.7, 0, -116, -12, 0.55, GZ - 3, C.curb, 'Concrete');
-  B('Curb', 12, 0, -116, 12.7, 0.55, PZ, C.curb, 'Concrete');
-  B('Curb', 12, 0, PZ + 84, 12.7, 0.55, GZ - 3, C.curb, 'Concrete');
-  for (let z = -108; z < GZ - 8; z += 10) B('DashLine', -0.18, 0.2, z, 0.18, 0.23, z + 5, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
-  B('SlowText', -6, 0.2, GZ - 50, 6, 0.24, GZ - 40, [220, 220, 216], 'SmoothPlastic', { t: 1, nc: true, ns: true, text: { face: 'Top', text: '천 천 히', color: [225, 225, 220], bgT: 1, lit: 1 } });
-  B('SpeedBump', -12, 0.2, GZ - 32, 12, 0.5, GZ - 30, [220, 190, 40], 'Rubber');
+  // 등하굣길: 정문에서 현관까지 보도블록 길 (아스팔트·차선 없음). 양옆 경계석 + 가운데 무늬
+  const WZ0 = -116, WZ1 = PZ;
+  B('Walkway', -12, 0, WZ0, 12, 0.2, WZ1, [176, 152, 132], 'Pavement');
+  for (let z = WZ0 + 3; z < WZ1; z += 3) B('PaverJoint', -12, 0.2, z - 0.04, 12, 0.21, z + 0.04, [140, 120, 104], 'SmoothPlastic', { nc: true, ns: true, min: 0.01 });
+  for (let x = -9; x <= 9; x += 3) B('PaverJoint', x - 0.04, 0.2, WZ0, x + 0.04, 0.21, WZ1, [140, 120, 104], 'SmoothPlastic', { nc: true, ns: true, min: 0.01 });
+  B('WalkBand', -3, 0.2, WZ0, 3, 0.22, WZ1, [150, 150, 146], 'Pavement', { nc: true, ns: true, min: 0.02 });
+  B('Curb', -12.6, 0, WZ0, -12, 0.45, WZ1, C.curb, 'Concrete');
+  B('Curb', 12, 0, WZ0, 12.6, 0.45, PZ, C.curb, 'Concrete');
+  // 정문 안쪽: 차가 주차장으로 꺾어 들어가는 짧은 진입로
+  B('GateApron', -12, 0, PZ, 12, 0.2, GZ - 2.8, [120, 118, 112], 'Pavement');
   B('Parking', 12, 0, PZ, 108, 0.2, PZ + 84, [62, 63, 66], 'Asphalt');
   for (let i = 0; i < 10; i++) {
     const x = 18 + i * 9;
     B('ParkLine', x, 0.2, PZ + 4, x + 0.3, 0.23, PZ + 22, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
     B('ParkLine', x, 0.2, PZ + 62, x + 0.3, 0.23, PZ + 80, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
   }
-  car('TeacherCar1', 31.6, PZ + 14, 180, [118, 18, 26], { plate: '12가 3456' });
-  car('TeacherCar2', 67.6, PZ + 14, 180, [220, 220, 224], { plate: '48라 9012' });
-  car('SchoolVan', 85.6, PZ + 71, 0, [42, 46, 52], { plate: '77바 1004' });
+  car('TeacherCar1', 31.6, PZ + 14, 180, [196, 200, 204], { plate: '12가 3456' });
+  car('TeacherCar2', 67.6, PZ + 14, 180, [232, 232, 230], { plate: '48라 9012' });
+  car('SchoolVan', 85.6, PZ + 71, 0, [26, 28, 32], { plate: '77바 1004' });
   const cx = -113, cz = 2;
   [[70, 88], [64.5, 82.5], [59, 77]].forEach(([a, b]) => {
     const N = 64;
@@ -1606,8 +1630,6 @@ grp('Grounds', () => {
     B('Leg', x - 2.6, 0, z - 0.7, x - 2.3, 2.1, z + 0.8, [60, 60, 64], 'Metal');
     B('Leg', x + 2.3, 0, z - 0.7, x + 2.6, 2.1, z + 0.8, [60, 60, 64], 'Metal');
   }));
-  [[-17, 60], [-17, 10], [-17, -45], [-17, -100]].forEach(([x, z], i) => streetLight(x, z, 90, { h: 16, range: 36, flicker: i === 1 }));
-  [[16, PZ + 28], [60, PZ + 86], [104, PZ + 38]].forEach(([x, z]) => streetLight(x, z, -90, { h: 16, range: 36 }));
   grp('BikeShed', () => {
     B('Roof', 30, 8, -116, 92, 8.4, -104, [70, 120, 150], 'Plastic', { t: 0.25 });
     for (let x = 30; x <= 92; x += 10.3) { B('Post', x - 0.2, 0, -104.8, x + 0.2, 8, -104.4, [80, 84, 90], 'Metal'); B('Post', x - 0.2, 0, -115.6, x + 0.2, 8, -115.2, [80, 84, 90], 'Metal'); }
@@ -1733,6 +1755,17 @@ const BOARD_R = [0, 0, -1], BOARD_U = [0, 1, 0], BOARD_N = [1, 0, 0];
 function chalkWrite(id, boardCenter, u, v, width, o = {}) {
   const sc = width / STROKES[id].w;
   return atlasText(id, vadd(vadd(boardCenter, vmul(BOARD_R, u)), vmul(BOARD_U, v)), BOARD_R, BOARD_U, BOARD_N, width, o);
+}
+// 음악실 화이트보드: 알루미늄 테두리, 오선 두 줄, 펜 받침
+function whiteboard(xa, L, zc) {
+  grp('Whiteboard', () => {
+    const x = xa + 0.06, y0 = L + 3.4, y1 = L + 8.6, za = zc - 8, zb = zc + 8, so = { nc: true, ns: true };
+    B('BoardFrame', x, y0 - 0.15, za - 0.15, x + 0.25, y1 + 0.15, zb + 0.15, [180, 184, 188], 'Metal');
+    B('BoardFace', x + 0.25, y0, za, x + 0.28, y1, zb, [246, 248, 248], 'SmoothPlastic', { ...so, refl: 0.08 });
+    [y1 - 1.4, y1 - 3.2].forEach((yy) => { for (let k = 0; k < 5; k++) B('StaffLine', x + 0.28, yy + k * 0.18, za + 1, x + 0.29, yy + k * 0.18 + 0.025, za + 10, [40, 40, 50], 'SmoothPlastic', { ...so, min: 0.01 }); });
+    B('PenTray', x + 0.25, y0 - 0.25, za, x + 0.6, y0 - 0.1, zb, [180, 184, 188], 'Metal', so);
+    [[30, 30, 200], [200, 30, 30], [20, 20, 20]].forEach((c, i) => P('Marker', [0.12, 0.12, 0.6], [x + 0.45, y0 - 0.05, za + 2 + i * 0.8], c, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], ...so }));
+  });
 }
 function blackboard(xa, L, zc, roomIdx, writing) {
   const al = [192, 194, 196], al2 = [168, 170, 172];
@@ -2251,10 +2284,25 @@ function restroomHalf(x0, x1, L, z0, z1, women) {
   const dx = (x0 + sx0) / 2 + 1, dz = (z0 + z1) / 2;
   B('Drain', dx - 0.5, L + 0.04, dz - 0.5, dx + 0.5, L + 0.06, dz + 0.5, [150, 152, 156], 'Metal', { ...so, min: 0.02 });
   for (let i = -1; i <= 1; i++) B('DrainSlot', dx - 0.35, L + 0.06, dz + i * 0.25 - 0.04, dx + 0.35, L + 0.07, dz + i * 0.25 + 0.04, [40, 40, 42], 'Metal', { ...so, min: 0.01 });
-  rod('MopHandle', [x0 + 0.5, L + 0.3, z1 - 1.6], [x0 + 0.25, L + 5.6, z1 - 1.2], 0.12, [70, 110, 190], 'SmoothPlastic', so);
-  B('MopHead', x0 + 0.2, L + 0.04, z1 - 2.0, x0 + 1.0, L + 0.4, z1 - 1.3, [220, 216, 204], 'Fabric', so);
-  cylV('Bucket', x0 + 1.6, L + 0.04, z1 - 1.4, 1.1, 1.2, [60, 120, 190], 'Plastic', { nc: true });
+  rod('MopHandle', [x0 + 0.5, L + 0.3, z1 - 3.2], [x0 + 0.25, L + 5.6, z1 - 3.0], 0.12, [70, 110, 190], 'SmoothPlastic', so);
+  B('MopHead', x0 + 0.2, L + 0.04, z1 - 3.6, x0 + 1.0, L + 0.4, z1 - 2.9, [220, 216, 204], 'Fabric', so);
+  cylV('Bucket', x0 + 1.6, L + 0.04, z1 - 3.0, 1.1, 1.2, [60, 120, 190], 'Plastic', { nc: true });
   B('HandDryer', x0, L + 4.2, z0 + 3.2, x0 + 0.5, L + 5.4, z0 + 4.4, [236, 236, 232], 'SmoothPlastic', { nc: true });
+  // 거울 스테인리스 테두리, 물비누 통, 휴지 상자, 벽 포스터, 천장 환풍기, 청소 도구함, 칸 번호
+  B('MirrorFrame', x0, L + 3.9, cz0 + 0.4, x0 + 0.12, L + 8.1, cz0 + 0.5, steel, 'Metal', so);
+  B('MirrorFrame', x0, L + 3.9, cz1 - 0.5, x0 + 0.12, L + 8.1, cz1 - 0.4, steel, 'Metal', so);
+  B('MirrorFrame', x0, L + 8.0, cz0 + 0.4, x0 + 0.12, L + 8.1, cz1 - 0.4, steel, 'Metal', so);
+  for (let z = cz0 + 2; z < cz1 - 1; z += 3.6) B('SoapPump', x0, L + 3.8, z + 0.9, x0 + 0.35, L + 4.6, z + 1.3, [236, 236, 232], 'SmoothPlastic', so);
+  B('TowelBox', x0, L + 4.4, cz1 + 0.6, x0 + 0.5, L + 5.6, cz1 + 1.8, [236, 236, 232], 'SmoothPlastic', { nc: true });
+  B('Poster', x0, L + 5.4, z0 + 0.8, x0 + 0.04, L + 7.0, z0 + 2.6, [240, 244, 250], 'SmoothPlastic', { ...so,
+    text: { face: 'Right', text: women ? '손 씻기\n30초' : '한 걸음 더\n가까이', color: [30, 60, 140], bgT: 1, lit: 1, font: 'GothamBold', pps: 60 } });
+  B('ExhaustFan', (x0 + x1) / 2 - 0.8, L + CEIL - 0.08, z1 - 3, (x0 + x1) / 2 + 0.8, L + CEIL, z1 - 1.4, [232, 232, 228], 'SmoothPlastic', so);
+  for (let k = 0; k < 4; k++) B('FanSlot', (x0 + x1) / 2 - 0.6, L + CEIL - 0.1, z1 - 2.85 + k * 0.38, (x0 + x1) / 2 + 0.6, L + CEIL - 0.08, z1 - 2.7 + k * 0.38, [120, 120, 124], 'SmoothPlastic', { ...so, min: 0.02 });
+  for (let k = 0; k < nStall; k++) {
+    const za = z0 + 1.0 + k * 5.2;
+    B('StallNo', sx0 - 0.12, L + 6.0, za + 2.2, sx0 - 0.08, L + 6.5, za + 2.9, [40, 84, 170], 'SmoothPlastic', { ...so, min: 0.03,
+      text: { face: 'Left', text: String(k + 1), color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBlack', pps: 90 } });
+  }
 }
 
 function interiorRoom(r) {
@@ -2318,7 +2366,7 @@ function interiorRoom(r) {
     for (let k = 0; k < 3; k++) B('Switch', swx + 0.06 + k * 0.14, L + 4.22, swz + 0.05, swx + 0.16 + k * 0.14, L + 4.52, swz + 0.09, [250, 250, 248], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
     if (classLike) {
       // ── 앞벽: 칠판, 태극기, 급훈, 시계, 방송 스피커 ──
-      blackboard(xa, L, zc, roomIdx, isClass(name));
+      if (name === '음악실') whiteboard(xa, L, zc); else blackboard(xa, L, zc, roomIdx, isClass(name));
       taegeukgi([xa, L + 9.3, zc], BOARD_R, BOARD_U, BOARD_N, 1.2);
       mottoFrame([xa, L + 9.3, zc + 4.7], BOARD_R, BOARD_U, BOARD_N);
       const spooky = name === '3-4', mm = 58 + ((roomIdx * 5) % 7);
@@ -2435,14 +2483,53 @@ function interiorRoom(r) {
       B('OnAir', xa + 0.1, L + 8.6, zc - 1.8, xa + 0.3, L + 9.8, zc + 1.8, [70, 16, 16], 'SmoothPlastic', { tag: 'OnAirSign',
         text: { face: 'Right', text: 'ON AIR', color: [255, 80, 80], bgT: 1, font: 'GothamBlack', lit: 0 } });
     } else if (name === '과학실') {
+      // 과학실 (참고 사진): 흰 실험대 + 초록 테두리 상판, 가운데 수전·싱크, 자주색 의자, 창가·벽을 따라 낮은 수납장, 기둥 선반
+      const green = [86, 176, 92], topC = [236, 238, 234], cab = [226, 214, 186];
       for (let k = 0; k < 6; k++) {
-        const x = xa + 10 + (k % 3) * 7, z = z0 + 7 + Math.floor(k / 3) * 11;
-        B('LabBase', x - 2.3, L, z - 3.6, x + 2.3, L + 2.9, z + 3.6, [232, 232, 226], 'SmoothPlastic');
-        B('LabTop', x - 2.5, L + 2.9, z - 3.8, x + 2.5, L + 3.15, z + 3.8, [26, 26, 28], 'Slate');
-        cylBetween('Faucet', [x, L + 3.15, z + 0.8], [x, L + 4.5, z + 0.8], 0.15, C.steel, 'Metal', { nc: true });
-        cylBetween('Faucet', [x, L + 4.5, z + 0.8], [x, L + 4.5, z + 0.2], 0.12, C.steel, 'Metal', { nc: true });
-        [-2.2, 2.2].forEach((dz) => { cylV('StoolLeg', x + 3.4, L, z + dz, 1.9, 0.25, C.steel, 'Metal'); cylV('StoolTop', x + 3.4, L + 1.9, z + dz, 0.2, 1.3, [60, 90, 140], 'Plastic'); });
+        const x = xa + 9.5 + (k % 3) * 7.2, z = z0 + 7 + Math.floor(k / 3) * 11.5;
+        grp('LabTable', () => {
+          B('LabBase', x - 2.1, L, z - 3.6, x + 2.1, L + 2.65, z + 3.6, [244, 244, 240], 'SmoothPlastic');
+          B('LabKick', x - 2.0, L, z - 3.5, x + 2.0, L + 0.3, z + 3.5, [80, 84, 88], 'SmoothPlastic', { nc: true });
+          B('LabTop', x - 2.4, L + 2.65, z - 3.9, x + 2.4, L + 2.85, z + 3.9, topC, 'SmoothPlastic');
+          B('LabEdge', x - 2.45, L + 2.6, z - 3.95, x + 2.45, L + 2.85, z - 3.85, green, 'SmoothPlastic', { nc: true });
+          B('LabEdge', x - 2.45, L + 2.6, z + 3.85, x + 2.45, L + 2.85, z + 3.95, green, 'SmoothPlastic', { nc: true });
+          B('LabEdge', x - 2.45, L + 2.6, z - 3.95, x - 2.35, L + 2.85, z + 3.95, green, 'SmoothPlastic', { nc: true });
+          B('LabEdge', x + 2.35, L + 2.6, z - 3.95, x + 2.45, L + 2.85, z + 3.95, green, 'SmoothPlastic', { nc: true });
+          // 가운데 싱크 + 거위목 수전 + 가스 콕
+          B('Sink', x - 0.6, L + 2.8, z - 0.7, x + 0.6, L + 2.86, z + 0.7, [170, 174, 178], 'Metal', { nc: true, refl: 0.2 });
+          cylBetween('Faucet', [x, L + 2.85, z + 0.9], [x, L + 4.2, z + 0.9], 0.12, C.steel, 'Metal', { nc: true });
+          cylBetween('Faucet', [x, L + 4.2, z + 0.9], [x, L + 4.2, z + 0.3], 0.1, C.steel, 'Metal', { nc: true });
+          [-0.5, 0.5].forEach((dx) => P('GasCock', [0.3, 0.2, 0.2], [x + dx, L + 3.0, z - 1.2], [230, 200, 40], 'Metal', { sh: 'Cylinder', r: [0, 0, 90], nc: true, ns: true }));
+          // 서랍 줄
+          for (let q = -2; q <= 2; q++) B('Drawer', x + 2.1, L + 1.7, z + q * 1.4 - 0.6, x + 2.13, L + 2.45, z + q * 1.4 + 0.6, [232, 232, 228], 'SmoothPlastic', { nc: true, ns: true });
+          // 자주색 의자 4개 (등받이 있는 철제 의자)
+          [[-1, -2.2], [-1, 2.2], [1, -2.2], [1, 2.2]].forEach(([sx, dz]) => {
+            const cx = x + sx * 3.1, cz = z + dz;
+            B('StoolSeat', cx - 0.7, L + 1.7, cz - 0.7, cx + 0.7, L + 1.9, cz + 0.7, [110, 46, 62], 'Fabric');
+            B('StoolBack', cx + sx * 0.65 - 0.06, L + 1.9, cz - 0.65, cx + sx * 0.65 + 0.06, L + 3.4, cz + 0.65, [110, 46, 62], 'Fabric', { nc: true });
+            [[-0.55, -0.55], [-0.55, 0.55], [0.55, -0.55], [0.55, 0.55]].forEach(([a, b]) => cylV('StoolLeg', cx + a, L, cz + b, 1.7, 0.12, [60, 60, 64], 'Metal', { nc: true }));
+          });
+        }, 'LabTable');
       }
+      // 창가 쪽 낮은 수납장 + 상판, 북쪽 벽 수납장
+      B('SideCabinet', xa + 4, L, z1 - 2.4, xb - 6, L + 2.6, z1 - 0.1, cab, 'SmoothPlastic');
+      B('SideTop', xa + 4, L + 2.6, z1 - 2.5, xb - 6, L + 2.8, z1, topC, 'SmoothPlastic');
+      B('SideEdge', xa + 4, L + 2.55, z1 - 2.55, xb - 6, L + 2.8, z1 - 2.45, green, 'SmoothPlastic', { nc: true });
+      for (let x = xa + 4.2; x < xb - 6.5; x += 2.2) B('CabDoorLine', x, L + 0.2, z1 - 2.42, x + 0.04, L + 2.4, z1 - 2.4, [170, 160, 140], 'SmoothPlastic', { nc: true, ns: true });
+      B('SideSink', xa + 6, L + 2.75, z1 - 1.9, xa + 8, L + 2.82, z1 - 0.6, [170, 174, 178], 'Metal', { nc: true });
+      cylBetween('SideFaucet', [xa + 7, L + 2.8, z1 - 0.4], [xa + 7, L + 4.0, z1 - 0.4], 0.12, C.steel, 'Metal', { nc: true });
+      for (let k = 0; k < 6; k++) B('Basket', xa + 10 + k * 2.6, L + 2.8, z1 - 2.0, xa + 11.8 + k * 2.6, L + 3.4, z1 - 0.6, k % 2 ? [244, 204, 40] : [220, 220, 216], 'Plastic', { nc: true });
+      B('WallCabinet', xa + 3, L + 6.2, z0 + 0.1, xb - 3, L + 8.6, z0 + 1.4, cab, 'SmoothPlastic');
+      for (let x = xa + 3.2; x < xb - 3.2; x += 2.4) B('CabDoorLine', x, L + 6.3, z0 + 1.4, x + 0.04, L + 8.5, z0 + 1.43, [170, 160, 140], 'SmoothPlastic', { nc: true, ns: true });
+      // 가운데 기둥 + 나무 선반 (사진 가운데)
+      B('LabColumn', xa + 17, L, zc - 0.9, xa + 18.8, L + CEIL, zc + 0.9, [244, 244, 240], 'Plaster');
+      B('ColumnShelf', xa + 15.6, L + 3.0, zc - 1.0, xa + 17, L + 8.4, zc + 1.0, [150, 104, 64], 'Wood');
+      for (let k = 0; k < 4; k++) B('ShelfBoard', xa + 15.6, L + 3.2 + k * 1.6, zc - 1.0, xa + 16.9, L + 3.3 + k * 1.6, zc + 1.0, [130, 90, 56], 'Wood', { nc: true });
+      for (let k = 0; k < 6; k++) cylV('Flask', xa + 16.1 + (k % 2) * 0.5, L + 3.3 + Math.floor(k / 2) * 1.6, zc - 0.5 + (k % 3) * 0.4, 0.7, 0.35, [200, 226, 220], 'Glass', { t: 0.4, nc: true });
+      // 천장 환기 후드 (나무 테두리 사각 판) + 쓰레기통
+      B('HoodFrame', xa + 8, L + CEIL - 0.6, zc - 3, xa + 22, L + CEIL - 0.3, zc + 3, [150, 98, 64], 'Wood', { nc: true });
+      B('HoodInner', xa + 8.6, L + CEIL - 0.35, zc - 2.4, xa + 21.4, L + CEIL - 0.25, zc + 2.4, [236, 236, 230], 'SmoothPlastic', { nc: true, ns: true });
+      cylV('Bin', xb - 2.5, L, zc + 2, 2.0, 1.3, [40, 100, 200], 'Plastic');
       grp('Skeleton', () => {
         const x = xb - 3, z = z1 - 3.5, bone = [232, 226, 206];
         B('Stand', x - 0.9, L, z - 0.9, x + 0.9, L + 0.25, z + 0.9, C.steelDark, 'Metal');
@@ -2476,20 +2563,55 @@ function interiorRoom(r) {
         B('TableLeg', x - 0.2, L, z1 - 7.2, x + 0.2, L + 2.4, z1 - 6.8, C.steelDark, 'Metal');
       }
     } else if (name === '음악실') {
-      grp('Piano', () => {
-        B('Body', xa + 2.5, L, z0 + 2.5, xa + 8.5, L + 4.4, z0 + 5, [14, 14, 16], 'SmoothPlastic', { refl: 0.25 });
-        B('Keys', xa + 2.7, L + 2.6, z0 + 5, xa + 8.3, L + 2.85, z0 + 6.2, [244, 244, 240], 'SmoothPlastic', { nc: true });
-        for (let i = 0; i < 20; i++) B('BlackKey', xa + 2.85 + i * 0.27, L + 2.85, z0 + 5, xa + 2.97 + i * 0.27, L + 2.98, z0 + 5.7, [14, 14, 16], 'SmoothPlastic', { nc: true, ns: true });
-        B('Bench', xa + 4, L, z0 + 7, xa + 7, L + 1.7, z0 + 8.2, [14, 14, 16], 'SmoothPlastic');
-      }, 'Piano');
-      for (let rr = 0; rr < 4; rr++) for (let c = 0; c < 6; c++) {
-        const x = xa + 12 + rr * 4.2, z = z0 + 4 + c * 3.6;
-        B('Chair', x - 0.7, L + 1.5, z - 0.7, x + 0.7, L + 1.65, z + 0.7, [60, 70, 110], 'Plastic');
-        B('ChairBack', x + 0.6, L + 1.65, z - 0.7, x + 0.72, L + 3, z + 0.7, [60, 70, 110], 'Plastic');
-        cylV('Leg', x, L, z, 1.5, 0.2, C.steel, 'Metal', { nc: true });
+      // 음악실 (참고 사진): 화이트보드, 벽걸이 TV, 아랫벽 나무 판, 윗벽 흡음판, 접이식 책상 + 자주색 의자, 보면대, 업라이트 피아노
+      const wood = [206, 172, 120], felt = [214, 206, 188];
+      B('WoodPanel', xa + 0.05, L, z0 + 0.06, xa + 0.2, L + 3.6, z1 - 0.06, wood, 'Wood', { nc: true });
+      B('WoodPanel', xb - 0.2, L, z0 + 0.06, xb - 0.05, L + 3.6, z1 - 0.06, wood, 'Wood', { nc: true });
+      B('WoodPanel', xa + 0.06, L, z0 + 0.05, xb - 0.06, L + 3.6, z0 + 0.2, wood, 'Wood', { nc: true });
+      for (let z = z0 + 2; z < z1; z += 2.4) B('PanelLine', xa + 0.2, L + 0.2, z, xa + 0.22, L + 3.5, z + 0.04, [150, 120, 84], 'Wood', { nc: true, ns: true });
+      B('FeltWall', xa + 0.05, L + 3.6, z0 + 0.06, xa + 0.16, L + CEIL, z1 - 0.06, felt, 'Fabric', { nc: true, ns: true });
+      B('FeltWall', xb - 0.16, L + 3.6, z0 + 0.06, xb - 0.05, L + CEIL, z1 - 0.06, felt, 'Fabric', { nc: true, ns: true });
+      B('FeltWall', xa + 0.06, L + 3.6, z0 + 0.05, xb - 0.06, L + CEIL, z0 + 0.16, felt, 'Fabric', { nc: true, ns: true });
+      // 스피커 두 개 (천장 근처)
+      [zc - 9, zc + 9].forEach((z) => B('Speaker', xa + 0.2, L + 9.0, z - 0.5, xa + 1.0, L + 10.0, z + 0.5, [24, 24, 26], 'SmoothPlastic'));
+      // 교탁 + 보면대 + 선생님 의자
+      B('TeacherDesk', xa + 4, L, zc - 3, xa + 6, L + 2.7, zc + 3, [176, 140, 96], 'Wood');
+      B('DeskTop', xa + 3.9, L + 2.7, zc - 3.1, xa + 6.1, L + 2.85, zc + 3.1, [196, 160, 112], 'Wood');
+      B('Amp', xa + 4.4, L + 2.85, zc - 1.6, xa + 5.6, L + 3.5, zc + 0.4, [30, 30, 32], 'Metal');
+      cylV('StandPole', xa + 7.5, L, zc - 5, 4.6, 0.12, [24, 24, 26], 'Metal', { nc: true });
+      P('StandDesk', [0.08, 1.4, 2.0], [xa + 7.4, L + 4.9, zc - 5], [24, 24, 26], 'Metal', { r: [0, 0, 20], nc: true });
+      // 접이식 책상 (베이지 상판, 회색 다리) 2인용 × 3열 × 4줄 + 자주색 의자
+      for (let rr = 0; rr < 4; rr++) for (let c = 0; c < 3; c++) {
+        const x = xa + 11 + rr * 4.6, z = z0 + 5 + c * 8;
+        grp('FoldDesk', () => {
+          B('FoldTop', x - 0.9, L + 2.45, z - 3, x + 0.9, L + 2.6, z + 3, [222, 196, 156], 'Wood');
+          [z - 2.6, z + 2.6].forEach((zz) => {
+            B('FoldLeg', x - 0.06, L, zz - 0.06, x + 0.06, L + 2.45, zz + 0.06, [120, 124, 130], 'Metal', { nc: true });
+            B('FoldFoot', x - 0.8, L, zz - 0.1, x + 0.8, L + 0.12, zz + 0.1, [120, 124, 130], 'Metal', { nc: true });
+            cylBetween('FoldBrace', [x, L + 0.6, zz], [x, L + 2.4, zz + (zz > z ? -1.2 : 1.2)], 0.08, [120, 124, 130], 'Metal', { nc: true, ns: true });
+          });
+          [z - 1.5, z + 1.5].forEach((zz) => {
+            const cx = x + 1.7, wine = [124, 30, 44];
+            B('ChairSeat', cx - 0.75, L + 1.55, zz - 0.75, cx + 0.75, L + 1.8, zz + 0.75, wine, 'Fabric');
+            B('ChairBack', cx + 0.55, L + 1.8, zz - 0.72, cx + 0.8, L + 3.6, zz + 0.72, wine, 'Fabric');
+            [[-0.6, -0.6], [-0.6, 0.6], [0.6, -0.6], [0.6, 0.6]].forEach(([a, b]) => cylV('ChairLeg', cx + a, L, zz + b, 1.55, 0.1, [40, 40, 44], 'Metal', { nc: true }));
+          });
+        });
       }
+      // 업라이트 피아노 (앞쪽 창가 구석)
+      grp('Piano', () => {
+        const px = xa + 2.4, pz = z1 - 5;
+        B('Body', px - 1.2, L, pz - 2.6, px + 0.6, L + 4.4, pz + 2.6, [52, 30, 22], 'Wood', { refl: 0.2 });
+        B('KeyBed', px + 0.6, L + 2.4, pz - 2.4, px + 1.5, L + 2.6, pz + 2.4, [52, 30, 22], 'Wood');
+        B('Keys', px + 0.62, L + 2.6, pz - 2.3, px + 1.45, L + 2.72, pz + 2.3, [244, 244, 240], 'SmoothPlastic', { nc: true });
+        for (let i = 0; i < 18; i++) if (i % 7 !== 2 && i % 7 !== 6) B('BlackKey', px + 0.62, L + 2.72, pz - 2.2 + i * 0.25, px + 1.1, L + 2.85, pz - 2.08 + i * 0.25, [14, 14, 16], 'SmoothPlastic', { nc: true, ns: true });
+        B('Bench', px + 2.2, L, pz - 1.4, px + 3.4, L + 1.7, pz + 1.4, [40, 26, 20], 'Leather');
+      }, 'Piano');
       B('Portrait', xb - 0.16, L + 5.6, zc - 1.8, xb - 0.06, L + 9.0, zc + 1.8, [50, 40, 30], 'Wood', { tag: 'Portrait',
         text: { face: 'Left', text: '베토벤\n1770-1827', color: [220, 200, 160], bg: [36, 30, 26], bgT: 0, font: 'Merriweather' } });
+      // 천장형 에어컨
+      B('CeilingAC', xa + 13, L + CEIL - 0.5, zc - 2, xa + 17, L + CEIL - 0.05, zc + 2, [236, 236, 232], 'SmoothPlastic', { nc: true });
+      B('ACGrille', xa + 14, L + CEIL - 0.52, zc - 1, xa + 16, L + CEIL - 0.5, zc + 1, [180, 182, 184], 'Metal', { nc: true, ns: true });
     } else if (name === '미술실') {
       for (let k = 0; k < 8; k++) {
         const x = xa + 10 + (k % 4) * 5, z = z0 + 6 + Math.floor(k / 4) * 12;
@@ -2516,7 +2638,8 @@ function interiorRoom(r) {
 // ═════════════ 계단실: 올라가는 계단 → 중간 계단참 → 되돌아 올라가는 계단 ═════════════
 // 틀 F: 원점 = 들어가는 쪽 가장자리 한가운데(1층 바닥 높이는 levels 로), +Z = 계단이 뻗는 쪽, X = 폭.
 // 올라가는 계단은 X<0 쪽, 위층에 닿는 계단은 X>0 쪽. W = 반폭, g = 두 계단 사이 반틈, R = 계단 길이, LD = 계단참 깊이
-const STEP_C = [176, 178, 172], BAL_C = [150, 156, 152], CAP_C = [34, 34, 36];
+// 사진 속 학교 계단: 베이지 디딤판 + 검은 챌판, 흰 패널벽 + 회색 아랫단, 가운데는 나무 손스침 + 철 난간살, 벽엔 스테인리스 손잡이
+const STEP_C = [208, 192, 172], BAL_C = [150, 156, 152], CAP_C = [128, 82, 50], RISER_C = [36, 36, 38], SS_C = [196, 200, 204];
 function uStair(F, o) {
   const { W, g, R, LD, levels } = o, n = 12, rise = FH / 2 / n, run = R / n;
   const ang = Math.atan2(FH / 2, R), sn = Math.sin(ang), cs = Math.cos(ang), len = Math.hypot(FH / 2, R);
@@ -2527,7 +2650,7 @@ function uStair(F, o) {
     const last = li === levels.length - 1;
     if (last && !o.toTop) {
       // 맨 위층: 올라가는 계단 자리를 난간벽으로 막는다
-      FB(F, 'GuardWall', -W, L, 0, -g + 0.5, L + 3.6, 0.5, BAL_C, 'Plaster');
+      FB(F, 'GuardWall', -W, L, 0, -g + 0.5, L + 3.6, 0.5, [236, 236, 232], 'SmoothPlastic');
       FB(F, 'GuardCap', -W, L + 3.6, -0.06, -g + 0.56, L + 3.78, 0.56, CAP_C, 'Wood', { nc: true });
       return;
     }
@@ -2535,30 +2658,48 @@ function uStair(F, o) {
     for (let i = 0; i < n; i++) {
       // 올라가는 계단 (X<0)
       FB(F, 'Step', -W, L + i * rise - 0.5, i * run, -g, L + (i + 1) * rise, (i + 1) * run, STEP_C, 'Marble');
-      FB(F, 'Nosing', -W, L + (i + 1) * rise - 0.02, i * run, -g, L + (i + 1) * rise + 0.03, i * run + 0.3, [50, 50, 52], 'Rubber', { nc: true, ns: true });
+      FB(F, 'Nosing', -W, L + (i + 1) * rise - 0.02, i * run, -g, L + (i + 1) * rise + 0.03, i * run + 0.3, [120, 122, 124], 'Metal', { nc: true, ns: true });
+      FB(F, 'Riser', -W, L + i * rise, i * run - 0.03, -g, L + (i + 1) * rise - 0.02, i * run, RISER_C, 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
       // 위층에 닿는 계단 (X>0): 계단참(z=R)에서 들어온 쪽(z=0)으로 올라간다
       const y2 = ym + i * rise;
       FB(F, 'Step', g, y2 - 0.5, R - (i + 1) * run, W, y2 + rise, R - i * run, STEP_C, 'Marble');
-      FB(F, 'Nosing', g, y2 + rise - 0.02, R - i * run - 0.3, W, y2 + rise + 0.03, R - i * run, [50, 50, 52], 'Rubber', { nc: true, ns: true });
+      FB(F, 'Nosing', g, y2 + rise - 0.02, R - i * run - 0.3, W, y2 + rise + 0.03, R - i * run, [120, 122, 124], 'Metal', { nc: true, ns: true });
+      FB(F, 'Riser', g, y2, R - i * run, W, y2 + rise - 0.02, R - i * run + 0.03, RISER_C, 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
     }
     // 계단 밑면 (매끈한 비탈)
     slope('Soffit', -W, -g, L + FH / 4 - 0.75, 1, 0.5, [224, 222, 214], 'Plaster', { nc: true, ns: true });
     slope('Soffit', g, W, ym + FH / 4 - 0.75, -1, 0.5, [224, 222, 214], 'Plaster', { nc: true, ns: true });
     FB(F, 'Landing', -W, ym - 1, R, W, ym, R + LD, STEP_C, 'Marble');
     // 안쪽 난간벽: 회색 벽 + 검은 손스침 (참고 사진)
-    slope('Balustrade', -g, -g + 0.5, L + FH / 4 + 1.9, 1, 3.4, BAL_C, 'Plaster');
-    slope('HandrailCap', -g - 0.07, -g + 0.57, L + FH / 4 + 3.7, 1, 0.2, CAP_C, 'Wood', { nc: true });
-    slope('Balustrade', g - 0.5, g, ym + FH / 4 + 1.9, -1, 3.4, BAL_C, 'Plaster');
-    slope('HandrailCap', g - 0.57, g + 0.07, ym + FH / 4 + 3.7, -1, 0.2, CAP_C, 'Wood', { nc: true });
+    [[-g + 0.15, 1, L], [g - 0.15, -1, ym]].forEach(([x, dir, y0]) => {
+      slope('HandrailCap', x - 0.14, x + 0.14, y0 + FH / 4 + 3.5, dir, 0.22, CAP_C, 'Wood', { nc: true });
+      [1.0, 2.0, 3.0].forEach((h) => slope('RailWire', x - 0.03, x + 0.03, y0 + FH / 4 + h, dir, 0.06, SS_C, 'Metal', { nc: true, ns: true }));
+      slope('RailGuard', x - 0.06, x + 0.06, y0 + FH / 4 + 1.8, dir, 3.6, [255, 255, 255], 'SmoothPlastic', { t: 1, ns: true }); // 보이지 않는 막이 (난간 사이로 떨어지지 않게)
+      for (let k = 1; k < n; k += 2) {
+        const zz = dir > 0 ? (k + 0.5) * run : R - (k + 0.5) * run, yb = y0 + (k + 1) * rise;
+        FB(F, 'RailPost', x - 0.06, yb, zz - 0.06, x + 0.06, yb + 3.4, zz + 0.06, SS_C, 'Metal', { nc: true, ns: true });
+      }
+    });
     // 계단참 쪽 난간벽 끝 기둥, 들어가는 쪽 끝 기둥
-    FB(F, 'Newel', -g, ym - 1, R - 0.25, g, ym + 3.9, R + 0.25, BAL_C, 'Plaster');
-    FB(F, 'Newel', -g, L, -0.25, g, L + 3.9, 0.25, BAL_C, 'Plaster');
+    FB(F, 'Newel', -g - 0.08, ym - 1, R - 0.1, g + 0.08, ym + 3.4, R + 0.1, SS_C, 'Metal', { refl: 0.2 });
+    FB(F, 'NewelCap', -g - 0.18, ym + 3.4, R - 0.2, g + 0.18, ym + 3.6, R + 0.2, CAP_C, 'Wood', { nc: true });
     // 바깥벽 쪽 손잡이 봉
-    [[-W + 0.25, 1, L], [W - 0.25, -1, ym]].forEach(([x, dir, y0]) => slope('WallRail', x - 0.09, x + 0.09, y0 + FH / 4 + 3.1, dir, 0.18, CAP_C, 'Wood', { nc: true, ns: true }));
+    [[-W + 0.3, 1, L], [W - 0.3, -1, ym]].forEach(([x, dir, y0]) => slope('WallRail', x - 0.08, x + 0.08, y0 + FH / 4 + 3.0, dir, 0.16, SS_C, 'Metal', { nc: true, ns: true, refl: 0.3 }));
+    // 벽: 흰 패널(줄눈) + 회색 아랫단 (계단 따라 비스듬히)
+    [[-W + 0.02, 1, L], [W - 0.02, -1, ym]].forEach(([x, dir, y0]) => {
+      slope('WallGrey', x - 0.02, x + 0.02, y0 + FH / 4 + 1.4, dir, 2.8, [180, 182, 182], 'SmoothPlastic', { nc: true, ns: true });
+      slope('WallJoint', x - 0.025, x + 0.025, y0 + FH / 4 + 2.8, dir, 0.04, [150, 152, 154], 'Metal', { nc: true, ns: true });
+    });
+    FB(F, 'LandingGrey', -W, ym, R + LD - 0.08, W, ym + 2.8, R + LD - 0.02, [180, 182, 182], 'SmoothPlastic', { nc: true, ns: true });
+    for (let x = -W + 4; x < W - 1; x += 4) FB(F, 'WallJoint', x - 0.02, ym + 2.8, R + LD - 0.1, x + 0.02, ym + 10, R + LD - 0.06, [190, 192, 194], 'Metal', { nc: true, ns: true });
+    // 노란 점자블록: 계단 시작과 끝
+    FB(F, 'Tactile', -W, L, -1.3, -g, L + 0.05, -0.4, [244, 188, 30], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
+    FB(F, 'Tactile', -W, ym, R + 0.3, -g, ym + 0.05, R + 1.2, [244, 188, 30], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
+    FB(F, 'Tactile', g, ym, R + 0.3, W, ym + 0.05, R + 1.2, [244, 188, 30], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
+    FB(F, 'Tactile', g, L + FH, -1.3, W, L + FH + 0.05, -0.4, [244, 188, 30], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
     // 1층: 위층 계단 밑은 막아 둔다 (창고)
     if (li === 0) FB(F, 'UnderWall', g, L, 0, W, L + FH - 0.9, 0.5, C.wallIvory, 'Plaster');
     // 벽 아래 띠 (계단참)
-    FB(F, 'LandingBand', -W, ym, R + LD - 0.06, W, ym + 3.5, R + LD, C.wainscot, 'Plaster', { nc: true, ns: true });
   });
 }
 
@@ -2638,17 +2779,17 @@ grp('MainBuilding', () => {
         B('StairCasing', x0, L + 7.6, TS.z0 - 0.2, x1, L + 7.8, TS.z1 + 0.2, C.alumDark, 'Metal', { nc: true, ns: true });
         const sx = s > 0 ? x0 - 0.35 : x1 + 0.05;
         B('ExitSign', sx, L + 7.85, -169.4, sx + 0.3, L + 9.05, -165.6, [24, 168, 86], 'Neon', { nc: true, ns: true, tag: 'ExitSign',
-          light: { type: 'Point', range: 9, brightness: 0.5, color: [60, 255, 140] } });
+          light: { type: 'Point', range: 6, brightness: 0.22, color: [60, 255, 140] } });
         exitPictogram([s > 0 ? sx : sx + 0.3, L + 8.45, -167.5], [0, 0, s > 0 ? 1 : -1], [0, 1, 0], [s > 0 ? -1 : 1, 0, 0], 1.0);
         wainscot('z', CORR0, PART0, s > 0 ? x0 : x1, -s, L, [[TS.z0, TS.z1]]);
       });
       fr.forEach((r) => {
         const restroom = r.name === '화장실';
         const doorList = roomDoors(r);
-        const holes = doorList.flatMap(([a, b]) => (restroom ? [{ u0: a, u1: b, v0: L, v1: L + 7.2 }] : [{ u0: a, u1: b, v0: L, v1: L + 7.2 }, { u0: a, u1: b, v0: L + 7.55, v1: L + 9.3 }]));
-        if (!restroom) holes.push({ u0: r.xa + 8, u1: r.xb - 8, v0: L + 7.6, v1: L + 9.4 });
+        const holes = doorList.flatMap(([a, b]) => (restroom || r.name === '음악실' ? [{ u0: a, u1: b, v0: L, v1: L + 7.2 }] : [{ u0: a, u1: b, v0: L, v1: L + 7.2 }, { u0: a, u1: b, v0: L + 7.55, v1: L + 9.3 }]));
+        if (!restroom && r.name !== '음악실') holes.push({ u0: r.xa + 8, u1: r.xb - 8, v0: L + 7.6, v1: L + 9.4 });
         wallHoles('PartitionWall', 'x', r.xa - WALL / 2, r.xb + WALL / 2, L, top, PART0, PART1, holes, C.wallIvory, 'Plaster');
-        if (!restroom) {
+        if (!restroom && r.name !== '음악실') {
           const hw = r.xb - r.xa - 16;
           for (let k = 0; k < 3; k++) slider('x', r.xa + 8 + (k * hw) / 3, r.xa + 8 + ((k + 1) * hw) / 3, L + 7.6, L + 9.4, (PART0 + PART1) / 2, { depth: 0.6 });
         }
@@ -2667,6 +2808,29 @@ grp('MainBuilding', () => {
           });
           B('WcSign', a - 0.25, L + 7.7, PART0 - 0.14, b + 0.25, L + 8.6, PART0, women ? [200, 52, 70] : [40, 84, 170], 'SmoothPlastic', { ...so,
             text: { face: 'Front', text: women ? '여자 화장실' : '남자 화장실', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBold', pps: 70 } });
+        });
+        else if (r.name === '음악실') doorList.forEach(([a, b], di) => {
+          const frame = [112, 78, 60], leather = [196, 118, 62], so = { nc: true, ns: true };
+          B('Casing', a - 0.3, L, PART0 - 0.15, a, L + 7.6, PART1 + 0.15, frame, 'Metal');
+          B('Casing', b, L, PART0 - 0.15, b + 0.3, L + 7.6, PART1 + 0.15, frame, 'Metal');
+          B('Casing', a - 0.3, L + 7.2, PART0 - 0.15, b + 0.3, L + 7.6, PART1 + 0.15, frame, 'Metal');
+          B('Closer', a + 0.3, L + 6.75, PART0 - 0.3, a + 1.4, L + 7.1, PART0 - 0.05, [190, 192, 196], 'Metal', so);
+          const mid = (a + b) / 2;
+          [[a, mid, a, -88], [mid, b, b, 88]].forEach(([u0, u1, hx, sw], k) => {
+            hingeDoor(`SoundDoor_${di + 1}${k ? 'R' : 'L'}`, [u0, L + 0.05, PART0 - 0.05, u1, L + 7.2, PART0 + 0.35], [hx, PART0 + 0.15], -sw, {}, () => {
+              B('DoorSlab', u0 + 0.02, L + 0.05, PART0 - 0.02, u1 - 0.02, L + 7.2, PART0 + 0.32, frame, 'Metal', { nc: true });
+              [PART0 - 0.04, PART0 + 0.34].forEach((zf, side) => {
+                const z0f = side ? zf : zf - 0.04, z1f = side ? zf + 0.04 : zf;
+                B('PadTrim', u0 + 0.35, L + 0.9, z0f, u1 - 0.35, L + 6.5, z1f, [200, 200, 196], 'Metal', so);
+                B('LeatherPad', u0 + 0.45, L + 1.0, side ? z0f + 0.01 : z0f - 0.05, u1 - 0.45, L + 6.4, side ? z1f + 0.05 : z1f - 0.01, leather, 'Leather', so);
+                for (let row = 0; row < 6; row++) [0.32, 0.68].forEach((t) => P('Stud', [0.12, 0.12, 0.08], [u0 + 0.45 + (u1 - u0 - 0.9) * t, L + 1.5 + row * 0.9, side ? z1f + 0.06 : z0f - 0.06], [220, 184, 90], 'Metal', { ...so, sh: 'Ball', refl: 0.3 }));
+              });
+              const hxp = k ? u0 + 0.3 : u1 - 0.3;
+              [PART0 - 0.22, PART0 + 0.52].forEach((zh) => B('PullBar', hxp - 0.07, L + 2.4, zh - 0.07, hxp + 0.07, L + 5.0, zh + 0.07, [20, 20, 22], 'Metal', so));
+            });
+          });
+          B('RoomPlate', a + 1.2, L + 7.75, PART0 - 0.12, b - 1.2, L + 8.5, PART0, [30, 52, 104], 'SmoothPlastic', { ...so,
+            text: { face: 'Front', text: '음악실 · 방음문', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBold', pps: 70 } });
         });
         else doorList.forEach(([a, b], di) => {
           // 오크 문틀 + 위쪽 채광창 (유리 2장, 가운데 살)
@@ -2946,7 +3110,7 @@ grp('MainBuilding', () => {
     B('EntranceSteps', -15, 0.5, ZS, 15, 1.0, ZS + 9.8, [160, 156, 150], 'Granite');
     B('StepNosing', -15, 0.5, ZS + 10.7, 15, 0.52, ZS + 11, [226, 196, 60], 'SmoothPlastic', { nc: true, ns: true, min: 0.02 });
     B('StepNosing', -15, 1.0, ZS + 9.5, 15, 1.02, ZS + 9.8, [226, 196, 60], 'SmoothPlastic', { nc: true, ns: true, min: 0.02 });
-    P('Ramp', [5, 0.3, 11.2], [18, 0.48, ZS + 5.5], [160, 156, 150], 'Concrete', { r: [5.1, 0, 0] });
+    P('Ramp', [5, 0.3, 10.6], [18, 0.48, ZS + 5.8], [160, 156, 150], 'Concrete', { r: [5.1, 0, 0] });
     for (let i = 0; i < 3; i++) B('CanopyLight', -9 + i * 7, 10.4, ZS + 4, -5 + i * 7, 10.5, ZS + 6, [255, 240, 210], 'Neon', { nc: true, ns: true, light: { type: 'Surface', face: 'Bottom', range: 16, angle: 110, brightness: 0.8, color: [255, 236, 200], shadows: i === 1 } });
     [[BX0 + 2, HALL0 - 6], [HALL1 + 11, BX1 - 2]].forEach(([x0, x1]) => {
       B('BedEdge', x0, 0, ZS + 3.4, x1, 1.1, ZS + 3.9, [150, 146, 140], 'Granite');
@@ -3209,7 +3373,7 @@ grp('GirlStatue', () => {
 });
 
 SHIFT = SOUTH;
-car('IntroCar', 40.5, 162, 0, [46, 52, 64], { tag: 'IntroCar', lightsOn: true, plate: '35싸 0412', pov: true });
+car('IntroCar', 40.5, 162, 0, [150, 156, 162], { tag: 'IntroCar', lightsOn: true, plate: '35싸 0412', pov: true });
 SHIFT = null;
 
 // ═════════════════════════ 내보내기 ═════════════════════════

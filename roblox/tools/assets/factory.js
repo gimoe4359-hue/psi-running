@@ -5,6 +5,7 @@ import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildGirl } from './girl.js';
 import { buildTrees } from './trees.js';
 import { buildDesk, buildChair } from './desk.js';
+import { buildCar } from './car.js';
 
 function mulberry(seed) {
   return () => {
@@ -23,6 +24,7 @@ export function buildTemplates(which) {
   if (want('Trees')) T.push(...buildTrees(mulberry(11)));
   if (want('StudentDesk')) T.push({ name: 'StudentDesk', keep: ['DeskTop'], meshes: buildDesk() });
   if (want('StudentChair')) T.push({ name: 'StudentChair', keep: ['Seat'], meshes: buildChair() });
+  if (want('Sedan')) T.push({ name: 'Sedan', keep: ['Body'], show: ["Headlight", "HeadlightTrim", "DRL", "FogLight", "FogBezel", "Taillight", "TailWrap", "Reflector", "Plate", "Grille", "GrilleRim", "GrilleBar", "Emblem", "LowerGrille", "TrunkChrome", "Exhaust", "Handle", "MirrorSignal", "Wiper", "CabinFloor", "Dash", "DashTop", "Cluster", "Screen", "SteeringWheel", "Column", "SeatBase", "SeatBack", "Headrest", "RearSeat", "RearBack", "Console", "DriverEye"], meshes: buildCar() });
   return T;
 }
 
@@ -33,7 +35,7 @@ export async function exportAll(which) {
   const meta = {};
   let tri = 0;
   for (const t of templates) {
-    meta[t.name] = { keep: t.keep || [], meshes: [] };
+    meta[t.name] = { keep: t.keep || [], show: t.show || [], meshes: [] };
     t.meshes.forEach((m, i) => {
       const geo = m.geo;
       geo.computeBoundingBox();

@@ -207,12 +207,13 @@ const PACK = new URLSearchParams(location.search).get('pack') === '1';
 let packMeta = null;
 const packGeo = {};
 const swapped = new Set();
+const swapShow = {};
 if (PACK) {
   const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
   packMeta = await (await fetch('/assets_meta.json')).json();
   const gltf = await new GLTFLoader().loadAsync('/SongcheonAssets.glb');
   gltf.scene.traverse((o) => { if (o.isMesh) packGeo[o.name] = o.geometry; });
-  (tagsOf.SwapAnchor || []).forEach((i) => { const t = (attrOf[i] || {}).Template; if (t && packMeta[t]) swapped.add(data.parts[i][0]); });
+  (tagsOf.SwapAnchor || []).forEach((i) => { const t = (attrOf[i] || {}).Template; if (t && packMeta[t]) { swapped.add(data.parts[i][0]); swapShow[data.parts[i][0]] = packMeta[t].show || []; } });
 }
 
 const MOVABLE = ['School/IntroCar', 'School/Gate/MainGate'];
@@ -238,7 +239,7 @@ const roomOf = (gi) => { const m = groupPath[gi].match(/^School\/MainBuilding\/F
 const buckets = {};
 P.forEach((p, i) => {
   if (p.flags & 8 || p.t >= 0.99) return;
-  if (swapped.has(p.g)) return;
+  if (swapped.has(p.g) && !(swapShow[p.g] || []).includes(p.name)) return;
   const key = `${movableOf(p.g) || ''}|${toggleOf(p.g) || ''}|${p.mat}|${Math.round(p.t * 20)}|${Math.round(p.refl * 10)}`;
   (buckets[key] = buckets[key] || []).push(i);
 });

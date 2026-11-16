@@ -3,6 +3,7 @@
 return {
 	Ghost = {
 		keep = {  },
+		show = {  },
 		meshes = { {
 			mesh = "Ghost_Skin",
 			name = "Ghost_Skin",
@@ -175,6 +176,7 @@ return {
 	},
 	Tree_Ginkgo = {
 		keep = { "Trunk" },
+		show = {  },
 		meshes = { {
 			mesh = "Tree_Ginkgo_Wood",
 			name = "Wood",
@@ -239,6 +241,7 @@ return {
 	},
 	Tree_Zelkova = {
 		keep = { "Trunk" },
+		show = {  },
 		meshes = { {
 			mesh = "Tree_Zelkova_Wood",
 			name = "Wood",
@@ -303,6 +306,7 @@ return {
 	},
 	Tree_Pine = {
 		keep = { "Trunk" },
+		show = {  },
 		meshes = { {
 			mesh = "Tree_Pine_Wood",
 			name = "Wood",
@@ -355,6 +359,7 @@ return {
 	},
 	StudentDesk = {
 		keep = { "DeskTop" },
+		show = {  },
 		meshes = { {
 			mesh = "StudentDesk_DeskTop",
 			name = "DeskTop",
@@ -407,6 +412,7 @@ return {
 	},
 	StudentChair = {
 		keep = { "Seat" },
+		show = {  },
 		meshes = { {
 			mesh = "StudentChair_Seat",
 			name = "Seat",
@@ -455,6 +461,95 @@ return {
 			collide = false,
 			shadow = true,
 			tris = 160,
+		} },
+	},
+	Sedan = {
+		keep = { "Body" },
+		show = { "Headlight", "HeadlightTrim", "DRL", "FogLight", "FogBezel", "Taillight", "TailWrap", "Reflector", "Plate", "Grille", "GrilleRim", "GrilleBar", "Emblem", "LowerGrille", "TrunkChrome", "Exhaust", "Handle", "MirrorSignal", "Wiper", "CabinFloor", "Dash", "DashTop", "Cluster", "Screen", "SteeringWheel", "Column", "SeatBase", "SeatBack", "Headrest", "RearSeat", "RearBack", "Console", "DriverEye" },
+		meshes = { {
+			mesh = "Sedan_Paint",
+			name = "Paint",
+			size = { 7.216, 2.805, 15 },
+			pos = { 0, 2.2025, 0 },
+			color = { 196, 200, 204 },
+			material = "SmoothPlastic",
+			reflectance = 0.15,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 4000,
+		}, {
+			mesh = "Sedan_Roof",
+			name = "Roof",
+			size = { 4.1332, 0.3301, 3.3 },
+			pos = { 0, 4.8847, 1.95 },
+			color = { 196, 200, 204 },
+			material = "SmoothPlastic",
+			reflectance = 0.15,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 1092,
+		}, {
+			mesh = "Sedan_Glass",
+			name = "Glass",
+			size = { 5.24, 2.0798, 8.6 },
+			pos = { 0, 3.9599, 1.4 },
+			color = { 26, 30, 36 },
+			material = "Glass",
+			reflectance = 0.35,
+			transparency = 0.08,
+			collide = false,
+			shadow = true,
+			tris = 1066,
+		}, {
+			mesh = "Sedan_Tires",
+			name = "Tires",
+			size = { 6.04, 2.3, 11.5 },
+			pos = { 0, 1.15, 0 },
+			color = { 26, 26, 28 },
+			material = "Rubber",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2240,
+		}, {
+			mesh = "Sedan_Wheels",
+			name = "Wheels",
+			size = { 6.28, 1.68, 10.88 },
+			pos = { 0, 1.15, 0 },
+			color = { 196, 200, 206 },
+			material = "Metal",
+			reflectance = 0.2,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 880,
+		}, {
+			mesh = "Sedan_WheelDark",
+			name = "WheelDark",
+			size = { 5.94, 2.84, 11.52 },
+			pos = { 0, 1.2, 0.26 },
+			color = { 14, 14, 16 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = false,
+			tris = 768,
+		}, {
+			mesh = "Sedan_Trim",
+			name = "Trim",
+			size = { 5.96, 4.373, 15.05 },
+			pos = { 0, 2.9865, -0.025 },
+			color = { 30, 30, 32 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 120,
 		} },
 	},
 }
