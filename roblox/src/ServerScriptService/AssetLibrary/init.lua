@@ -12,10 +12,31 @@ local Templates = require(script:WaitForChild("Templates"))
 local AssetLibrary = {}
 local cache = {}
 
+local loadTried = false
 local function findPack()
 	local pack = ServerStorage:FindFirstChild("SongcheonAssets")
 		or workspace:FindFirstChild("SongcheonAssets")
 		or ReplicatedStorage:FindFirstChild("SongcheonAssets")
+	-- Studio 에 직접 가져온 게 없으면, 올려 둔 모델(Config.MESH_PACK_ID)을 불러온다
+	if not pack and not loadTried then
+		loadTried = true
+		local okCfg, Config = pcall(function()
+			return require(ReplicatedStorage:WaitForChild("Config"))
+		end)
+		local id = okCfg and Config.MESH_PACK_ID or 0
+		if id and id ~= 0 then
+			local ok, model = pcall(function()
+				return game:GetService("InsertService"):LoadAsset(id)
+			end)
+			if ok and model then
+				model.Name = "SongcheonAssets"
+				model.Parent = ServerStorage
+				pack = model
+			else
+				warn("[AssetLibrary] 메시 팩 " .. tostring(id) .. " 을(를) 불러오지 못했습니다. 게임을 내 계정으로 Publish 했는지 확인하세요. " .. tostring(model))
+			end
+		end
+	end
 	if pack and pack.Parent ~= ServerStorage then
 		pcall(function()
 			pack.Parent = ServerStorage

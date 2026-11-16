@@ -41,6 +41,14 @@ Config.PATROL_MISS_PENALTY = 15
 -- roblox/text_atlas/atlas_1.png ~ atlas_4.png 를 Studio → Asset Manager → Images → Import 로 올리고,
 -- 각 그림의 이미지 ID 를 순서대로 넣는다. 0 이면 손글씨 대신 기본 글꼴로 보인다.
 Config.TEXT_ATLAS_IDS = { 0, 0, 0, 0 }
+-- 이미 올려 둔 데칼 ID (aied0 계정). 게임이 시작할 때 서버가 InsertService 로 열어 진짜 이미지 ID 를 찾는다.
+-- 위 TEXT_ATLAS_IDS 에 이미지 ID 를 직접 넣으면 그쪽이 먼저 쓰인다.
+Config.TEXT_ATLAS_DECAL_IDS = { 75904825982096, 116811792359111, 116869249478191, 77362890761808 }
+
+-- ───────── 메시 팩 (나무·여학생·책걸상) ─────────
+-- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
+-- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
+Config.MESH_PACK_ID = 84369267747596
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)

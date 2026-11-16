@@ -31,6 +31,10 @@ local Ending = remote("Ending") -- (종류)
 remotes.Parent = ReplicatedStorage
 
 -- ───────── 맵 ─────────
+-- 손글씨 그림 ID 를 먼저 찾아 둔다 (올려 둔 데칼 → 이미지)
+pcall(function()
+	require(game:GetService("ReplicatedStorage"):WaitForChild("AtlasText")).Resolve()
+end)
 local Builder = require(ServerScriptService:WaitForChild("SchoolBuilder"))
 local school = Builder.Build(workspace, true)
 workspace:SetAttribute("MapReady", true)

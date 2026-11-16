@@ -116,7 +116,16 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
   - 청소함, 쓰레기통·분리수거함
 - **기타**: 시간표, 전등 스위치, 선풍기 조절기, 창틀 화분, 커튼
 
-## 손글씨 글자 그림 올리기 (한 번만, 꼭 하기)
+## 이미 올려 둔 것 (aied0 계정)
+
+손글씨 그림 4장과 메시 팩은 Open Cloud 로 이미 올려 두었다. 게임 서버가 시작할 때 저절로 불러온다.
+- 손글씨 데칼: `Config.TEXT_ATLAS_DECAL_IDS`
+- 메시 팩 모델: `Config.MESH_PACK_ID`
+
+**단, 이 게임을 aied0 계정으로 한 번 Publish 해야 한다** (File → Publish to Roblox).
+로블록스는 게임 주인이 올린 에셋만 불러오게 하기 때문이다. Publish 하지 않고 Play 하면 손글씨는 기본 글꼴로, 나무·여학생은 파트 버전으로 보인다.
+
+## 손글씨 글자 그림 올리기 (직접 다시 올릴 때)
 
 로블록스는 글꼴 파일을 직접 쓸 수 없다. 그래서 분필·피·수첩 글씨를 아래 글꼴로 그린 그림 4장(`text_atlas/atlas_1.png ~ atlas_4.png`)으로 만들었다. 게임은 이 그림에서 한 줄씩 잘라 보여 준다. 예전처럼 획마다 파트를 쓰지 않아서 맵이 약 7,000파트 가벼워졌다.
 

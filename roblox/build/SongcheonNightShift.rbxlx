@@ -25,6 +25,7 @@
 				<string name="Name">AtlasText</string>
 				<ProtectedString name="Source"><![CDATA[-- 손글씨 글자 그림 (tools/make_atlas.js 가 만든 아틀라스) 을 GUI 로 붙이는 도우미.
 -- Config.TEXT_ATLAS_IDS 에 그림 ID 가 있으면 ImageLabel(아틀라스의 한 칸), 없으면 비슷한 색의 TextLabel 로 대신 보여 준다.
+local RunService = game:GetService("RunService")
 local Atlas = require(script.Parent:WaitForChild("TextAtlas"))
 local Config = require(script.Parent:WaitForChild("Config"))
 
@@ -38,6 +39,41 @@ local FALLBACK = {
 	brush = { Color3.fromRGB(20, 18, 16), Enum.Font.PatrickHand },
 }
 
+-- 아틀라스 N 번 그림의 이미지 ID (Config 값 → 서버가 데칼에서 찾아 둔 값 순서)
+local function imageId(n)
+	local ids = Config.TEXT_ATLAS_IDS or {}
+	if ids[n] and ids[n] ~= 0 then
+		return ids[n]
+	end
+	return script.Parent:GetAttribute("TextAtlasImage" .. n)
+end
+
+-- 서버 전용: 올려 둔 데칼을 열어 진짜 이미지 ID 를 찾아 ReplicatedStorage 속성에 적는다 (클라이언트도 읽음)
+function AtlasText.Resolve()
+	if not RunService:IsServer() then
+		return
+	end
+	local InsertService = game:GetService("InsertService")
+	for n, did in ipairs(Config.TEXT_ATLAS_DECAL_IDS or {}) do
+		local cfgId = (Config.TEXT_ATLAS_IDS or {})[n]
+		if (not cfgId or cfgId == 0) and did and did ~= 0 and not script.Parent:GetAttribute("TextAtlasImage" .. n) then
+			local ok, model = pcall(function()
+				return InsertService:LoadAsset(did)
+			end)
+			if ok and model then
+				local d = model:FindFirstChildWhichIsA("Decal", true)
+				local id = d and tonumber(string.match(d.Texture, "(%d+)%s*$"))
+				if id then
+					script.Parent:SetAttribute("TextAtlasImage" .. n, id)
+				end
+				model:Destroy()
+			else
+				warn("[AtlasText] 데칼 " .. tostring(did) .. " 을(를) 열지 못했습니다. 게임을 내 계정으로 Publish 했는지 확인하세요. " .. tostring(model))
+			end
+		end
+	end
+end
+
 function AtlasText.Entry(key)
 	return Atlas.Entries[key]
 end
@@ -49,9 +85,8 @@ function AtlasText.Aspect(key)
 end
 
 function AtlasText.HasImages()
-	local ids = Config.TEXT_ATLAS_IDS or {}
 	for i = 1, Atlas.Count do
-		if not ids[i] or ids[i] == 0 then
+		if not imageId(i) then
 			return false
 		end
 	end
@@ -61,10 +96,9 @@ end
 -- parent 를 가득 채우는 글자 GUI 를 만든다. 반환: ImageLabel 또는 TextLabel
 function AtlasText.Make(key, parent, zIndex)
 	local e = Atlas.Entries[key]
-	local ids = Config.TEXT_ATLAS_IDS or {}
-	local id = e and ids[e.atlas] or 0
+	local id = e and imageId(e.atlas)
 	local g
-	if e and id and id ~= 0 then
+	if e and id then
 		g = Instance.new("ImageLabel")
 		g.Image = "rbxassetid://" .. id
 		g.ImageRectOffset = Vector2.new(e.x, e.y)
@@ -78,6 +112,18 @@ function AtlasText.Make(key, parent, zIndex)
 		g.Font = f[2]
 		g.TextScaled = true
 		g.TextXAlignment = Enum.TextXAlignment.Left
+		-- 이미지 ID 를 나중에 알게 되면 (서버가 데칼을 다 연 뒤) 그림으로 바꾼다
+		if e then
+			local conn
+			conn = script.Parent:GetAttributeChangedSignal("TextAtlasImage" .. e.atlas):Connect(function()
+				if g.Parent and imageId(e.atlas) then
+					conn:Disconnect()
+					local p, z = g.Parent, g.ZIndex
+					g:Destroy()
+					AtlasText.Make(key, p, z)
+				end
+			end)
+		end
 	end
 	g.Name = "Writing"
 	g.BackgroundTransparency = 1
@@ -141,6 +187,14 @@ Config.PATROL_MISS_PENALTY = 15
 -- roblox/text_atlas/atlas_1.png ~ atlas_4.png 를 Studio → Asset Manager → Images → Import 로 올리고,
 -- 각 그림의 이미지 ID 를 순서대로 넣는다. 0 이면 손글씨 대신 기본 글꼴로 보인다.
 Config.TEXT_ATLAS_IDS = { 0, 0, 0, 0 }
+-- 이미 올려 둔 데칼 ID (aied0 계정). 게임이 시작할 때 서버가 InsertService 로 열어 진짜 이미지 ID 를 찾는다.
+-- 위 TEXT_ATLAS_IDS 에 이미지 ID 를 직접 넣으면 그쪽이 먼저 쓰인다.
+Config.TEXT_ATLAS_DECAL_IDS = { 75904825982096, 116811792359111, 116869249478191, 77362890761808 }
+
+-- ───────── 메시 팩 (나무·여학생·책걸상) ─────────
+-- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
+-- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
+Config.MESH_PACK_ID = 84369267747596
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
@@ -1298,10 +1352,31 @@ local Templates = require(script:WaitForChild("Templates"))
 local AssetLibrary = {}
 local cache = {}
 
+local loadTried = false
 local function findPack()
 	local pack = ServerStorage:FindFirstChild("SongcheonAssets")
 		or workspace:FindFirstChild("SongcheonAssets")
 		or ReplicatedStorage:FindFirstChild("SongcheonAssets")
+	-- Studio 에 직접 가져온 게 없으면, 올려 둔 모델(Config.MESH_PACK_ID)을 불러온다
+	if not pack and not loadTried then
+		loadTried = true
+		local okCfg, Config = pcall(function()
+			return require(ReplicatedStorage:WaitForChild("Config"))
+		end)
+		local id = okCfg and Config.MESH_PACK_ID or 0
+		if id and id ~= 0 then
+			local ok, model = pcall(function()
+				return game:GetService("InsertService"):LoadAsset(id)
+			end)
+			if ok and model then
+				model.Name = "SongcheonAssets"
+				model.Parent = ServerStorage
+				pack = model
+			else
+				warn("[AssetLibrary] 메시 팩 " .. tostring(id) .. " 을(를) 불러오지 못했습니다. 게임을 내 계정으로 Publish 했는지 확인하세요. " .. tostring(model))
+			end
+		end
+	end
 	if pack and pack.Parent ~= ServerStorage then
 		pcall(function()
 			pack.Parent = ServerStorage
@@ -2136,6 +2211,10 @@ local Ending = remote("Ending") -- (종류)
 remotes.Parent = ReplicatedStorage
 
 -- ───────── 맵 ─────────
+-- 손글씨 그림 ID 를 먼저 찾아 둔다 (올려 둔 데칼 → 이미지)
+pcall(function()
+	require(game:GetService("ReplicatedStorage"):WaitForChild("AtlasText")).Resolve()
+end)
 local Builder = require(ServerScriptService:WaitForChild("SchoolBuilder"))
 local school = Builder.Build(workspace, true)
 workspace:SetAttribute("MapReady", true)
