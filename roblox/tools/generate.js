@@ -60,7 +60,6 @@ const SHAPES = { Block: 0, Ball: 1, Cylinder: 2, Wedge: 3 };
 // SHIFT: 켜 두면 그 뒤에 만드는 파트를 통째로 옮긴다 (4층 복도를 옥상 문 자리에 맞출 때 씀)
 let SHIFT = null;
 function P(name, size, pos, color, mat = 'SmoothPlastic', o = {}) {
-  if (mat === 'Plaster' && gstack[1] === 'MainBuilding') mat = 'SmoothPlastic';
   const s = size.map((v) => r3(Math.max(o.min ?? 0.05, Math.abs(v))));
   let flags = 0;
   if (o.nc) flags |= 1;
@@ -368,7 +367,7 @@ function wallHoles(name, axis, uMin, uMax, vMin, vMax, w0, w1, holes, color, mat
 // ───────────────────────── 색 ─────────────────────────
 const C = {
   facade: [228, 224, 214], facadeShade: [206, 201, 190], sunshade: [214, 210, 200],
-  wallIvory: [236, 231, 218], wainscot: [178, 180, 182], baseboard: [38, 38, 40], rail: [196, 200, 204],
+  wallIvory: [226, 223, 213], wainscot: [178, 180, 182], baseboard: [38, 38, 40], rail: [196, 200, 204],
   ceiling: [232, 232, 226], tbar: [212, 212, 206], troffer: [236, 238, 240],
   corridorFloor: [150, 152, 154], classFloor: [150, 108, 66], hallFloor: [146, 148, 150],
   alum: [178, 182, 186], alumDark: [118, 122, 128], glass: [128, 150, 160], glassFrost: [214, 220, 222],
@@ -413,10 +412,68 @@ function wainscot(axis, uMin, uMax, face, n, L, gaps = [], o = {}) {
     const lay = (n0, t, y0, y1, c, m) => (axis === 'x'
       ? B(n0, a, y0, Math.min(face, face + n * t), b, y1, Math.max(face, face + n * t), c, m, { nc: true, ns: true })
       : B(n0, Math.min(face, face + n * t), y0, a, Math.max(face, face + n * t), y1, b, c, m, { nc: true, ns: true }));
-    lay('Wainscot', 0.05, L, L + h, o.color || C.wainscot, 'Plaster');
+    lay('Wainscot', 0.05, L, L + h, o.color || C.wainscot, 'SmoothPlastic');
     lay('Baseboard', 0.1, L, L + 0.45, o.base || C.baseboard, 'SmoothPlastic');
     lay('ChairRail', 0.08, L + h, L + h + 0.06, o.rail || C.rail, 'Metal');
   });
+}
+
+// ───────── 오래된 학교 벽의 흔적 ─────────
+// axis 'x': 벽이 x 방향으로 뻗고 면은 z=face, n=방 쪽(+1/-1). axis 'z' 도 같은 식.
+// 위쪽 벽의 바랜 얼룩, 걸레받이 위 때 띠, 긁힌 자국, 머리카락 같은 균열, 손때, 콘센트.
+// gaps: 문·창 자리 [u0, u1] (그 구간엔 안 붙인다). 모두 얇은 반투명 판이라 몸에 부딪히지 않는다.
+function wallWear(axis, uMin, uMax, face, n, L, top, gaps = [], o = {}) {
+  const so = { nc: true, ns: true, min: 0.01 };
+  const free = (a, b) => !gaps.some(([g0, g1]) => b > g0 - 0.2 && a < g1 + 0.2);
+  const put = (name, u0, u1, y0, y1, d, col, op = {}) => {
+    const w0 = face + n * d, w1 = face + n * (d + 0.012);
+    if (axis === 'x') B(name, u0, y0, Math.min(w0, w1), u1, y1, Math.max(w0, w1), col, op.mat || 'SmoothPlastic', { ...so, ...op });
+    else B(name, Math.min(w0, w1), y0, u0, Math.max(w0, w1), y1, u1, col, op.mat || 'SmoothPlastic', { ...so, ...op });
+  };
+  const line = (name, u, y, len, ang, wid, d, col, t) => {
+    const c = Math.cos(ang), sn = Math.sin(ang), w = face + n * d;
+    const pos = axis === 'x' ? [u, y, w] : [w, y, u];
+    const r = axis === 'x' ? [0, 0, (ang * 180) / Math.PI] : [(ang * 180) / Math.PI, 0, 0];
+    P(name, axis === 'x' ? [len, wid, 0.012] : [0.012, wid, len], pos, col, 'SmoothPlastic', { ...so, r, t });
+    void c; void sn;
+  };
+  const yTop = top - 0.4, h = o.h || 3.5;
+  // 1) 걸레받이 위 때 띠 (발이 닿는 높이), 군데군데 끊김
+  for (let u = uMin; u < uMax; u += 3 + rnd() * 3) {
+    const u1 = Math.min(uMax, u + 2 + rnd() * 4);
+    if (free(u, u1)) put('Grime', u, u1, L + 0.45, L + 0.75 + rnd() * 0.5, 0.065, [120, 116, 106], { t: 0.82 + rnd() * 0.1 });
+  }
+  // 2) 위쪽 벽의 바랜 얼룩 / 누런 물자국 (천장 쪽에서 흘러내린 자국)
+  for (let u = uMin + rnd() * 4; u < uMax - 1; u += 4 + rnd() * 7) {
+    const w = 1.2 + rnd() * 3.5, u1 = Math.min(uMax, u + w);
+    if (!free(u, u1)) continue;
+    const y1 = rnd() < 0.5 ? yTop : L + h + 1.5 + rnd() * (yTop - L - h - 2);
+    const hh = 0.6 + rnd() * 2.2;
+    const col = rnd() < 0.5 ? [196, 188, 160] : [178, 176, 168];
+    put('Stain', u, u1, Math.max(L + h + 0.2, y1 - hh), y1, 0.02, col, { t: 0.8 + rnd() * 0.12 });
+    if (rnd() < 0.4) for (let k = 0; k < 3; k++) { const uu = u + rnd() * w; line('Drip', uu, y1 - hh - 0.3 - rnd() * 0.5, 0.6 + rnd() * 0.8, Math.PI / 2, 0.05, 0.028, [170, 160, 132], 0.75); }
+  }
+  // 3) 머리카락 같은 균열 (꺾인 짧은 선 2~3개)
+  for (let u = uMin + 2; u < uMax - 2; u += 7 + rnd() * 9) {
+    if (!free(u - 1, u + 1)) continue;
+    let y = L + h + 0.6 + rnd() * (yTop - L - h - 1.5), uu = u, ang = (rnd() - 0.5) * 1.6 + Math.PI / 2;
+    for (let k = 0; k < 3; k++) {
+      const len = 0.4 + rnd() * 0.8;
+      line('Crack', uu + Math.cos(ang) * len / 2, y + Math.sin(ang) * len / 2, len, ang, 0.025, 0.026, [104, 100, 92], 0.45);
+      uu += Math.cos(ang) * len; y += Math.sin(ang) * len; ang += (rnd() - 0.5) * 1.2;
+    }
+  }
+  // 4) 아랫벽의 긁힌 자국 · 신발 자국 (짧은 가로 줄)
+  for (let u = uMin + 1; u < uMax - 1; u += 1.5 + rnd() * 3) {
+    if (!free(u - 0.5, u + 0.5) || rnd() < 0.4) continue;
+    line('Scuff', u, L + 0.55 + rnd() * 1.6, 0.2 + rnd() * 0.6, (rnd() - 0.5) * 0.4, 0.04 + rnd() * 0.04, 0.07, [60, 58, 56], 0.55 + rnd() * 0.3);
+  }
+  // 5) 콘센트 (2구, 흰 판)
+  for (let u = uMin + 5 + rnd() * 4; u < uMax - 2; u += 11 + rnd() * 6) {
+    if (!free(u - 0.4, u + 0.4)) continue;
+    put('Outlet', u - 0.22, u + 0.22, L + 0.95, L + 1.6, 0.06, [238, 236, 230], { min: 0.04 });
+    [L + 1.13, L + 1.42].forEach((y) => put('OutletHole', u - 0.1, u + 0.1, y - 0.06, y + 0.06, 0.1, [40, 40, 42], { min: 0.02 }));
+  }
 }
 
 // 천장: 흰 텍스 천장 (줄눈은 거의 안 보이게)
@@ -424,6 +481,12 @@ function ceiling(x0, x1, z0, z1, y) {
   B('CeilingTile', x0, y, z0, x1, y + 0.2, z1, [238, 238, 234], 'SmoothPlastic', { ns: true });
   for (let x = x0 + 2; x < x1 - 0.2; x += 2) B('TBar', x - 0.03, y - 0.03, z0, x + 0.03, y, z1, [214, 214, 210], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
   for (let z = z0 + 2; z < z1 - 0.2; z += 2) B('TBar', x0, y - 0.03, z - 0.03, x1, y, z + 0.03, [214, 214, 210], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
+  // 누렇게 번진 천장 얼룩 (빗물이 샌 자국), 깨진 텍스 한두 장
+  const nSt = Math.floor(((x1 - x0) * (z1 - z0)) / 160);
+  for (let k = 0; k < nSt; k++) {
+    const r = 0.6 + rnd() * 1.4, x = x0 + r + 1.2 + rnd() * Math.max(0, x1 - x0 - 2 * r - 2.4), z = z0 + r + 1.2 + rnd() * Math.max(0, z1 - z0 - 2 * r - 2.4);
+    P('CeilStain', [0.012, r * 2, r * 2 * (0.6 + rnd() * 0.6)], [x, y - 0.035, z], [190, 172, 128], 'SmoothPlastic', { sh: 'Cylinder', r: [0, rnd() * 180, 90], t: 0.7 + rnd() * 0.15, nc: true, ns: true, min: 0.01 });
+  }
 }
 // 학교 천장 등: 얇은 LED 평판 (가로 4 × 세로 1.3)
 function troffer(x, z, y, on, o = {}) {
@@ -2877,10 +2940,22 @@ grp('MainBuilding', () => {
             light: { type: 'Surface', face: 'Bottom', range: 18, angle: 120, brightness: on ? 0.85 : 0, color: [214, 228, 255], enabled: on, shadows: true } });
         }
         wainscot('x', BX0 + 0.8, BX1 - 0.8, CORR0, 1, L, [[-CS.W, CS.W]]);
+        wallWear('x', BX0 + 0.8, BX1 - 0.8, CORR0, 1, L, L + CEIL, [[-CS.W, CS.W], ...northHoles.map((hh) => [hh.u0, hh.u1])]);
+        // 천장 가장자리를 따라 가는 흰 전선 덕트 + 이음 상자
+        B('CableDuct', BX0 + 0.8, L + CEIL - 0.55, CORR0, BX1 - 0.8, L + CEIL - 0.3, CORR0 + 0.22, [232, 232, 226], 'SmoothPlastic', { nc: true });
+        for (let x = BX0 + 6; x < BX1 - 4; x += 19) B('JunctionBox', x - 0.3, L + CEIL - 0.7, CORR0, x + 0.3, L + CEIL - 0.25, CORR0 + 0.3, [226, 226, 220], 'SmoothPlastic', { nc: true, ns: true });
         fr.forEach((r) => {
           const restroom = r.name === '화장실';
           const doorList = restroom ? roomDoors(r).map(([a, b]) => [a - 0.25, b + 0.25]) : [[r.xa + 1.5, r.xa + 7.1], [r.xb - 7.1, r.xb - 1.5]];
           wainscot('x', r.xa - 0.3, r.xb + 0.3, PART0, -1, L, doorList);
+          wallWear('x', r.xa - 0.3, r.xb + 0.3, PART0, -1, L, L + CEIL, [...doorList, ...(restroom ? [] : [[r.xa + 9.0, r.xb - 9.0]])]);
+          // 교실 경계의 콘크리트 기둥 (복도 쪽으로 튀어나옴) + 모서리 보호대
+          {
+            const cx = r.xa - WALL / 2, so2 = { nc: true, ns: true };
+            B('Column', cx - 0.7, L, PART0 - 0.45, cx + 0.7, L + CEIL, PART0, C.wallIvory, 'Plaster');
+            [cx - 0.72, cx + 0.62].forEach((x) => B('CornerGuard', x, L + 0.45, PART0 - 0.47, x + 0.1, L + 5.0, PART0 - 0.37, [196, 200, 204], 'Metal', { ...so2, refl: 0.2 }));
+            B('ColumnBase', cx - 0.72, L, PART0 - 0.47, cx + 0.72, L + 0.45, PART0, C.baseboard, 'SmoothPlastic', so2);
+          }
           if (restroom) return;
           const a = r.xa + 9.2, b = r.xb - 9.2;
           B('HallLockers', a, L + 0.25, PART0 - 1.45, b, L + 6, PART0 - 0.02, [96, 112, 126], 'Metal');
@@ -2996,6 +3071,8 @@ grp('MainBuilding', () => {
       B('HallWall', HALL1, L, PART1, HALL1 + WALL, top, ROOM1, C.wallIvory, 'Plaster');
       wainscot('z', PART1, ROOM1, HALL0, 1, L);
       wainscot('z', PART1, ROOM1, HALL1, -1, L);
+      wallWear('z', PART1, ROOM1, HALL0, 1, L, L + CEIL, f === 0 ? [[-161.6, -153.4], [-152.2, -143.8]] : []);
+      wallWear('z', PART1, ROOM1, HALL1, -1, L, L + CEIL, f === 0 ? [[-161.6, -153.9], [-152.2, -141.8]] : []);
       if (f === 0) {
         // 신발장 (2010년대 학교 현관): 밝은 자작 합판 틀, 칸마다 안쪽이 어두운 열린 칸, 칸 위 번호 스티커, 군데군데 실내화
         grp('ShoeLockers', () => {
