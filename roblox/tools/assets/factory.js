@@ -24,7 +24,7 @@ export function buildTemplates(which) {
   if (want('Trees')) T.push(...buildTrees(mulberry(11)));
   if (want('StudentDesk')) T.push({ name: 'StudentDesk', keep: ['DeskTop'], meshes: buildDesk() });
   if (want('StudentChair')) T.push({ name: 'StudentChair', keep: ['Seat'], meshes: buildChair() });
-  if (want('Sedan')) T.push({ name: 'Sedan', keep: ['Body'], show: ["Headlight", "HeadlightTrim", "DRL", "FogLight", "FogBezel", "Taillight", "TailWrap", "Reflector", "Plate", "Grille", "GrilleRim", "GrilleBar", "Emblem", "LowerGrille", "TrunkChrome", "Exhaust", "Handle", "MirrorSignal", "Wiper", "CabinFloor", "Dash", "DashTop", "Cluster", "Screen", "SteeringWheel", "Column", "SeatBase", "SeatBack", "Headrest", "RearSeat", "RearBack", "Console", "DriverEye"], meshes: buildCar() });
+  if (want('Sedan')) T.push({ name: 'Sedan', keep: ['Body'], show: ["HeadBeam","Plate","CabinFloor","Dash","DashTop","Cluster","Screen","SteeringWheel","Column","SeatBase","SeatBack","Headrest","RearSeat","RearBack","Console","DriverEye"], meshes: buildCar() });
   return T;
 }
 

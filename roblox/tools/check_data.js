@@ -45,7 +45,7 @@ h.gtags.forEach((t) => { if (t[0] >= h.groups.length) errors.push(`그룹 태그
 
 // 스크립트가 꼭 찾아야 하는 태그가 있는지
 const need = ['BoothSpawn', 'BoothZone', 'BuildingZone', 'RoofStairZone', 'ChairSpot', 'FigureSpot', 'PatrolPoint', 'Phone', 'GateLock',
-  'ClockCenter', 'ClockHour', 'ClockMinute', 'StairSign', 'Blackboard', 'CorridorLight', 'FlickerLight', 'CCTVScreen', 'OnAirSign', 'StatuePedestal', 'StallDoor3', 'DriverEye'];
+  'ClockCenter', 'ClockHour', 'ClockMinute', 'Blackboard', 'CorridorLight', 'FlickerLight', 'CCTVScreen', 'OnAirSign', 'StatuePedestal', 'StallDoor3', 'DriverEye'];
 const have = new Set(h.tags.map((t) => t[1]));
 need.forEach((t) => { if (!have.has(t)) errors.push(`필요한 태그 없음: ${t}`); });
 const gneed = ['Classroom', 'DeskSet', 'MainGate', 'IntroCar', 'StatueFigure', 'PlasterBust'];

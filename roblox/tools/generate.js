@@ -60,6 +60,7 @@ const SHAPES = { Block: 0, Ball: 1, Cylinder: 2, Wedge: 3 };
 // SHIFT: 켜 두면 그 뒤에 만드는 파트를 통째로 옮긴다 (4층 복도를 옥상 문 자리에 맞출 때 씀)
 let SHIFT = null;
 function P(name, size, pos, color, mat = 'SmoothPlastic', o = {}) {
+  if (mat === 'Plaster' && gstack[1] === 'MainBuilding') mat = 'SmoothPlastic';
   const s = size.map((v) => r3(Math.max(o.min ?? 0.05, Math.abs(v))));
   let flags = 0;
   if (o.nc) flags |= 1;
@@ -367,9 +368,9 @@ function wallHoles(name, axis, uMin, uMax, vMin, vMax, w0, w1, holes, color, mat
 // ───────────────────────── 색 ─────────────────────────
 const C = {
   facade: [228, 224, 214], facadeShade: [206, 201, 190], sunshade: [214, 210, 200],
-  wallIvory: [236, 231, 218], wainscot: [168, 190, 172], baseboard: [70, 92, 78], rail: [150, 112, 74],
+  wallIvory: [236, 231, 218], wainscot: [178, 180, 182], baseboard: [38, 38, 40], rail: [196, 200, 204],
   ceiling: [232, 232, 226], tbar: [212, 212, 206], troffer: [236, 238, 240],
-  corridorFloor: [172, 170, 158], classFloor: [150, 108, 66], hallFloor: [164, 162, 150],
+  corridorFloor: [150, 152, 154], classFloor: [150, 108, 66], hallFloor: [146, 148, 150],
   alum: [178, 182, 186], alumDark: [118, 122, 128], glass: [128, 150, 160], glassFrost: [214, 220, 222],
   woodDark: [96, 66, 42], laminate: [214, 188, 146],
   steel: [146, 150, 156], steelDark: [64, 66, 70], board: [34, 60, 48], white: [236, 236, 232],
@@ -414,13 +415,15 @@ function wainscot(axis, uMin, uMax, face, n, L, gaps = [], o = {}) {
       : B(n0, Math.min(face, face + n * t), y0, a, Math.max(face, face + n * t), y1, b, c, m, { nc: true, ns: true }));
     lay('Wainscot', 0.05, L, L + h, o.color || C.wainscot, 'Plaster');
     lay('Baseboard', 0.1, L, L + 0.45, o.base || C.baseboard, 'SmoothPlastic');
-    lay('ChairRail', 0.13, L + h, L + h + 0.18, o.rail || C.rail, 'Wood');
+    lay('ChairRail', 0.08, L + h, L + h + 0.06, o.rail || C.rail, 'Metal');
   });
 }
 
 // 천장: 흰 텍스 천장 (줄눈은 거의 안 보이게)
 function ceiling(x0, x1, z0, z1, y) {
-  B('CeilingTile', x0, y, z0, x1, y + 0.2, z1, C.ceiling, 'Plaster', { ns: true });
+  B('CeilingTile', x0, y, z0, x1, y + 0.2, z1, [238, 238, 234], 'SmoothPlastic', { ns: true });
+  for (let x = x0 + 2; x < x1 - 0.2; x += 2) B('TBar', x - 0.03, y - 0.03, z0, x + 0.03, y, z1, [214, 214, 210], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
+  for (let z = z0 + 2; z < z1 - 0.2; z += 2) B('TBar', x0, y - 0.03, z - 0.03, x1, y, z + 0.03, [214, 214, 210], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
 }
 // 학교 천장 등: 얇은 LED 평판 (가로 4 × 세로 1.3)
 function troffer(x, z, y, on, o = {}) {
@@ -576,7 +579,7 @@ function car(name, cx, cz, ry, color, o = {}) {
       const lr = op.r || [0, 0, 0];
       return P(n, size, W(...lp), col, mat, { ...op, r: [lr[0], ry + lr[1], lr[2]] });
     };
-    const trim = [28, 28, 30], chrome = [190, 194, 198], glass = [40, 52, 60], seat = [44, 44, 48];
+    const trim = [28, 28, 30], chrome = [190, 194, 198], glass = [40, 52, 60], seat = [70, 66, 62];
     // 2010년대 중형 세단 (K5·SM5·그랜저 느낌): 낮고 긴 차체, 길게 누운 앞유리, 짧은 지붕, 뒤로 흘러내리는 C필러,
     // 짧은 트렁크, 옆으로 길게 뻗은 헤드램프, 굵은 어깨선, 5스포크 휠. 앞 = -Z, 길이 15(약 4.8 m)
     const dark = color.map((v) => Math.max(0, v - 18)), paint = { refl: 0.18 };
@@ -631,7 +634,9 @@ function car(name, cx, cz, ry, color, o = {}) {
         Q('Hub', [0.96, 0.4, 0.4], [wx + sx * 0.03, 1.15, wz], [150, 154, 158], 'Metal', { sh: 'Cylinder', nc: true, ns: true });
       });
       // 헤드램프: 옆으로 길게 찢어진 모양 (펜더 쪽으로 올라감)
-      Q('Headlight', [1.8, 0.36, 0.5], [sx * 1.85, 2.42, L0 + 0.62], [236, 240, 244], o.lightsOn ? 'Neon' : 'Glass', { r: [0, -sx * 14, 0], refl: 0.4,
+      Q('Headlight', [1.8, 0.36, 0.5], [sx * 1.85, 2.42, L0 + 0.62], [236, 240, 244], o.lightsOn ? 'Neon' : 'Glass', { r: [0, -sx * 14, 0], refl: 0.4, nc: true });
+      // 실제 불빛은 보이지 않는 파트에 단다 (메시 차에서도 그대로 남는다)
+      Q('HeadBeam', [0.4, 0.4, 0.2], [sx * 2.0, 2.05, L0 + 0.2], [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, ns: true,
         tag: 'CarHeadlight', light: { type: 'Spot', face: 'Front', range: 60, brightness: o.lightsOn ? 6 : 0, angle: 50, color: [255, 246, 226], enabled: !!o.lightsOn, shadows: true } });
       Q('HeadlightTrim', [1.9, 0.1, 0.52], [sx * 1.85, 2.62, L0 + 0.63], chrome, 'Metal', { r: [0, -sx * 14, 0], nc: true, ns: true });
       Q('DRL', [1.2, 0.06, 0.1], [sx * 1.9, 2.3, L0 + 0.37], [235, 245, 255], o.lightsOn ? 'Neon' : 'SmoothPlastic', { r: [0, -sx * 14, 0], nc: true, ns: true });
@@ -650,8 +655,8 @@ function car(name, cx, cz, ry, color, o = {}) {
     for (let k = 0; k < 3; k++) Q('GrilleBar', [2.5, 0.04, 0.05], [0, 2.04 + k * 0.14, L0 - 0.1], [70, 72, 76], 'Metal', { nc: true, ns: true });
     Q('Emblem', [0.45, 0.3, 0.05], [0, 2.18, L0 - 0.12], chrome, 'Metal', { nc: true, refl: 0.5 });
     Q('LowerGrille', [3.2, 0.42, 0.08], [0, 1.25, L0 - 0.02], [22, 22, 24], 'SmoothPlastic', { nc: true });
-    Q('Plate', [2.1, 0.46, 0.06], [0, 1.65, L0 - 0.05], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Front', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
-    Q('Plate', [2.1, 0.46, 0.06], [0, 2.25, L1 + 0.03], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Back', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
+    Q('Plate', [1.62, 0.36, 0.05], [0, 1.27, L0 + 0.02], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Front', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
+    Q('Plate', [1.62, 0.36, 0.05], [0, 2.35, L1 + 0.03], [240, 240, 236], 'SmoothPlastic', { text: { face: 'Back', text: o.plate || '35싸 0412', color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
     Q('TrunkChrome', [3.0, 0.1, 0.06], [0, 2.7, L1 + 0.02], chrome, 'Metal', { nc: true, ns: true, refl: 0.4 });
     Q('RearDiffuser', [4.6, 0.3, 0.1], [0, 1.05, L1 + 0.0], [30, 30, 32], 'SmoothPlastic', { nc: true, ns: true });
     Q('Underbody', [5.4, 0.3, 13.4], [0, 0.95, 0], [18, 18, 20], 'SmoothPlastic', { nc: true, ns: true });
@@ -660,21 +665,21 @@ function car(name, cx, cz, ry, color, o = {}) {
     swapAnchor(yawFrame(W(0, 0, 0), ry), 'Sedan');
     // 실내
     Q('CabinFloor', [5.4, 0.2, 9], [0, 2.75, 1.2], [36, 36, 38], 'Carpet', { nc: true });
-    Q('Dash', [5.2, 0.9, 1.0], [0, 3.3, -1.0], [32, 32, 34], 'Leather', { nc: true });
-    Q('DashTop', [5.2, 0.12, 0.7], [0, 3.8, -1.2], [24, 24, 26], 'Leather', { nc: true });
+    Q('Dash', [5.0, 0.8, 1.0], [0, 3.25, -0.7], [32, 32, 34], 'Leather', { nc: true });
+    Q('DashTop', [5.0, 0.1, 0.7], [0, 3.7, -0.85], [24, 24, 26], 'Leather', { nc: true });
     Q('Cluster', [1.3, 0.45, 0.05], [-1.35, 3.62, -0.48], [120, 180, 255], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
     Q('Screen', [1.2, 0.6, 0.05], [0, 3.5, -0.48], [40, 70, 110], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
     Q('SteeringWheel', [0.12, 1.45, 1.45], [-1.35, 3.5, -0.05], [20, 20, 22], 'Leather', { sh: 'Cylinder', r: [0, 90, -25], nc: true });
     Q('Column', [0.25, 0.25, 0.6], [-1.35, 3.4, -0.4], [30, 30, 32], 'SmoothPlastic', { nc: true });
     [-1.35, 1.35].forEach((sx) => {
       Q('SeatBase', [2.0, 0.7, 2.0], [sx, 3.15, 1.1], seat, 'Leather', { nc: true });
-      Q('SeatBack', [2.0, 1.5, 0.5], [sx, 3.95, 2.2], seat, 'Leather', { nc: true });
-      Q('Headrest', [1.1, 0.45, 0.4], [sx, 4.55, 2.3], seat, 'Leather', { nc: true });
+      Q('SeatBack', [1.8, 1.1, 0.4], [sx * 0.9, 3.65, 2.2], seat, 'Leather', { nc: true });
+      Q('Headrest', [0.9, 0.3, 0.3], [sx * 0.9, 4.1, 2.3], seat, 'Leather', { nc: true });
     });
-    Q('RearSeat', [4.8, 0.7, 1.6], [0, 3.15, 3.5], seat, 'Leather', { nc: true });
-    Q('RearBack', [4.8, 1.0, 0.5], [0, 3.75, 4.35], seat, 'Leather', { nc: true });
+    Q('RearSeat', [4.6, 0.7, 1.5], [0, 3.15, 3.0], seat, 'Leather', { nc: true });
+    Q('RearBack', [4.6, 0.8, 0.45], [0, 3.6, 3.6], seat, 'Leather', { nc: true });
     Q('Console', [0.9, 0.8, 2.2], [0, 3.05, 0.6], [28, 28, 30], 'SmoothPlastic', { nc: true });
-    if (o.pov) Q('DriverEye', [0.2, 0.2, 0.2], [-1.35, 4.45, 1.6], [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'DriverEye' });
+    if (o.pov) Q('DriverEye', [0.2, 0.2, 0.2], [-1.3, 4.05, 1.5], [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'DriverEye' });
   }, o.tag);
 }
 
@@ -1470,9 +1475,6 @@ grp('Grounds', () => {
     B('ParkLine', x, 0.2, PZ + 4, x + 0.3, 0.23, PZ + 22, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
     B('ParkLine', x, 0.2, PZ + 62, x + 0.3, 0.23, PZ + 80, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
   }
-  car('TeacherCar1', 31.6, PZ + 14, 180, [196, 200, 204], { plate: '12가 3456' });
-  car('TeacherCar2', 67.6, PZ + 14, 180, [232, 232, 230], { plate: '48라 9012' });
-  car('SchoolVan', 85.6, PZ + 71, 0, [26, 28, 32], { plate: '77바 1004' });
   const cx = -113, cz = 2;
   [[70, 88], [64.5, 82.5], [59, 77]].forEach(([a, b]) => {
     const N = 64;
@@ -2708,16 +2710,15 @@ grp('MainBuilding', () => {
   for (let f = 0; f < 4; f++) {
     const y1 = f < 3 ? LV[f] : ROOFY, y0 = y1 - 1;
     const deck = f === 3;
-    const corr = deck ? C.roofGreen : C.corridorFloor, cm = deck ? 'Concrete' : 'Granite';
+    const corr = deck ? C.roofGreen : C.corridorFloor, cm = deck ? 'Concrete' : 'Marble';
     const room = deck ? C.roofGreen : C.classFloor, rm = deck ? 'Concrete' : 'WoodPlanks';
-    const hall = deck ? C.roofGreen : C.hallFloor, hm = deck ? 'Concrete' : 'Granite';
+    const hall = deck ? C.roofGreen : C.hallFloor, hm = deck ? 'Concrete' : 'Marble';
     const ya = f === 0 ? 0.9 : y0;
     B('CorridorFloor', BX0, ya, ZN, BX1, y1, PART1, corr, cm);
     B('WingFloor', BX0, ya, PART1, HALL0, y1, ZS, room, rm);
     B('WingFloor', HALL1, ya, PART1, BX1, y1, ZS, room, rm);
     if (!deck) {
-      terrazzo(BX0 + 0.8, BX1 - 0.8, CORR0, PART0, y1, 4);
-      terrazzo(HALL0, HALL1, PART1, ROOM1, y1, 4);
+
     }
     B('HallFloor', HALL0, ya, PART1, HALL1, y1, ZS, hall, hm);
   }
@@ -2829,8 +2830,6 @@ grp('MainBuilding', () => {
               [PART0 - 0.22, PART0 + 0.52].forEach((zh) => B('PullBar', hxp - 0.07, L + 2.4, zh - 0.07, hxp + 0.07, L + 5.0, zh + 0.07, [20, 20, 22], 'Metal', so));
             });
           });
-          B('RoomPlate', a + 1.2, L + 7.75, PART0 - 0.12, b - 1.2, L + 8.5, PART0, [30, 52, 104], 'SmoothPlastic', { ...so,
-            text: { face: 'Front', text: '음악실 · 방음문', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBold', pps: 70 } });
         });
         else doorList.forEach(([a, b], di) => {
           // 오크 문틀 + 위쪽 채광창 (유리 2장, 가운데 살)
@@ -2998,22 +2997,65 @@ grp('MainBuilding', () => {
       wainscot('z', PART1, ROOM1, HALL0, 1, L);
       wainscot('z', PART1, ROOM1, HALL1, -1, L);
       if (f === 0) {
-        B('ShoeLockers', -9.8, L, -161.5, -7.6, L + 6.4, -153.5, [176, 144, 104], 'WoodPlanks');
-        for (let z = -161.5 + 1.0; z < -153.6; z += 1.0) B('ShoeSeam', -7.62, L + 0.1, z - 0.03, -7.58, L + 6.3, z + 0.03, [120, 96, 70], 'SmoothPlastic', { nc: true, ns: true });
-        for (let y = 1.3; y < 6.4; y += 1.3) B('ShoeSeam', -7.62, L + y - 0.03, -161.5, -7.58, L + y + 0.03, -153.5, [120, 96, 70], 'SmoothPlastic', { nc: true, ns: true });
+        // 신발장 (2010년대 학교 현관): 밝은 자작 합판 틀, 칸마다 안쪽이 어두운 열린 칸, 칸 위 번호 스티커, 군데군데 실내화
+        grp('ShoeLockers', () => {
+          const x0 = -9.8, x1 = -7.6, za = -161.5, zb = -153.5, yt = L + 6.6, wood = [218, 196, 158], inside = [120, 100, 76], so = { nc: true, ns: true };
+          B('ShoeBack', x0, L, za, x0 + 0.12, yt, zb, inside, 'Wood');
+          B('ShoeSide', x0, L, za, x1, yt, za + 0.12, wood, 'Wood');
+          B('ShoeSide', x0, L, zb - 0.12, x1, yt, zb, wood, 'Wood');
+          B('ShoeTop', x0, yt - 0.12, za, x1 + 0.05, yt, zb, wood, 'Wood');
+          B('ShoeBase', x0, L, za, x1, L + 0.35, zb, [90, 74, 58], 'Wood');
+          const cols = 8, rows = 5, cw = (zb - za - 0.24) / cols, rh = (yt - 0.12 - L - 0.35) / rows;
+          for (let r2 = 1; r2 < rows; r2++) B('ShoeShelf', x0 + 0.12, L + 0.35 + r2 * rh - 0.05, za + 0.12, x1, L + 0.35 + r2 * rh + 0.05, zb - 0.12, wood, 'Wood');
+          for (let c = 1; c < cols; c++) B('ShoeDivider', x0 + 0.12, L + 0.35, za + 0.12 + c * cw - 0.04, x1, yt - 0.12, za + 0.12 + c * cw + 0.04, wood, 'Wood', so);
+          for (let r2 = 0; r2 < rows; r2++) for (let c = 0; c < cols; c++) {
+            const zc2 = za + 0.12 + (c + 0.5) * cw, yb = L + 0.35 + r2 * rh + 0.05;
+            B('ShoeLabel', x1 + 0.01, yb + rh - 0.32, zc2 - 0.22, x1 + 0.02, yb + rh - 0.14, zc2 + 0.22, [250, 250, 244], 'SmoothPlastic', { ...so, min: 0.01 });
+            if (rnd() < 0.45) {
+              const col = pick([[236, 236, 232], [236, 236, 232], [70, 90, 150], [40, 40, 44]]);
+              [-0.17, 0.17].forEach((dz) => {
+                B('Slipper', x0 + 0.5, yb, zc2 + dz - 0.13, x1 - 0.25, yb + 0.22, zc2 + dz + 0.13, col, 'Plastic', so);
+                B('SlipperStrap', x1 - 0.9, yb + 0.22, zc2 + dz - 0.14, x1 - 0.4, yb + 0.34, zc2 + dz + 0.14, pick([[40, 70, 140], [200, 40, 40], [40, 40, 44]]), 'Plastic', so);
+              });
+            }
+          }
+        });
         B('MirrorFrame', -9.95, L + 1, -152, -9.75, L + 9.6, -144, C.woodDark, 'Wood');
         B('Mirror', -9.78, L + 1.3, -151.7, -9.7, L + 9.3, -144.3, [196, 206, 210], 'Glass', { refl: 0.85, tag: 'HallMirror' });
         B('MirrorText', -9.95, L + 9.7, -150, -9.75, L + 10.2, -144, C.woodDark, 'Wood', { text: { face: 'Right', text: '바른 자세 · 단정한 용모', color: [240, 230, 200], bgT: 1, pps: 60 } });
-        B('TrophyCase', 7.4, L, -161.5, 9.8, L + 7.6, -154, [110, 80, 52], 'Wood');
-        B('TrophyGlass', 7.36, L + 1, -161.2, 7.4, L + 7.2, -154.3, [180, 200, 210], 'Glass', { t: 0.6, nc: true });
-        for (let k = 0; k < 5; k++) { cylV('Trophy', 7.9 + (k % 2) * 0.6, L + 3.2, -160.4 + k * 1.3, 1.1 + (k % 3) * 0.3, 0.35, [212, 176, 70], 'Metal', { nc: true, refl: 0.3 }); }
+        // 트로피 진열장: 밝은 나무 틀, 유리 문, 유리 선반, 안쪽 조명, 금·은 트로피와 상패
+        grp('TrophyCase', () => {
+          const x0 = 7.4, x1 = 9.8, za = -161.5, zb = -154, frame = [170, 128, 84], so = { nc: true, ns: true };
+          B('CaseBase', x0, L, za, x1, L + 2.2, zb, frame, 'Wood');
+          B('CaseBack', x1 - 0.1, L + 2.2, za, x1, L + 8.4, zb, [222, 214, 196], 'Fabric');
+          B('CaseTop', x0, L + 8.4, za, x1, L + 8.8, zb, frame, 'Wood');
+          [za, zb - 0.15].forEach((z) => B('CaseSide', x0, L + 2.2, z, x1, L + 8.4, z + 0.15, frame, 'Wood'));
+          B('CaseGlass', x0, L + 2.2, za + 0.15, x0 + 0.05, L + 8.4, zb - 0.15, [200, 214, 220], 'Glass', { t: 0.75, refl: 0.2 });
+          B('CaseMullion', x0 - 0.02, L + 2.2, (za + zb) / 2 - 0.05, x0 + 0.06, L + 8.4, (za + zb) / 2 + 0.05, [180, 184, 188], 'Metal', so);
+          [L + 4.3, L + 6.3].forEach((y) => B('GlassShelf', x0 + 0.1, y, za + 0.15, x1 - 0.1, y + 0.06, zb - 0.15, [210, 226, 230], 'Glass', { t: 0.5, ...so }));
+          P('CaseLight', [0.2, 0.2, 0.2], [8.6, L + 8.2, (za + zb) / 2], [255, 255, 255], 'SmoothPlastic', { t: 1, hidden: true, light: { type: 'Point', range: 7, brightness: 0.35, color: [255, 236, 200] } });
+          [L + 2.2, L + 4.36, L + 6.36].forEach((y, sh) => {
+            for (let k = 0; k < 4; k++) {
+              const z = za + 1.0 + k * 1.65, x = 8.7 + ((k + sh) % 2) * 0.35, gold = (k + sh) % 3 !== 1;
+              const col = gold ? [214, 172, 66] : [196, 200, 206];
+              B('TrophyBase', x - 0.3, y, z - 0.3, x + 0.3, y + 0.35, z + 0.3, [40, 30, 24], 'Wood', so);
+              cylV('TrophyStem', x, y + 0.35, z, 0.55 + sh * 0.1, 0.12, col, 'Metal', { ...so, refl: 0.4 });
+              P('TrophyCup', [0.62, 0.7, 0.7], [x, y + 1.25 + sh * 0.1, z], col, 'Metal', { ...so, sh: 'Ball', refl: 0.4 });
+              [-1, 1].forEach((d) => P('TrophyHandle', [0.08, 0.32, 0.32], [x, y + 1.3 + sh * 0.1, z + d * 0.42], col, 'Metal', { ...so, sh: 'Cylinder', r: [0, 90, 0] }));
+            }
+            B('Medal', x1 - 0.14, y + 0.5, za + 3.2, x1 - 0.1, y + 1.5, za + 4.0, [60, 40, 26], 'Wood', so);
+          });
+        });
         B('Plaque', 9.75, L + 5, -152, 9.95, L + 9, -142, [60, 40, 26], 'Wood', { text: { face: 'Left', text: '교 훈\n\n성실 · 정직 · 배려', color: [230, 210, 160], bg: [60, 40, 26], bgT: 0, font: 'Merriweather' } });
-        cylV('Pot', 8.6, L, -140, 2, 1.8, [150, 90, 60], 'Brick');
-        ball('Plant', 8.6, L + 3.4, -140, 2.8, [50, 90, 50], 'LeafyGrass', { nc: true });
+        pottedPlant(8.4, L, -140.4, 1);
+        pottedPlant(-8.4, L, -140.4, 0);
+        // 벽 패널 줄눈 (흰 도장 패널, 사진처럼)
+        [[HALL0 + 0.01, 1], [HALL1 - 0.01, -1]].forEach(([x, n]) => { for (let z = PART1 + 4; z < ROOM1 - 1; z += 4) B('PanelJoint', x - 0.02, L + 3.5, z - 0.02, x + 0.02, L + CEIL, z + 0.02, [200, 202, 204], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 }); });
         B('Doormat', -6.5, L, -141.5, 6.5, L + 0.08, -138, [60, 60, 64], 'Carpet', { nc: true });
       }
       ceiling(HALL0, HALL1, PART1, ROOM1, L + CEIL);
-      troffer(0, -150, L + CEIL, f === 0, { light: { type: 'Surface', face: 'Bottom', range: 16, angle: 120, brightness: f === 0 ? 0.8 : 0, color: [220, 230, 255], enabled: f === 0, shadows: true } });
+      // 사각 LED 평판 4개
+      [[-4.5, -156], [4.5, -156], [-4.5, -145], [4.5, -145]].forEach(([x, z], k) => troffer(x, z, L + CEIL, f === 0, { w: 2, d: 2, tag: 'CorridorLight', light: k % 2 ? undefined : { type: 'Surface', face: 'Bottom', range: 16, angle: 120, brightness: f === 0 ? 0.6 : 0, color: [226, 234, 255], enabled: f === 0, shadows: k === 0 } }));
     });
   }
 
@@ -3031,8 +3073,6 @@ grp('MainBuilding', () => {
     wallHoles('BayWall', 'x', -W - 0.6, W + 0.6, 0, top, zN - 0.6, zN, wins, wc, 'Plaster');
     wins.forEach((h) => { slider('x', h.u0, h.u1, h.v0, h.v1, zN - 0.3); B('Sill', h.u0 - 0.2, h.v0 - 0.2, zN - 0.2, h.u1 + 0.2, h.v0, zN + 0.5, [220, 216, 206], 'Marble', { nc: true }); });
     LV.forEach((L, fi) => {
-      B('StairSign', W - 0.14, L + 7.0, ZN - 6.5, W, L + 8.6, ZN - 2.5, [246, 246, 240], 'SmoothPlastic', {
-        nc: true, tag: 'StairSign', attr: { Floor: fi + 1 }, text: { face: 'Left', text: fi < 2 ? `${fi + 2}F ↑` : '옥상 ↑ (출입금지)', color: [30, 40, 70], bg: [246, 246, 240], bgT: 0, lit: 1, font: 'GothamBlack', pps: 70 } });
       troffer(0, zN + LD / 2, L + FH / 2 + 10.4, fi === 0, { tag: 'CorridorLight', light: { type: 'Surface', face: 'Bottom', range: 18, angle: 120, brightness: fi === 0 ? 0.7 : 0, color: [220, 230, 255], enabled: fi === 0, shadows: true } });
       B('LandingCeil', -W, L + FH / 2 + 10.4, zN, W, L + FH / 2 + 10.6, zN + LD, C.ceiling, 'Plaster', { nc: true, ns: true });
     });
@@ -3063,8 +3103,6 @@ grp('MainBuilding', () => {
     LV.forEach((L, fi) => {
       if (fi < 2) B('StairLight', xe - s * 3, L + FH / 2 + 10.2, zc - 1, xe - s * 1, L + FH / 2 + 10.4, zc + 1, [240, 244, 250], 'SmoothPlastic', {
         nc: true, ns: true, tag: 'CorridorLight', light: { type: 'Point', range: 16, brightness: 0, color: [220, 230, 255], enabled: false, shadows: true } });
-      B('FloorMark', bx + s * 0.4, L + 6.6, zc + W - 0.14, bx + s * 2.6, L + 8.0, zc + W, [246, 246, 240], 'SmoothPlastic', {
-        nc: true, ns: true, text: { face: 'Front', text: `${fi + 1}F`, color: [30, 40, 70], bg: [246, 246, 240], bgT: 0, lit: 1, font: 'GothamBlack', pps: 70 } });
     });
   }));
 
@@ -3373,7 +3411,7 @@ grp('GirlStatue', () => {
 });
 
 SHIFT = SOUTH;
-car('IntroCar', 40.5, 162, 0, [150, 156, 162], { tag: 'IntroCar', lightsOn: true, plate: '35싸 0412', pov: true });
+car('IntroCar', 40.5, 162, 0, [176, 180, 184], { tag: 'IntroCar', lightsOn: true, plate: '57누 2010', pov: true });
 SHIFT = null;
 
 // ═════════════════════════ 내보내기 ═════════════════════════

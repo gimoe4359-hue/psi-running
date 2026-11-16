@@ -37,7 +37,7 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
 | `Tree_Pine` | 붉은 줄기의 소나무 (가지 끝마다 솔잎 덩어리) |
 | `Ghost` | 복도의 여학생 (긴 생머리 760가닥, 교복 블라우스·조끼·주름치마·양말·구두) |
 | `StudentDesk`, `StudentChair` | 2010년대 학생용 책상과 의자 |
-| `Sedan` | 2010년대 국산 중형 세단 (K5·SM5·그랜저 느낌): 매끈한 차체, 유리, 5스포크 휠. 인트로 차와 주차장 차 |
+| `Sedan` | 주인공 차: 1세대 K5(2010) 은색 세단. 실제 치수(4,845 × 1,835 × 1,455 mm, 축간 2,795 mm), 호랑이 코 그릴, 찢어진 헤드램프, 감싸는 테일램프, 10스포크 18인치 휠. 번호판 57누 2010 |
 
 **가져오는 법**
 1. Studio에서 **File → Import 3D** 를 누른다 (Home 탭의 **Import 3D** 버튼도 같다).
