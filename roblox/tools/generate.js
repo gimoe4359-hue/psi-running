@@ -1014,7 +1014,7 @@ grp('GuardBooth', () => {
     FB(Fd, 'DoorGlass', 0.3, 0.9, -0.02, 3.05, 6.8, 0.02, [150, 176, 184], 'Glass', { nc: true, t: 0.6, refl: 0.15, min: 0.02 });
     [-0.13, 0.13].forEach((w) => { Frod(Fd, 'DoorHandle', [2.85, 2.9, w], [2.85, 4.3, w], 0.09, [206, 208, 212], 'Metal', so); [3.0, 4.2].forEach((y) => Frod(Fd, 'HandleFoot', [2.85, y, 0], [2.85, y, w], 0.06, [206, 208, 212], 'Metal', { ...so, min: 0.03 })); });
     FB(Fd, 'KickPlate', 0.3, 0.12, -0.08, 3.05, 0.8, 0.08, [200, 202, 206], 'Metal', { ...so, refl: 0.12 });
-    FB(Fd, 'DoorSticker', 1.0, 4.6, -0.03, 2.35, 5.2, 0.03, [30, 52, 104], 'SmoothPlastic', { ...so, min: 0.02, text: { face: 'Front', text: '경 비 실', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBold', pps: 90 } });
+    FB(Fd, 'DoorSticker', 1.0, 4.6, -0.03, 2.35, 5.2, 0.03, [30, 52, 104], 'SmoothPlastic', { ...so, min: 0.02, text: { face: 'Back', text: '경 비 실', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBold', pps: 90 } });
   });
   B('Step', 30.6, 0, z0 - 1.7, 34.8, 0.45, z0 - 0.6, [150, 146, 140], 'Concrete');
   B('StepNosing', 30.6, 0.45, z0 - 1.7, 34.8, 0.47, z0 - 1.5, [226, 196, 60], 'SmoothPlastic', { ...so, min: 0.02 });
