@@ -429,6 +429,104 @@ for _, door in ipairs(tagged("SlidingDoor")) do
 end
 CollectionService:GetInstanceAddedSignal("SlidingDoor"):Connect(setupDoor)
 
+-- ───────── 여닫이문 (경비실 문, 현관 유리문, 비상구, 화장실 칸) ─────────
+-- 모델의 PrimaryPart "DoorLeaf"(투명, 몸을 막음)에 경첩 위치(HX, HZ)와 여는 각도(Swing)가 적혀 있다.
+-- Locked 속성이 있으면 열리지 않고 그 말만 나온다.
+local hinges = {}
+function api.swingDoor(door, wantOpen, seconds)
+	local state = hinges[door]
+	if not state or state.busy then
+		return false
+	end
+	if wantOpen == nil then
+		wantOpen = not state.open
+	end
+	if wantOpen == state.open then
+		return false
+	end
+	state.busy = true
+	state.open = wantOpen
+	state.prompt.ActionText = wantOpen and "문 닫기" or "문 열기"
+	local v = Instance.new("NumberValue")
+	v.Value = wantOpen and 0 or 1
+	v.Changed:Connect(function(t)
+		door:PivotTo(state.at(t))
+	end)
+	local tw = TweenService:Create(v, TweenInfo.new(seconds or 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Value = wantOpen and 1 or 0 })
+	tw:Play()
+	playSound("DoorSlide", door.PrimaryPart)
+	tw.Completed:Connect(function()
+		door:PivotTo(state.at(wantOpen and 1 or 0))
+		v:Destroy()
+		state.busy = false
+	end)
+	return true
+end
+local function setupHinge(door)
+	local leaf = door:IsA("Model") and door.PrimaryPart
+	if not leaf or hinges[door] then
+		return
+	end
+	local closed = door:GetPivot()
+	local hinge = CFrame.new(leaf:GetAttribute("HX") or leaf.Position.X, leaf.Position.Y, leaf:GetAttribute("HZ") or leaf.Position.Z)
+	local swing = math.rad(leaf:GetAttribute("Swing") or 90)
+	local locked = leaf:GetAttribute("Locked")
+	local state = { open = false, busy = false }
+	function state.at(t)
+		return hinge * CFrame.Angles(0, swing * t, 0) * hinge:Inverse() * closed
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "문 열기"
+	prompt.ObjectText = "문"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 8
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = leaf
+	state.prompt = prompt
+	hinges[door] = state
+	if leaf:GetAttribute("Open") == true and not locked then
+		state.open = true
+		prompt.ActionText = "문 닫기"
+		door:PivotTo(state.at(1))
+	end
+	prompt.Triggered:Connect(function(player)
+		if locked then
+			api.say(player, locked, 3)
+			playSound("Knock", leaf)
+			return
+		end
+		api.swingDoor(door)
+	end)
+end
+for _, door in ipairs(tagged("HingeDoor")) do
+	setupHinge(door)
+end
+CollectionService:GetInstanceAddedSignal("HingeDoor"):Connect(setupHinge)
+
+-- 잠긴 문 (옥상 문, 화장실 세 번째 칸): 눌러 보면 잠겨 있다는 말이 나온다
+local function setupLocked(part)
+	if not part:IsA("BasePart") or part:FindFirstChild("LockPrompt") then
+		return
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "LockPrompt"
+	prompt.ActionText = "문 열기"
+	prompt.ObjectText = "문"
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 7
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = part
+	prompt.Triggered:Connect(function(player)
+		if part.CanCollide then
+			api.say(player, part:GetAttribute("Locked") or "잠겨 있다.", 3)
+		end
+	end)
+end
+for _, part in ipairs(tagged("LockedDoor")) do
+	setupLocked(part)
+end
+CollectionService:GetInstanceAddedSignal("LockedDoor"):Connect(setupLocked)
+
 -- ───────── 교실 전등 스위치 ─────────
 -- 앞문 옆 스위치로 그 방의 형광등(Tube)과 조명을 켜고 끈다.
 function api.setRoomLights(room, on)

@@ -1004,8 +1004,8 @@ grp('GuardBooth', () => {
   B('DoorFrame', 30.8, F, z0 - 0.1, 31, F + 7.4, z0 + 0.6, alD, 'Metal');
   B('DoorFrame', 34.4, F, z0 - 0.1, 34.6, F + 7.4, z0 + 0.6, alD, 'Metal');
   B('DoorFrame', 30.8, F + 7.2, z0 - 0.1, 34.6, F + 7.4, z0 + 0.6, alD, 'Metal');
-  grp('Door', () => {
-    const Fd = yawFrame([34.35, F, z0 + 0.1], 108); // 경첩: 문틀 동쪽. 로컬 +X = 문 폭 방향
+  hingeDoor('Door', [31.0, F + 0.05, z0 - 0.05, 34.35, F + 7.15, z0 + 0.25], [34.35, z0 + 0.1], -95, {}, () => {
+    const Fd = yawFrame([34.35, F, z0 + 0.1], 180); // 경첩: 문틀 동쪽. 로컬 +X = 문 폭 방향 (닫힌 모습, 바깥으로 열림)
     FB(Fd, 'DoorStile', 0, 0.05, -0.07, 0.3, 7.15, 0.07, al, 'Metal');
     FB(Fd, 'DoorStile', 3.05, 0.05, -0.07, 3.35, 7.15, 0.07, al, 'Metal');
     FB(Fd, 'DoorRail', 0.3, 6.8, -0.07, 3.05, 7.15, 0.07, al, 'Metal');
@@ -2032,7 +2032,7 @@ function doorLeaf(gname, x0, x1, L, zc, slide, open, o = {}) {
     const W = x1 - x0, H = 7.1, T = 0.14, z0 = zc - T / 2, z1 = zc + T / 2, so = { nc: true, ns: true };
     const xs = x0 + (open ? slide : 0);
     const box = (n, u0, v0, u1, v1, w0, w1, col, mat, op) => B(n, xs + u0, L + v0, w0, xs + u1, L + v1, w1, col, mat, op);
-    P('DoorLeaf', [W, H, T], [xs + W / 2, L + 0.06 + H / 2, zc], OAK, 'Wood', { t: 1, ns: true, pri: true, attr: { SlideX: slide, Open: !!open } });
+    P('DoorLeaf', [W, H, 0.3], [xs + W / 2, L + 0.06 + H / 2, zc], OAK, 'Wood', { t: 1, ns: true, pri: true, attr: { SlideX: slide, Open: !!open } });
     // 속판(어두운 홈 색) 위에 무늬목 판 5장을 띄워 붙여 홈이 진짜로 파여 보이게
     const gap = 0.045, ph = (H - gap * 4) / 5, e = 0.03;
     for (let k = 0; k < 5; k++) {
@@ -2060,6 +2060,16 @@ function doorLeaf(gname, x0, x1, L, zc, slide, open, o = {}) {
     });
     if (o.lock) P('KeyCylinder', [0.03, 0.1, 0.1], [xs + hu + 0.08, L + hv - 0.16, z0 - 0.015], [200, 202, 206], 'Metal', { ...so, sh: 'Cylinder', r: [0, 90, 0], min: 0.02 });
   }, 'SlidingDoor');
+}
+// 여닫이문: 닫힌 모습으로 그린다. 투명한 DoorLeaf 가 몸을 막고, 서버(Main)가 경첩(HX, HZ) 둘레로
+// Swing 도만큼 돌려 연다. o.open: 처음부터 열려 있음, o.locked: 잠긴 문 (눌렀을 때 나올 말)
+function hingeDoor(gname, box, hinge, swing, o, draw) {
+  grp(gname, () => {
+    const [x0, y0, z0, x1, y1, z1] = box;
+    B('DoorLeaf', x0, y0, z0, x1, y1, z1, [128, 128, 128], 'SmoothPlastic', { t: 1, ns: true, pri: true,
+      attr: { HX: hinge[0], HZ: hinge[1], Swing: swing, Open: !!o.open, ...(o.locked ? { Locked: o.locked } : {}) } });
+    draw();
+  }, 'HingeDoor');
 }
 function slidingDoor(a, b, L, zFace, open, gname, o = {}) {
   // 위 레일(문틀과 같은 오크) + 바닥 레일
@@ -2334,10 +2344,13 @@ function interiorRoom(r) {
         B('StallFront', sx0 - 0.08, L + 0.5, za, sx0 + 0.08, L + 7.4, za + 0.9, [214, 196, 186], 'Plastic');
         B('StallFront', sx0 - 0.08, L + 0.5, zb - 0.9, sx0 + 0.08, L + 7.4, zb, [214, 196, 186], 'Plastic');
         if (k === 2) {
-          B('StallDoor', sx0 - 0.08, L + 0.5, za + 0.9, sx0 + 0.08, L + 7.4, zb - 0.9, [200, 180, 170], 'Plastic', { tag: 'StallDoor3' });
+          B('StallDoor', sx0 - 0.08, L + 0.5, za + 0.9, sx0 + 0.08, L + 7.4, zb - 0.9, [200, 180, 170], 'Plastic', { tag: ['StallDoor3', 'LockedDoor'], attr: { Locked: '(화장실 세 번째 칸) 사용 중. 안에서 잠겨 있다.' } });
           B('Occupied', sx0 - 0.12, L + 4.1, zb - 1.35, sx0 - 0.08, L + 4.3, zb - 1.05, [190, 30, 30], 'SmoothPlastic', { nc: true, ns: true });
         }
-        else P('StallDoor', [0.16, 6.9, 3.4], [sx0 - 1.2, L + 3.95, za + 2.1], [200, 180, 170], 'Plastic', { r: [0, 60 + k * 10, 0], nc: true });
+        else hingeDoor(`Stall_${Math.round(xa)}_${k + 1}`, [sx0 - 0.12, L + 0.5, za + 0.9, sx0 + 0.12, L + 7.4, zb - 0.9], [sx0, za + 0.9], -85, { open: k !== 1 }, () => {
+          B('StallDoor', sx0 - 0.08, L + 0.5, za + 0.9, sx0 + 0.08, L + 7.4, zb - 0.9, [200, 180, 170], 'Plastic', { nc: true });
+          B('StallLatch', sx0 - 0.14, L + 3.9, zb - 1.3, sx0 + 0.14, L + 4.2, zb - 1.0, [196, 198, 202], 'Metal', { nc: true, ns: true });
+        });
         B('ToiletBase', xb - 3.2, L, (za + zb) / 2 - 0.8, xb - 1.0, L + 1.6, (za + zb) / 2 + 0.8, [244, 244, 242], 'SmoothPlastic');
         B('ToiletTank', xb - 1.0, L + 1.3, (za + zb) / 2 - 1.0, xb - 0.1, L + 3.4, (za + zb) / 2 + 1.0, [244, 244, 242], 'SmoothPlastic');
         B('ToiletSeat', xb - 3.25, L + 1.6, (za + zb) / 2 - 0.85, xb - 0.95, L + 1.75, (za + zb) / 2 + 0.85, [236, 236, 234], 'SmoothPlastic');
@@ -2403,10 +2416,15 @@ grp('MainBuilding', () => {
       wallHoles('ExteriorWall', 'x', BX0, BX1, L - 1, top, ROOM1, ZS, southHoles, C.facade, 'Plaster');
       if (f === 0) {
         [[-8.5, -4.5], [-4.5, -0.5]].forEach(([a, b], i) => {
-          B('EntranceGlass', a + 0.15, L + 0.2, ROOM1 + 0.3, b - 0.15, L + 8.2, ROOM1 + 0.5, [130, 160, 170], 'Glass', { t: 0.55, refl: 0.15, nc: true, tag: i === 0 ? 'EntranceDoor' : undefined });
           B('EntranceFrame', a, L, ROOM1 + 0.2, a + 0.15, L + 8.6, ROOM1 + 0.6, C.alumDark, 'Metal');
           B('EntranceFrame', b - 0.15, L, ROOM1 + 0.2, b, L + 8.6, ROOM1 + 0.6, C.alumDark, 'Metal');
-          B('PushBar', a + 0.6, L + 3.6, ROOM1 + 0.5, b - 0.6, L + 3.8, ROOM1 + 0.7, C.steel, 'Metal', { nc: true });
+          // 현관 유리문 두 짝: 가운데에서 갈라져 바깥(+Z)으로 열린다
+          hingeDoor(`EntranceDoor${i + 1}`, [a + 0.15, L + 0.05, ROOM1 + 0.25, b - 0.15, L + 8.2, ROOM1 + 0.55], [i === 0 ? a + 0.15 : b - 0.15, ROOM1 + 0.4], i === 0 ? -90 : 90, {}, () => {
+            B('EntranceGlass', a + 0.15, L + 0.2, ROOM1 + 0.3, b - 0.15, L + 8.2, ROOM1 + 0.5, [130, 160, 170], 'Glass', { t: 0.55, refl: 0.15, nc: true, tag: i === 0 ? 'EntranceDoor' : undefined });
+            B('DoorRail', a + 0.15, L + 0.05, ROOM1 + 0.28, b - 0.15, L + 0.2, ROOM1 + 0.52, C.alumDark, 'Metal', { nc: true });
+            B('PushBar', a + 0.6, L + 3.6, ROOM1 + 0.5, b - 0.6, L + 3.8, ROOM1 + 0.7, C.steel, 'Metal', { nc: true });
+            B('PushBar', a + 0.6, L + 3.6, ROOM1 + 0.1, b - 0.6, L + 3.8, ROOM1 + 0.3, C.steel, 'Metal', { nc: true });
+          });
         });
         B('EntranceFrame', -8.5, L + 8.2, ROOM1 + 0.2, -0.5, L + 8.6, ROOM1 + 0.6, C.alumDark, 'Metal');
       }
@@ -2424,7 +2442,13 @@ grp('MainBuilding', () => {
         if (roomWin) holes.push({ u0: -158, u1: -142, v0: L + 3.4, v1: L + 9.4 });
         wallHoles('EndWall', 'z', ZN, ZS, L - 1, top, x0, x1, holes, C.facade, 'Plaster');
         if (roomWin) slider('z', -158, -142, L + 3.4, L + 9.4, (x0 + x1) / 2);
-        B('ExitDoor', x0 + (s > 0 ? 0 : 0.6), L, -169.5, x0 + (s > 0 ? 0.2 : 0.8), L + 7.4, -165.5, [96, 120, 110], 'Metal');
+        // 비상구 철문: 1층은 바깥으로 열리고, 2·3층은 밖이 허공이라 잠겨 있다
+        hingeDoor(`ExitDoor_${f + 1}${s > 0 ? 'E' : 'W'}`, [x0 + (s > 0 ? 0 : 0.5), L, -169.5, x0 + (s > 0 ? 0.3 : 0.8), L + 7.4, -165.5], [x0 + (s > 0 ? 0.1 : 0.7), -169.5], s > 0 ? 90 : -90,
+          f === 0 ? {} : { locked: '비상구가 잠겨 있다. 문 너머는 허공이다.' }, () => {
+            B('ExitDoor', x0 + (s > 0 ? 0 : 0.6), L, -169.5, x0 + (s > 0 ? 0.2 : 0.8), L + 7.4, -165.5, [96, 120, 110], 'Metal', { nc: true });
+            const hx = s > 0 ? x0 + 0.2 : x0 + 0.5;
+            B('PanicBar', hx, L + 3.4, -168.9, hx + 0.1, L + 3.65, -166.1, [196, 198, 202], 'Metal', { nc: true, ns: true });
+          });
         const sx = s > 0 ? x0 - 0.35 : x1 + 0.05;
         B('ExitSign', sx, L + 7.85, -169.4, sx + 0.3, L + 9.05, -165.6, [24, 168, 86], 'Neon', { nc: true, ns: true, tag: 'ExitSign',
           light: { type: 'Point', range: 9, brightness: 0.5, color: [60, 255, 140] } });
@@ -2716,7 +2740,7 @@ grp('MainBuilding', () => {
       B('Wall', x0, ROOFY, z0, x1, ROOFY + H, z0 + 0.6, C.facade, 'Plaster');
       B('Wall', x0, ROOFY, z1 - 0.6, x1, ROOFY + H, z1, C.facade, 'Plaster');
       B('Roof', x0 - 0.5, ROOFY + H, z0 - 0.5, x1 + 0.5, ROOFY + H + 0.7, z1 + 0.5, [130, 126, 120], 'Concrete');
-      B('RoofDoor', x0 - 0.2, ROOFY, -147, x0 + 0.1, ROOFY + 7.2, -143, [96, 100, 106], 'Metal', { tag: 'RoofDoor' });
+      B('RoofDoor', x0 - 0.2, ROOFY, -147, x0 + 0.1, ROOFY + 7.2, -143, [96, 100, 106], 'Metal', { tag: ['RoofDoor', 'LockedDoor'], attr: { Locked: '옥상 문은 잠겨 있다. 「옥상 출입금지」' } });
       B('RoofSign', x0 - 0.3, ROOFY + 7.6, -148, x0 - 0.1, ROOFY + 8.8, -142, [246, 246, 240], 'SmoothPlastic', {
         text: { face: 'Left', text: '옥상 출입금지', color: [180, 30, 30], bg: [246, 246, 240], bgT: 0 } });
       B('RoofStairZone', STAIR.x0, LV[2] + FH / 2 - 0.6, STAIR.zLand, STAIR.x1, ROOFY + 8, ROOM1, [255, 0, 0], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'RoofStairZone' });
@@ -2819,7 +2843,7 @@ function propGroup(name, anchorPos, fn) {
       B('Door4Frame', cx - 2.0, y + 0.12, zi1 - 0.12, cx + 2.0, y + 7.5, zi1, [36, 28, 22], 'Wood', so);
       B('Door4Void', cx - 1.8, y + 0.12, zi1 - 0.14, cx + 1.8, y + 7.3, zi1 - 0.12, [4, 4, 5], 'SmoothPlastic', { ...so, min: 0.02 });
       const sx = ajar ? 1.1 : 0;
-      B('Door4', cx - 1.8 + sx, y + 0.12, zi1 - 0.26, cx + 1.8 + sx, y + 7.3, zi1 - 0.14, jit([58, 42, 32], 8), 'Wood', { nc: true });
+      B('Door4', cx - 1.8 + sx, y + 0.12, zi1 - 0.26, cx + 1.8 + sx, y + 7.3, zi1 - 0.14, jit([58, 42, 32], 8), 'Wood');
       B('Door4Glass', cx - 1.3 + sx, y + 4.3, zi1 - 0.28, cx + 1.3 + sx, y + 6.6, zi1 - 0.26, [10, 10, 12], 'Glass', { ...so, refl: 0.2, min: 0.02 });
       B('Sign44', cx - 1.0, y + 7.75, zi1 - 0.1, cx + 1.0, y + 8.5, zi1, [64, 12, 12], 'SmoothPlastic', { ...so,
         text: { face: 'Front', text: '4 - 4', color: [226, 214, 196], bgT: 1, lit: 0.6, font: 'GothamBlack', pps: 80 } });

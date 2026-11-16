@@ -794,6 +794,10 @@ def("Restroom", 1, 45, function(st)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = door
 	st.prompt = prompt
+	st.lock = door:FindFirstChild("LockPrompt")
+	if st.lock then
+		st.lock.Enabled = false
+	end
 	prompt.Triggered:Connect(function(player)
 		if st.stopped then
 			return
@@ -805,6 +809,9 @@ def("Restroom", 1, 45, function(st)
 end, function(st)
 	if st.prompt then
 		st.prompt:Destroy()
+	end
+	if st.lock then
+		st.lock.Enabled = true
 	end
 	if st.model then
 		st.model:Destroy()

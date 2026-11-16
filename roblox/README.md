@@ -58,6 +58,8 @@ require(game.ServerScriptService.SchoolBuilder).Build(workspace, false)
 5. 매시 정각 전에 **1·2·3층 순찰함**을 체크한다. 빼먹으면 정신력이 깎인다.
 6. 학교 안에서 할 수 있는 일:
    - 교실 **미닫이문**을 열고 닫는다("문 열기 / 문 닫기").
+   - **경비실 문, 본관 현관 유리문, 1층 비상구, 화장실 칸 문**도 가까이 가서 누르면 열리고 닫힌다. 닫힌 문은 몸이 통과하지 못한다.
+   - 2·3층 비상구, 옥상 문, 화장실 세 번째 칸은 잠겨 있다. 누르면 잠겨 있다는 말만 나온다.
    - 앞문 옆 **스위치**로 그 교실 형광등을 켜고 끈다.
    - 경비실 책상에서 **CCTV 보기**로 카메라 6대를 실제 화면으로 본다. `A`/`D` 로 바꾸고 `E` 로 나간다. 경비실 모니터 6개에도 실시간으로 나온다.
 7. 무작위로 **이상현상**이 일어난다. 수칙대로 대처하지 않으면 정신력이 깎인다.
@@ -231,6 +233,7 @@ cd roblox/tools
 node generate.js        # 맵 데이터 다시 생성 (src/.../MapData*.lua, build/map.json)
 node check_data.js      # 데이터 검사
 node audit_overlap.js   # 복도·교실 물건이 창문과 겹치는지 검사
+node audit_collision.js # 문을 다 닫았을 때 걸어서 닿는 곳을 지도로 출력 (벽·문에 구멍이 있는지 확인)
 node build_place.js     # build/SongcheonNightShift.rbxlx 다시 만들기
 # 아래는 Playwright(Chromium)와 node_modules(three, @fontsource/*) 가 필요
 node make_atlas.js                              # 손글씨 글자 그림 (roblox/fonts/ 의 글꼴 필요)
