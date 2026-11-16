@@ -57,6 +57,8 @@ const SHAPES = { Block: 0, Ball: 1, Cylinder: 2, Wedge: 3 };
 // P(이름, 크기, 위치, 색, 재질, 옵션)
 //  옵션: r=[rx,ry,rz](도), t=투명도, refl=반사, sh=모양, nc=충돌없음, ns=그림자없음, pri=PrimaryPart,
 //        hidden=판정용 투명 영역, tag, attr, light, text, min=최소 두께(기본 0.05)
+// SHIFT: 켜 두면 그 뒤에 만드는 파트를 통째로 옮긴다 (4층 복도를 옥상 문 자리에 맞출 때 씀)
+let SHIFT = null;
 function P(name, size, pos, color, mat = 'SmoothPlastic', o = {}) {
   const s = size.map((v) => r3(Math.max(o.min ?? 0.05, Math.abs(v))));
   let flags = 0;
@@ -64,6 +66,7 @@ function P(name, size, pos, color, mat = 'SmoothPlastic', o = {}) {
   if (o.ns) flags |= 2;
   if (o.pri) flags |= 4;
   if (o.hidden) flags |= 8;
+  if (SHIFT) pos = [pos[0] + SHIFT[0], pos[1] + SHIFT[1], pos[2] + SHIFT[2]];
   parts.push([cur(), name, ...s, ...pos.map(r3), ...(o.r || [0, 0, 0]).map(r3), ci(color), mi(mat), r3(o.t || 0), SHAPES[o.sh || 'Block'], flags, r3(o.refl || 0)]);
   const idx = parts.length - 1;
   if (o.tag) [].concat(o.tag).forEach((t) => t && tags.push([idx, t]));
@@ -101,6 +104,8 @@ function tBlock(mat, x0, y0, z0, x1, y1, z1) {
   terrain.push([0, mat, r3((x0 + x1) / 2), r3((y0 + y1) / 2), r3((z0 + z1) / 2), r3(x1 - x0), r3(y1 - y0), r3(z1 - z0)]);
 }
 function tBall(mat, x, y, z, r) { terrain.push([1, mat, r3(x), r3(y), r3(z), r3(r), 0, 0]); }
+// GD: 정문·담장·경비실·길·동네를 본관 쪽으로 당긴 거리. 남쪽 것들은 옛 좌표(정문 z=200)로 적고 SOUTH 만큼 옮긴다.
+const GD = 100, SOUTH = [0, 0, -GD], GZ = 200 - GD;
 
 // ───────────────────────── 방향 계산 ─────────────────────────
 const vsub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -442,38 +447,64 @@ function tree(x, z, kind = 'ginkgo', h = 26, ground = 0) {
     const lean = (rnd() - 0.5) * 0.6;
     const bark = jit(C.bark, 14);
     const tw = 1.1 + h * 0.03;
+    // 메시 팩이 없을 때 쓰는 파트 나무: 굽은 줄기 → 굵은 가지 → 잔가지 → 작은 잎 뭉치 여러 개
+    // (큰 공 몇 개 대신 작은 잎 뭉치를 가지 끝마다 모아 실제 나무 윤곽에 가깝게)
     if (kind === 'pine') {
-      cylBetween('Trunk', [x, ground - 0.5, z], [x + lean, ground + h * 0.8, z], tw, [96, 70, 54], 'Wood');
+      const red = [124, 78, 56];
+      const p1 = [x + lean * 0.5, ground + h * 0.4, z + lean * 0.3], p2 = [x + lean, ground + h * 0.95, z];
+      cylBetween('Trunk', [x, ground - 0.5, z], p1, tw, red, 'Wood');
+      cylBetween('Trunk', p1, p2, tw * 0.7, red, 'Wood', { nc: true });
+      // 층층이 뻗은 가지 + 가지 끝의 납작한 솔잎 뭉치
       for (let i = 0; i < 6; i++) {
-        const t = i / 5, w = h * (0.62 - t * 0.48), y = ground + h * (0.3 + t * 0.64);
-        for (let k = 0; k < 3; k++) {
-          const a = rnd() * Math.PI * 2, rr = w * 0.12;
-          P('Needles', [w * (0.8 + rnd() * 0.3), h * 0.09, w * (0.55 + rnd() * 0.3)], [x + Math.cos(a) * rr, y + (rnd() - 0.5), z + Math.sin(a) * rr],
-            jit(C.pine, 10), 'LeafyGrass', { r: [rnd() * 8 - 4, rnd() * 180, rnd() * 8 - 4] });
+        const t = i / 5, y = ground + h * (0.36 + t * 0.52), reach = h * (0.3 - t * 0.2), n = 5;
+        const cx = p1[0] + (p2[0] - p1[0]) * t, cz = p1[2] + (p2[2] - p1[2]) * t;
+        for (let k = 0; k < n; k++) {
+          const a = (k / n) * Math.PI * 2 + i * 0.7 + rnd() * 0.4, r1 = reach * (0.8 + rnd() * 0.3);
+          const end = [cx + Math.cos(a) * r1, y + h * 0.03 + rnd() * 1.2, cz + Math.sin(a) * r1];
+          cylBetween('Branch', [cx, y - h * 0.03, cz], end, tw * 0.22, red, 'Wood', { nc: true, ns: true });
+          for (let q = 0; q < 2; q++) {
+            const u = 0.6 + q * 0.4, w = h * (0.12 - t * 0.04) * (0.8 + rnd() * 0.4);
+            P('Needles', [w, w * 0.34, w * 0.8], [cx + (end[0] - cx) * u, end[1] + 0.5 + rnd() * 0.6, cz + (end[2] - cz) * u],
+              jit(C.pine, 12), 'LeafyGrass', { r: [rnd() * 14 - 7, (-a * 180) / Math.PI, rnd() * 14 - 7], nc: true });
+          }
         }
       }
+      ball('Needles', p2[0], p2[1] + 0.6, p2[2], h * 0.09, jit(C.pine, 10), 'LeafyGrass', { nc: true });
       return;
     }
-    const leafA = kind === 'ginkgo' ? C.ginkgo : C.zelkova;
-    const leafB = kind === 'ginkgo' ? C.ginkgo2 : C.zelkova2;
-    const top = [x + lean, ground + h * 0.55, z + lean * 0.5];
-    cylBetween('Trunk', [x, ground - 0.5, z], top, tw, bark, 'Wood');
-    cylBetween('Trunk', [top[0], top[1] - 0.5, top[2]], [x + lean * 1.4, ground + h * 0.8, z], tw * 0.7, bark, 'Wood');
-    const nb = kind === 'ginkgo' ? 5 : 6;
+    const gk = kind === 'ginkgo';
+    const leafA = gk ? C.ginkgo : C.zelkova, leafB = gk ? C.ginkgo2 : C.zelkova2;
+    const leaf = (px, py, pz, d) => ball('Leaves', px, py, pz, d, jit(rnd() < 0.5 ? leafA : leafB, 20), 'LeafyGrass', { nc: true, ns: rnd() < 0.5 });
+    // 줄기: 살짝 굽으며 가늘어진다
+    const t1 = [x + lean * 0.5, ground + h * 0.3, z + lean * 0.3], t2 = [x + lean, ground + h * (gk ? 0.62 : 0.5), z + lean * 0.5];
+    cylBetween('Trunk', [x, ground - 0.5, z], t1, tw, bark, 'Wood');
+    cylBetween('Trunk', t1, t2, tw * 0.8, bark, 'Wood', { nc: true });
+    ball('RootFlare', x, ground + 0.1, z, tw * 1.5, bark, 'Wood', { nc: true, ns: true });
+    // 굵은 가지 → 잔가지 2개 → 가지 끝마다 잎 뭉치 3개
+    const nb = gk ? 6 : 7;
     for (let i = 0; i < nb; i++) {
-      const a = (i / nb) * Math.PI * 2 + rnd() * 0.6;
-      const y0 = ground + h * (0.38 + rnd() * 0.25);
-      const reach = h * (kind === 'ginkgo' ? 0.2 : 0.3) * (0.8 + rnd() * 0.4);
-      const end = [x + Math.cos(a) * reach, y0 + h * (0.18 + rnd() * 0.15), z + Math.sin(a) * reach];
-      cylBetween('Branch', [x + lean * 0.5, y0, z], end, tw * 0.45, bark, 'Wood', { nc: true });
+      const a = (i / nb) * Math.PI * 2 + rnd() * 0.5, u = 0.35 + rnd() * 0.65;
+      const base = [t1[0] + (t2[0] - t1[0]) * u, t1[1] + (t2[1] - t1[1]) * u, t1[2] + (t2[2] - t1[2]) * u];
+      const reach = h * (gk ? 0.16 : 0.27) * (0.8 + rnd() * 0.4), up = h * (gk ? 0.26 : 0.2) * (0.8 + rnd() * 0.4);
+      const mid = [base[0] + Math.cos(a) * reach, base[1] + up, base[2] + Math.sin(a) * reach];
+      cylBetween('Branch', base, mid, tw * 0.42, bark, 'Wood', { nc: true });
       for (let k = 0; k < 2; k++) {
-        const d = h * (kind === 'ginkgo' ? 0.2 : 0.24) * (0.8 + rnd() * 0.4);
-        ball('Leaves', end[0] + (rnd() - 0.5) * 3, end[1] + (rnd() - 0.2) * 3, end[2] + (rnd() - 0.5) * 3, d, jit(rnd() < 0.5 ? leafA : leafB, 18), 'LeafyGrass', { nc: true });
+        const a2 = a + (k ? 0.7 : -0.7) + (rnd() - 0.5) * 0.4, r2 = reach * (0.5 + rnd() * 0.3);
+        const end = [mid[0] + Math.cos(a2) * r2, mid[1] + up * (0.45 + rnd() * 0.3), mid[2] + Math.sin(a2) * r2];
+        cylBetween('Twig', mid, end, tw * 0.2, bark, 'Wood', { nc: true, ns: true });
+        for (let q = 0; q < 3; q++) {
+          const d = h * (gk ? 0.1 : 0.12) * (0.75 + rnd() * 0.5);
+          leaf(end[0] + (rnd() - 0.5) * d * 1.1, end[1] + (rnd() - 0.35) * d, end[2] + (rnd() - 0.5) * d * 1.1, d);
+        }
       }
+      leaf(mid[0] + (rnd() - 0.5) * 2, mid[1] + 0.8, mid[2] + (rnd() - 0.5) * 2, h * 0.1);
     }
-    for (let k = 0; k < (kind === 'ginkgo' ? 4 : 5); k++) {
-      const d = h * 0.26 * (0.8 + rnd() * 0.4);
-      ball('Leaves', x + lean + (rnd() - 0.5) * h * 0.25, ground + h * (0.72 + rnd() * 0.2), z + (rnd() - 0.5) * h * 0.25, d, jit(rnd() < 0.5 ? leafA : leafB, 18), 'LeafyGrass', { nc: true });
+    // 우듬지
+    const crownY = ground + h * (gk ? 0.92 : 0.8);
+    cylBetween('Branch', t2, [t2[0] + lean * 0.3, crownY - h * 0.05, t2[2]], tw * 0.4, bark, 'Wood', { nc: true });
+    for (let k = 0; k < 7; k++) {
+      const a = rnd() * Math.PI * 2, rr = h * (gk ? 0.07 : 0.12) * rnd();
+      leaf(t2[0] + Math.cos(a) * rr, crownY - rnd() * h * 0.12, t2[2] + Math.sin(a) * rr, h * (gk ? 0.11 : 0.13) * (0.8 + rnd() * 0.4));
     }
   }, 'Tree');
   // 떨어진 잎 (나무 묶음 밖에 둬서 메시로 바뀌어도 남는다)
@@ -539,7 +570,8 @@ function wires(xs, z, ys) {
 function car(name, cx, cz, ry, color, o = {}) {
   return grp(name, () => {
     const c = Math.cos((ry * Math.PI) / 180), s = Math.sin((ry * Math.PI) / 180);
-    const W = (lx, ly, lz) => [cx + lx * c + lz * s, ly, cz - lx * s + lz * c];
+    // 바퀴 밑이 아스팔트 윗면(0.2)에 닿도록 차 전체를 올린다
+    const W = (lx, ly, lz) => [cx + lx * c + lz * s, ly + 0.22, cz - lx * s + lz * c];
     const Q = (n, size, lp, col, mat, op = {}) => {
       const lr = op.r || [0, 0, 0];
       return P(n, size, W(...lp), col, mat, { ...op, r: [lr[0], ry + lr[1], lr[2]] });
@@ -552,6 +584,32 @@ function car(name, cx, cz, ry, color, o = {}) {
     Q('Trunk', [6.0, 0.45, 3.0], [0, 2.9, 5.9], color, 'SmoothPlastic', { refl: 0.15 });
     Q('Windshield', [5.6, 2.0, 2.6], [0, 4.12, -1.6], glass, 'Glass', { sh: 'Wedge', t: 0.78, refl: 0.15 });
     Q('Roof', [5.6, 0.25, 4.4], [0, 5.24, 1.9], color, 'SmoothPlastic', { refl: 0.15 });
+    // ── 차체 다듬기: 모서리를 둥글게, 보닛·트렁크는 비스듬히, 필러와 지붕 테두리 ──
+    const dark = color.map((v) => Math.max(0, v - 14));
+    Q('HoodSlope', [6.0, 0.5, 2.2], [0, 2.82, -6.35], color, 'SmoothPlastic', { sh: 'Wedge', refl: 0.15, r: [0, 180, 0], nc: true });
+    Q('TrunkSlope', [6.0, 0.5, 1.2], [0, 2.82, 7.0], color, 'SmoothPlastic', { sh: 'Wedge', refl: 0.15, nc: true });
+    Q('Cowl', [5.8, 0.25, 0.6], [0, 3.1, -2.95], trim, 'SmoothPlastic', { nc: true });
+    [-1, 1].forEach((sx) => {
+      // 어깨선·지붕선·범퍼 모서리를 원기둥으로 둥글게
+      Q('ShoulderRound', [15.0, 0.5, 0.5], [sx * 2.92, 2.62, 0], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], refl: 0.15, nc: true });
+      Q('RoofRound', [4.4, 0.34, 0.34], [sx * 2.72, 5.2, 1.9], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 90, 0], refl: 0.15, nc: true });
+      Q('BumperRound', [0.9, 0.75, 0.75], [sx * 2.85, 1.45, -7.38], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 0, 90], nc: true });
+      Q('BumperRound', [0.9, 0.75, 0.75], [sx * 2.85, 1.45, 7.38], color, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 0, 90], nc: true });
+      // 필러 (A·C) 와 창틀
+      Q('WindowTrim', [0.1, 0.1, 6.7], [sx * 2.86, 5.02, 1.8], chrome, 'Metal', { nc: true, ns: true });
+      Q('WindowTrim', [0.1, 0.1, 9.0], [sx * 2.9, 3.22, 0.9], chrome, 'Metal', { nc: true, ns: true });
+      // 바퀴집 (검은 반원), 흙받이, 옆 방향지시등, 안개등
+      [-1, 1].forEach((sz) => Q('WheelWell', [0.6, 3.1, 3.1], [sx * 2.62, 1.45, sz * 4.75], [14, 14, 16], 'SmoothPlastic', { sh: 'Cylinder', nc: true, ns: true }));
+      Q('SideSignal', [0.06, 0.16, 0.5], [sx * 3.12, 2.75, -3.6], [255, 150, 30], 'SmoothPlastic', { nc: true, ns: true });
+      Q('FogLight', [0.7, 0.3, 0.12], [sx * 2.3, 1.3, -7.74], [240, 240, 226], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
+      Q('MirrorArm', [0.5, 0.14, 0.2], [sx * 3.05, 3.55, -0.9], trim, 'SmoothPlastic', { nc: true, ns: true });
+      Q('MirrorGlass', [0.6, 0.38, 0.04], [sx * 3.38, 3.65, -0.7], [150, 170, 180], 'Glass', { nc: true, ns: true, refl: 0.5 });
+      Q('Wiper', [2.3, 0.06, 0.08], [sx * 1.3, 3.22, -2.72], [16, 16, 18], 'SmoothPlastic', { r: [0, sx * 8, 0], nc: true, ns: true });
+      Q('Exhaust', [0.5, 0.3, 0.3], [sx * 1.9, 0.95, 7.7], [120, 122, 126], 'Metal', { sh: 'Cylinder', r: [0, 90, 0], nc: true, ns: true });
+    });
+    Q('RoofAntenna', [0.12, 0.5, 0.7], [0, 5.5, 3.6], trim, 'SmoothPlastic', { sh: 'Wedge', nc: true, ns: true });
+    Q('RearLightBar', [4.2, 0.12, 0.1], [0, 2.75, 7.66], [150, 10, 14], o.lightsOn ? 'Neon' : 'SmoothPlastic', { nc: true, ns: true });
+    Q('Underbody', [5.6, 0.3, 13.6], [0, 0.95, 0], [18, 18, 20], 'SmoothPlastic', { nc: true, ns: true });
     Q('RearGlass', [5.6, 2.0, 2.2], [0, 4.12, 5.2], glass, 'Glass', { sh: 'Wedge', t: 0.35, refl: 0.2, r: [0, 180, 0] });
     [-1, 1].forEach((sx) => {
       Q('SideGlass', [0.08, 1.75, 6.6], [sx * 2.82, 4.12, 1.8], glass, 'Glass', { t: 0.65, refl: 0.2 });
@@ -601,13 +659,13 @@ function car(name, cx, cz, ry, color, o = {}) {
 
 // ═════════════════════════ 1. 지형 (Roblox Terrain) ═════════════════════════
 tBlock('Grass', -900, -16, -900, 900, 0, 900);
-tBlock('Ground', -200, -8, -98, -26, 0, 194);
-tBlock('Pavement', -900, -8, 200, 900, 0, 256);
+tBlock('Ground', -200, -8, -98, -26, 0, GZ - 6);
+tBlock('Pavement', -900, -8, GZ, 900, 0, GZ + 56);
 tBlock('Pavement', -140, -8, -180, 140, 0, -116);
-tBlock('Pavement', -14, -8, -116, 14, 0, 200);
-tBlock('Pavement', 14, -8, 92, 108, 0, 176);
+tBlock('Pavement', -14, -8, -116, 14, 0, GZ);
+tBlock('Pavement', 14, -8, 92 - GD, 108, 0, 176 - GD);
 tBlock('Pavement', 96, -8, -108, 206, 0, -20);
-tBlock('Pavement', 18, -8, 172, 42, 0, 196);
+tBlock('Pavement', 18, -8, 172 - GD, 42, 0, 196 - GD);
 // 먼 산: 공을 여러 개 이어 붙여 능선처럼
 [[-900, -760, 700, 150], [-200, -820, 800, 190], [520, -760, 760, 160], [-980, -200, 300, 120], [980, -150, 340, 130], [0, -1150, 1800, 260]].forEach(([x, z, len, r]) => {
   const n = Math.round(len / (r * 0.55));
@@ -622,6 +680,7 @@ tBlock('Pavement', 18, -8, 172, 42, 0, 196);
 });
 
 // ═════════════════════════ 2. 학교 밖 ═════════════════════════
+SHIFT = SOUTH;
 grp('Street', () => {
   B('Sidewalk', -900, 0, 200.5, 900, 0.55, 210, C.paving, 'Pavement');
   B('Curb', -900, 0, 209.5, 900, 0.7, 210.3, C.curb, 'Concrete');
@@ -650,7 +709,7 @@ grp('Street', () => {
     cylV('SignPole', -68, 0.55, 203, 11, 0.3, [90, 94, 100], 'Metal');
     B('SignBoard', -69.6, 9.2, 202.8, -66.4, 11.6, 203.2, [30, 90, 160], 'SmoothPlastic', { text: { face: 'Back', text: '송천고등학교 앞', color: [255, 255, 255], bg: [30, 90, 160], bgT: 0, lit: 0.4 } });
   });
-  for (let x = -840; x <= 840; x += 56) streetLight(x, 208.7, 0, { flicker: x === -112 || x === 224 });
+  for (let x = -840; x <= 840; x += 56) if (Math.abs(x) > 20) streetLight(x, 208.7, 0, { flicker: x === -112 || x === 224 });
   const poleX = [];
   for (let x = -860; x <= 860; x += 48) { utilityPole(x, 243.5); poleX.push(x); }
   wires(poleX, 243.5, [[-3.6, 29.1], [0, 29.1], [3.6, 29.1], [-2.4, 26.1], [2.4, 26.1]]);
@@ -912,28 +971,35 @@ function waterPurifier(cx, L, W0) {
 }
 
 // ═════════════════════════ 3. 담장 · 정문 · 경비실 ═════════════════════════
+SHIFT = null;
 grp('Wall', () => {
-  const H = 6;
-  [[-220, -21], [21, 220]].forEach(([a, b]) => {
-    B('LowWall', a, 0, 199.4, b, 2.6, 200.6, [176, 170, 160], 'Concrete');
-    B('LowWallCap', a, 2.6, 199.2, b, 2.9, 200.8, [146, 140, 132], 'Concrete');
-    B('FenceRail', a, 7.4, 199.85, b, 7.7, 200.15, [52, 70, 60], 'Metal');
-    B('FenceRail', a, 3.6, 199.85, b, 3.85, 200.15, [52, 70, 60], 'Metal');
-    for (let x = a + 0.6; x < b; x += 0.9) B('FenceBar', x - 0.07, 2.9, 199.93, x + 0.07, 7.9, 200.07, [52, 70, 60], 'Metal', { ns: rnd() < 0.5 });
-    for (let x = a; x <= b; x += 12) B('FencePost', x - 0.3, 2.9, 199.7, x + 0.3, 8.2, 200.3, [52, 70, 60], 'Metal');
+  const H = 6, ZG = GZ;
+  const green = [44, 120, 84];
+  [[-220, -16], [25, 220]].forEach(([a, b]) => {
+    B('LowWall', a, 0, ZG - 0.6, b, 2.6, ZG + 0.6, [176, 170, 160], 'Concrete');
+    B('LowWallCap', a, 2.6, ZG - 0.8, b, 2.9, ZG + 0.8, [146, 140, 132], 'Concrete');
+    // 초록 철망 울타리 (참고 사진): 기둥 + 위아래 가로대 + 촘촘한 세로살
+    [3.2, 6.4, 9.6].forEach((y) => B('FenceRail', a, y, ZG - 0.12, b, y + 0.22, ZG + 0.12, green, 'Metal'));
+    for (let x = a + 0.5; x < b; x += 0.75) B('FenceBar', x - 0.05, 2.9, ZG - 0.06, x + 0.05, 9.8, ZG + 0.06, green, 'Metal', { ns: true });
+    for (let x = a; x <= b; x += 9) B('FencePost', x - 0.25, 2.9, ZG - 0.25, x + 0.25, 10.2, ZG + 0.25, green, 'Metal');
   });
   const seg = (x0, z0, x1, z1) => {
     B('Wall', x0, 0, z0, x1, H, z1, [182, 176, 166], 'Concrete');
     B('Cap', x0 - 0.25, H, z0 - 0.25, x1 + 0.25, H + 0.45, z1 + 0.25, [140, 136, 128], 'Concrete');
   };
   seg(-220, -200.6, 220, -199.4);
-  seg(-220.6, -200, -219.4, 200);
-  seg(219.4, -200, 220.6, 200);
+  seg(-220.6, -200, -219.4, ZG);
+  seg(219.4, -200, 220.6, ZG);
   for (let x = -220; x <= 220; x += 16) B('Pilaster', x - 0.7, 0, -200.9, x + 0.7, H + 0.6, -199.1, [160, 154, 146], 'Concrete');
-  for (let z = -184; z < 200; z += 16) { B('Pilaster', -220.9, 0, z - 0.7, -219.1, H + 0.6, z + 0.7, [160, 154, 146], 'Concrete'); B('Pilaster', 219.1, 0, z - 0.7, 220.9, H + 0.6, z + 0.7, [160, 154, 146], 'Concrete'); }
+  for (let z = -184; z < ZG; z += 16) { B('Pilaster', -220.9, 0, z - 0.7, -219.1, H + 0.6, z + 0.7, [160, 154, 146], 'Concrete'); B('Pilaster', 219.1, 0, z - 0.7, 220.9, H + 0.6, z + 0.7, [160, 154, 146], 'Concrete'); }
+  // 넘지 못하게: 담·울타리 위로 보이지 않는 벽 (정문 자리는 정문 모델이 막는다)
+  const inv = (x0, z0, x1, z1) => B('InvisibleWall', x0, 0, z0, x1, 60, z1, [255, 255, 255], 'SmoothPlastic', { t: 1, ns: true });
+  inv(-220.5, -200.5, 220.5, -199.5); inv(-220.5, -200, -219.5, ZG); inv(219.5, -200, 220.5, ZG);
+  inv(-220, ZG - 0.4, -12, ZG + 0.4); inv(12, ZG - 0.4, 220, ZG + 0.4);
   for (let i = 0; i < 70; i++) {
     const side = pick(['N', 'W', 'E']);
-    const t = -195 + rnd() * 390, w = 2 + rnd() * 6, h = 1 + rnd() * 4.6;
+    const t0 = -195 + rnd() * 390, w = 2 + rnd() * 6, h = 1 + rnd() * 4.6;
+    const t = side === 'N' ? t0 : Math.min(t0, ZG - 10);
     const col = jit(pick([[120, 50, 36], [150, 70, 40], [80, 90, 50], [110, 40, 34]]), 16);
     if (side === 'N') B('Ivy', t, 0.3, -199.4, t + w, h, -199.1, col, 'LeafyGrass', { nc: true });
     else if (side === 'W') B('Ivy', -219.4, 0.3, t, -219.1, h, t + w, col, 'LeafyGrass', { nc: true });
@@ -941,28 +1007,52 @@ grp('Wall', () => {
   }
 });
 
+SHIFT = SOUTH;
 grp('Gate', () => {
-  [-1, 1].forEach((s) => {
-    const x0 = s < 0 ? -21 : 15, x1 = s < 0 ? -15 : 21;
-    B('GatePillar', x0, 0, 198.2, x1, 10, 201.8, [118, 112, 106], 'Granite');
-    B('PillarCap', x0 - 0.4, 10, 197.8, x1 + 0.4, 10.8, 202.2, [96, 92, 88], 'Granite');
-    B('PillarBase', x0 - 0.3, 0, 197.9, x1 + 0.3, 1, 202.1, [96, 92, 88], 'Granite');
-    P('PillarLamp', [1.2, 1.2, 1.2], [(x0 + x1) / 2, 11.6, 200], [255, 236, 200], 'Neon', { sh: 'Ball', nc: true,
-      light: { type: 'Point', range: 20, brightness: 1.2, color: [255, 210, 160], shadows: true } });
+  const stone = [226, 222, 212], stoneD = [176, 172, 164], steel = [150, 156, 162], Z = 200;
+  // 기둥: 정문 양옆(±12~16), 쪽문 옆(21~25)
+  [[-16, -12], [12, 16], [21, 25]].forEach(([x0, x1], i) => {
+    B('GatePillar', x0, 0, Z - 1.6, x1, 12.4, Z + 1.6, stone, 'Granite');
+    B('PillarBase', x0 - 0.3, 0, Z - 1.9, x1 + 0.3, 1.2, Z + 1.9, stoneD, 'Granite');
+    B('PillarCap', x0 - 0.4, 12.4, Z - 2.0, x1 + 0.4, 13.0, Z + 2.0, stoneD, 'Granite');
+    B('PillarCapTop', x0 + 0.5, 13.0, Z - 1.1, x1 - 0.5, 13.5, Z + 1.1, stone, 'Granite', { nc: true });
+    if (i < 2) P('PillarLamp', [1.3, 1.3, 1.3], [(x0 + x1) / 2, 14.2, Z], [255, 236, 200], 'Neon', { sh: 'Ball', nc: true,
+      light: { type: 'Point', range: 22, brightness: 1.2, color: [255, 210, 160], shadows: true } });
   });
-  B('NamePlate', -20.4, 3.2, 201.8, -15.6, 9, 202.0, [176, 150, 90], 'Metal', { refl: 0.1,
-    text: { face: 'Back', text: '송천고등학교', color: [40, 30, 20], bgT: 1, font: 'Merriweather', lit: 1, pps: 60 } });
-  B('NamePlate', 15.6, 3.2, 201.8, 20.4, 9, 202.0, [176, 150, 90], 'Metal', { refl: 0.1,
-    text: { face: 'Back', text: 'SONGCHEON\nHIGH SCHOOL', color: [40, 30, 20], bgT: 1, font: 'Merriweather', lit: 1, pps: 60 } });
+  B('NamePlate', -15.4, 4.2, Z + 1.6, -12.6, 11.4, Z + 1.75, [36, 34, 32], 'Marble', { refl: 0.12,
+    text: { face: 'Back', text: '송\n천\n고\n등\n학\n교', color: [232, 214, 150], bgT: 1, font: 'Merriweather', lit: 1, pps: 60 } });
+  B('NoticeBoard', 12.5, 5.0, Z + 1.6, 15.5, 8.6, Z + 1.72, [250, 250, 246], 'SmoothPlastic', { nc: true,
+    text: { face: 'Back', text: '외부인 출입 금지\n\n방문객은 경비실에\n먼저 신고해 주세요', color: [170, 30, 30], bgT: 1, lit: 1, font: 'GothamBold', pps: 60 } });
+  // 미닫이 철문: 기둥 안쪽(학교 쪽) 레일 위를 굴러 서쪽으로 열린다. 높이 11 — 뛰어넘을 수 없다
   grp('MainGate', () => {
-    B('RailTop', -15, 6.4, 199.6, 15, 6.9, 200.4, [60, 64, 70], 'Metal', { pri: true });
-    B('RailBottom', -15, 0.5, 199.6, 15, 1.0, 200.4, [60, 64, 70], 'Metal');
-    B('RailMid', -15, 3.5, 199.75, 15, 3.8, 200.25, [60, 64, 70], 'Metal');
-    for (let x = -14.4; x <= 14.5; x += 0.8) B('Bar', x - 0.08, 1.0, 199.92, x + 0.08, 6.4, 200.08, [70, 74, 80], 'Metal', { ns: true });
-    B('Lock', 13.6, 2.8, 200.4, 14.6, 4.3, 200.8, [150, 120, 40], 'Metal', { tag: 'GateLock' });
-    [-12, 0, 12].forEach((x) => P('Roller', [0.5, 0.9, 0.9], [x, 0.45, 200], [40, 40, 44], 'Metal', { sh: 'Cylinder' }));
+    const z0 = Z - 2.7, z1 = Z - 2.1, zc = Z - 2.4, x0 = -13.5, x1 = 13.5, top = 11;
+    B('RailTop', x0, top - 0.5, z0, x1, top, z1, steel, 'Metal', { pri: true });
+    B('RailBottom', x0, 0.7, z0, x1, 1.3, z1, steel, 'Metal');
+    B('RailMid', x0, 5.6, z0 + 0.08, x1, 6.0, z1 - 0.08, steel, 'Metal');
+    [x0, x1 - 0.5, -0.25].forEach((x) => B('Stile', x, 0.7, z0, x + 0.5, top, z1, steel, 'Metal'));
+    for (let x = x0 + 1.05; x < x1 - 0.6; x += 0.62) B('Bar', x - 0.09, 1.3, zc - 0.09, x + 0.09, top - 0.5, zc + 0.09, [168, 174, 180], 'Metal', { ns: true });
+    // 대각선 보강대
+    rod('Brace', [x0 + 0.5, 1.3, zc], [-0.25, 5.6, zc], 0.2, steel, 'Metal', { nc: true, ns: true });
+    rod('Brace', [0.25, 1.3, zc], [x1 - 0.5, 5.6, zc], 0.2, steel, 'Metal', { nc: true, ns: true });
+    B('Lock', 12.2, 4.6, z0 - 0.4, 13.2, 6.1, z0, [150, 120, 40], 'Metal', { tag: 'GateLock' });
+    [-11, -3.5, 3.5, 11].forEach((x) => {
+      P('Roller', [0.5, 1.1, 1.1], [x, 0.55, zc], [40, 40, 44], 'Metal', { sh: 'Cylinder', r: [0, 90, 0] });
+      B('RollerFork', x - 0.45, 0.5, zc - 0.34, x + 0.45, 0.9, zc + 0.34, steel, 'Metal', { nc: true, ns: true });
+    });
+    for (let x = x0 + 0.6; x < x1; x += 1.24) P('Spike', [0.5, 0.2, 0.2], [x, top + 0.25, zc], steel, 'Metal', { sh: 'Wedge', r: [0, 0, 90], nc: true, ns: true });
+    B('GateBlock', x0, 0, z0 - 0.1, x1, 60, z1 + 0.1, [255, 255, 255], 'SmoothPlastic', { t: 1, ns: true });
   }, 'MainGate');
-  B('GateTrack', -46, 0, 199.75, 15, 0.1, 200.25, [80, 82, 86], 'Metal', { nc: true });
+  B('GateTrack', -44, 0.2, Z - 2.6, 14, 0.3, Z - 2.2, [80, 82, 86], 'Metal', { nc: true });
+  // 쪽문 (사람만 다니는 문): 밤에는 잠겨 있다
+  hingeDoor('SideGate', [16, 0.3, Z - 0.3, 21, 10.4, Z + 0.3], [16.1, Z], 90, { locked: '쪽문은 잠겨 있다. 06시 전에는 아무도 나갈 수 없다.' }, () => {
+    [[16, 16.4], [20.6, 21]].forEach(([a, b]) => B('SideStile', a, 0.3, Z - 0.2, b, 10.4, Z + 0.2, steel, 'Metal', { nc: true }));
+    [0.3, 5.2, 10.0].forEach((y) => B('SideRail', 16, y, Z - 0.2, 21, y + 0.4, Z + 0.2, steel, 'Metal', { nc: true }));
+    for (let x = 16.9; x < 20.6; x += 0.6) B('SideBar', x - 0.08, 0.7, Z - 0.08, x + 0.08, 10.0, Z + 0.08, [168, 174, 180], 'Metal', { nc: true, ns: true });
+    B('SideLock', 20.1, 4.6, Z + 0.2, 20.9, 5.6, Z + 0.5, [150, 120, 40], 'Metal', { nc: true });
+  });
+  B('GateBlock', 12, 10.4, Z - 0.4, 25, 60, Z + 0.4, [255, 255, 255], 'SmoothPlastic', { t: 1, ns: true });
+  B('GateBlock', -16, 12.4, Z - 0.4, -12, 60, Z + 0.4, [255, 255, 255], 'SmoothPlastic', { t: 1, ns: true });
+  B('GateSill', -12, 0, Z - 1.6, 12, 0.24, Z + 1.6, [120, 118, 114], 'Granite');
 });
 
 grp('GuardBooth', () => {
@@ -1340,25 +1430,27 @@ grp('GuardBooth', () => {
 });
 
 // ═════════════════════════ 4. 교정 ═════════════════════════
+SHIFT = null;
 grp('Grounds', () => {
-  B('Driveway', -12, 0, -116, 12, 0.2, 199.4, C.asphalt, 'Asphalt');
-  B('Curb', -12.7, 0, -116, -12, 0.55, 199.4, C.curb, 'Concrete');
-  B('Curb', 12, 0, -116, 12.7, 0.55, 92, C.curb, 'Concrete');
-  B('Curb', 12, 0, 176, 12.7, 0.55, 199.4, C.curb, 'Concrete');
-  for (let z = -108; z < 192; z += 10) B('DashLine', -0.18, 0.2, z, 0.18, 0.23, z + 5, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
-  B('SlowText', -6, 0.2, 150, 6, 0.24, 160, [220, 220, 216], 'SmoothPlastic', { t: 1, nc: true, ns: true, text: { face: 'Top', text: '천 천 히', color: [225, 225, 220], bgT: 1, lit: 1 } });
-  B('SpeedBump', -12, 0.2, 168, 12, 0.5, 170, [220, 190, 40], 'Rubber');
-  B('Parking', 12, 0, 92, 108, 0.2, 176, [62, 63, 66], 'Asphalt');
+  const PZ = 92 - GD; // 주차장 북쪽 끝
+  B('Driveway', -12, 0, -116, 12, 0.2, GZ - 2.8, C.asphalt, 'Asphalt');
+  B('Curb', -12.7, 0, -116, -12, 0.55, GZ - 3, C.curb, 'Concrete');
+  B('Curb', 12, 0, -116, 12.7, 0.55, PZ, C.curb, 'Concrete');
+  B('Curb', 12, 0, PZ + 84, 12.7, 0.55, GZ - 3, C.curb, 'Concrete');
+  for (let z = -108; z < GZ - 8; z += 10) B('DashLine', -0.18, 0.2, z, 0.18, 0.23, z + 5, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
+  B('SlowText', -6, 0.2, GZ - 50, 6, 0.24, GZ - 40, [220, 220, 216], 'SmoothPlastic', { t: 1, nc: true, ns: true, text: { face: 'Top', text: '천 천 히', color: [225, 225, 220], bgT: 1, lit: 1 } });
+  B('SpeedBump', -12, 0.2, GZ - 32, 12, 0.5, GZ - 30, [220, 190, 40], 'Rubber');
+  B('Parking', 12, 0, PZ, 108, 0.2, PZ + 84, [62, 63, 66], 'Asphalt');
   for (let i = 0; i < 10; i++) {
     const x = 18 + i * 9;
-    B('ParkLine', x, 0.2, 96, x + 0.3, 0.23, 114, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
-    B('ParkLine', x, 0.2, 154, x + 0.3, 0.23, 172, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
+    B('ParkLine', x, 0.2, PZ + 4, x + 0.3, 0.23, PZ + 22, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
+    B('ParkLine', x, 0.2, PZ + 62, x + 0.3, 0.23, PZ + 80, [220, 220, 216], 'SmoothPlastic', { nc: true, ns: true });
   }
-  car('TeacherCar1', 31.6, 106, 180, [118, 18, 26], { plate: '12가 3456' });
-  car('TeacherCar2', 67.6, 106, 180, [220, 220, 224], { plate: '48라 9012' });
-  car('SchoolVan', 85.6, 163, 0, [42, 46, 52], { plate: '77바 1004' });
-  const cx = -113, cz = 48;
-  [[70, 112], [64.5, 106.5], [59, 101]].forEach(([a, b]) => {
+  car('TeacherCar1', 31.6, PZ + 14, 180, [118, 18, 26], { plate: '12가 3456' });
+  car('TeacherCar2', 67.6, PZ + 14, 180, [220, 220, 224], { plate: '48라 9012' });
+  car('SchoolVan', 85.6, PZ + 71, 0, [42, 46, 52], { plate: '77바 1004' });
+  const cx = -113, cz = 2;
+  [[70, 88], [64.5, 82.5], [59, 77]].forEach(([a, b]) => {
     const N = 64;
     for (let i = 0; i < N; i++) {
       const t0 = (i / N) * Math.PI * 2, t1 = ((i + 1) / N) * Math.PI * 2;
@@ -1369,7 +1461,7 @@ grp('Grounds', () => {
     }
   });
   B('HalfLine', cx - 46, 0, cz - 0.15, cx + 46, 0.05, cz + 0.15, [214, 212, 204], 'SmoothPlastic', { nc: true, ns: true });
-  [[cz - 88, 1], [cz + 88, -1]].forEach(([z, dir]) => grp('SoccerGoal', () => {
+  [[cz - 64, 1], [cz + 64, -1]].forEach(([z, dir]) => grp('SoccerGoal', () => {
     cylV('Post', cx - 11, 0, z, 7.8, 0.4, C.white, 'Metal');
     cylV('Post', cx + 11, 0, z, 7.8, 0.4, C.white, 'Metal');
     P('Crossbar', [22.4, 0.4, 0.4], [cx, 7.8, z], C.white, 'Metal', { sh: 'Cylinder' });
@@ -1410,13 +1502,13 @@ grp('Grounds', () => {
   });
   grp('PullUpBars', () => {
     [0, 1, 2].forEach((i) => {
-      const z = 112 + i * 6;
+      const z = -44 + i * 6;
       cylV('Post', -206, 0, z, 7 - i, 0.35, [150, 60, 50], 'Metal');
       cylV('Post', -206, 0, z + 5, 7 - i, 0.35, [150, 60, 50], 'Metal');
       P('Bar', [5, 0.22, 0.22], [-206, 6.8 - i, z + 2.5], [190, 190, 194], 'Metal', { sh: 'Cylinder', r: [0, 90, 0] });
     });
   });
-  [[-202, -94], [-202, 188], [-30, -94], [-30, 188]].forEach(([x, z]) => grp('FloodLight', () => {
+  [[-202, -94], [-202, GZ - 12], [-30, -94], [-30, GZ - 12]].forEach(([x, z]) => grp('FloodLight', () => {
     cylV('Tower', x, 0, z, 48, 1.2, [150, 152, 156], 'Metal');
     B('Frame', x - 3.5, 46, z - 0.6, x + 3.5, 51.5, z + 0.6, [70, 72, 76], 'Metal');
     for (let i = 0; i < 6; i++) B('Lamp', x - 3.2 + (i % 3) * 2.2, 46.4 + Math.floor(i / 3) * 2.6, z - 0.75, x - 1.4 + (i % 3) * 2.2, 48.6 + Math.floor(i / 3) * 2.6, z - 0.6, [200, 200, 196], 'Glass', { nc: true, ns: true, tag: 'FieldLight' });
@@ -1499,22 +1591,23 @@ grp('Grounds', () => {
       B('BenchLeg', x + 3.2, 0.2, z - 0.7, x + 3.6, 1.5, z + 0.7, [60, 62, 66], 'Metal');
     });
   });
-  for (let z = -80; z <= 180; z += 22) tree(-212, z + 6, 'ginkgo', 26 + rnd() * 6);
-  for (let x = -200; x <= -40; x += 20) tree(x, 192, 'ginkgo', 24 + rnd() * 6);
-  for (let x = 46; x <= 210; x += 20) tree(x, 192, x % 40 === 6 ? 'pine' : 'zelkova', 24 + rnd() * 6);
-  for (let z = -10; z <= 176; z += 20) tree(212, z, z % 40 === 10 ? 'pine' : 'ginkgo', 26 + rnd() * 6);
+  for (let z = -80; z <= GZ - 20; z += 22) tree(-212, z + 6, 'ginkgo', 26 + rnd() * 6);
+  for (let x = -200; x <= -40; x += 20) tree(x, GZ - 8, 'ginkgo', 24 + rnd() * 6);
+  for (let x = 46; x <= 210; x += 20) tree(x, GZ - 8, x % 40 === 6 ? 'pine' : 'zelkova', 24 + rnd() * 6);
+  for (let z = -10; z <= GZ - 24; z += 20) tree(212, z, z % 40 === 10 ? 'pine' : 'ginkgo', 26 + rnd() * 6);
   for (let x = -200; x <= 200; x += 20) tree(x, -190, rnd() < 0.5 ? 'pine' : 'zelkova', 28 + rnd() * 6);
-  for (let z = -90; z <= 140; z += 26) tree(-20, z, 'ginkgo', 22 + rnd() * 4);
-  for (let z = -90; z <= 80; z += 26) tree(20, z, 'ginkgo', 22 + rnd() * 4);
-  [[50, 40], [80, 52], [64, 72], [104, 70]].forEach(([x, z]) => tree(x, z, 'zelkova', 26));
-  [[50, 26], [72, 62], [96, 84]].forEach(([x, z]) => grp('Bench', () => {
+  for (let z = -90; z <= GZ - 40; z += 26) tree(-20, z, 'ginkgo', 22 + rnd() * 4);
+  for (let z = -90; z <= PZ - 6; z += 26) tree(20, z, 'ginkgo', 22 + rnd() * 4);
+  // 본관 앞 동쪽 쉼터 (자전거 보관대와 주차장 사이)
+  [[46, -62], [78, -50], [62, -30], [94, -34]].forEach(([x, z]) => tree(x, z, 'zelkova', 26));
+  [[46, -76], [70, -40], [90, -20]].forEach(([x, z]) => grp('Bench', () => {
     B('Seat', x - 3, 1.6, z - 0.8, x + 3, 1.85, z + 0.8, [150, 110, 70], 'WoodPlanks');
     B('Back', x - 3, 2.1, z + 0.7, x + 3, 3.6, z + 0.9, [150, 110, 70], 'WoodPlanks');
     B('Leg', x - 2.6, 0, z - 0.7, x - 2.3, 2.1, z + 0.8, [60, 60, 64], 'Metal');
     B('Leg', x + 2.3, 0, z - 0.7, x + 2.6, 2.1, z + 0.8, [60, 60, 64], 'Metal');
   }));
-  [[-17, 150], [-17, 100], [-17, 50], [-17, 0], [-17, -50], [-17, -100]].forEach(([x, z], i) => streetLight(x, z, 90, { h: 16, range: 36, flicker: i === 3 }));
-  [[16, 120], [60, 178], [104, 130]].forEach(([x, z]) => streetLight(x, z, -90, { h: 16, range: 36 }));
+  [[-17, 60], [-17, 10], [-17, -45], [-17, -100]].forEach(([x, z], i) => streetLight(x, z, 90, { h: 16, range: 36, flicker: i === 1 }));
+  [[16, PZ + 28], [60, PZ + 86], [104, PZ + 38]].forEach(([x, z]) => streetLight(x, z, -90, { h: 16, range: 36 }));
   grp('BikeShed', () => {
     B('Roof', 30, 8, -116, 92, 8.4, -104, [70, 120, 150], 'Plastic', { t: 0.25 });
     for (let x = 30; x <= 92; x += 10.3) { B('Post', x - 0.2, 0, -104.8, x + 0.2, 8, -104.4, [80, 84, 90], 'Metal'); B('Post', x - 0.2, 0, -115.6, x + 0.2, 8, -115.2, [80, 84, 90], 'Metal'); }
@@ -1570,7 +1663,10 @@ grp('Gym', () => {
 const BX0 = -132.6, BX1 = 132.6, ZN = -172, CORR0 = -171.2, PART0 = -163.2, PART1 = -162.6, ROOM1 = -137.4, ZS = -136.6;
 const LV = [1, 13.5, 26], FH = 12.5, ROOFY = 38.5, CEIL = 10.3;
 const HALL0 = -10, HALL1 = 10, ROOMW = 30, WALL = 0.6;
-const STAIR = { x0: 0.4, mid0: 4.9, mid1: 5.3, x1: 9.8, zStart: -140.4, zTurn: -152.1, zLand: -158.1 };
+// 중앙 계단실(CS): 복도 북쪽, 반폭 W. 학생용 계단실(TS): 건물 양 끝, 복도 끝에서 이어짐. RD: 옥상 문 자리
+const CS = { W: 8.5, R: 12, LD: 6 };
+const TS = { W: 4.6, R: 12, LD: 5, z0: -170.9, z1: -164.1 };
+const RD = { z0: -167, z1: -163 };
 const ROOMS = [
   { L: ['교무실', '행정실', '보건실', '방송실'], R: ['1-1', '1-2', '과학실', '화장실'] },
   { L: ['2-1', '2-2', '2-3', '2-4'], R: ['2-5', '2-6', '도서실', '화장실'] },
@@ -1584,6 +1680,9 @@ for (let f = 0; f < 3; f++) for (let i = 0; i < 4; i++) {
   rooms.push({ xa: xaR, xb: xbR, f, L: LV[f], name: ROOMS[f].R[i], wing: 'R', i });
 }
 const isClass = (n) => /^\d-\d$/.test(n);
+// 방마다 복도 쪽 문 자리 [x0, x1]. 화장실은 남자(서쪽 반)·여자(동쪽 반) 문이 따로 있다
+const WC_DOOR = 3.3;
+const roomDoors = (r) => (r.name === '화장실' ? [[r.xa + 2, r.xa + 2 + WC_DOOR], [r.xa + 17, r.xa + 17 + WC_DOOR]] : [[r.xa + 1.8, r.xa + 6.8], [r.xb - 6.8, r.xb - 1.8]]);
 
 // ═════════════ 2010년 무렵 한국 고등학교 교실 ═════════════
 // 바라보는 쪽 기준: 학생은 -X(칠판)를 본다. 학생 오른쪽 = -Z(복도), 왼쪽 = +Z(창문)
@@ -2089,19 +2188,90 @@ function slidingDoor(a, b, L, zFace, open, gname, o = {}) {
 }
 
 
+// 화장실 한 쪽 (x0..x1). 동쪽 벽에 칸, 서쪽 벽에 세면대와 거울. 여자 쪽(women)은 칸 4개,
+// 남자 쪽은 칸 2개 + 소변기 3개. 여자 쪽 세 번째 칸과 거울에는 이상현상 표시(tag)가 붙는다.
+function restroomHalf(x0, x1, L, z0, z1, women) {
+  const panel = [234, 218, 178], steel = [186, 190, 194], white = [246, 246, 242], so = { nc: true, ns: true };
+  const sx0 = x1 - 5.4, nStall = women ? 4 : 2, key = women ? 'F' : 'M';
+  for (let k = 0; k < nStall; k++) {
+    const za = z0 + 1.0 + k * 5.2, zb = za + 5.2, mz = (za + zb) / 2;
+    B('StallWall', sx0, L + 0.5, za - 0.08, x1, L + 7.0, za + 0.08, panel, 'SmoothPlastic');
+    if (k === nStall - 1) B('StallWall', sx0, L + 0.5, zb - 0.08, x1, L + 7.0, zb + 0.08, panel, 'SmoothPlastic');
+    B('StallFront', sx0 - 0.08, L + 0.5, za, sx0 + 0.08, L + 7.0, za + 0.9, panel, 'SmoothPlastic');
+    B('StallFront', sx0 - 0.08, L + 0.5, zb - 0.9, sx0 + 0.08, L + 7.0, zb, panel, 'SmoothPlastic');
+    // 스테인리스 틀: 기둥, 발, 위 가로대 (참고 사진)
+    [za, zb].forEach((z) => {
+      B('StallPost', sx0 - 0.12, L + 0.5, z - 0.12, sx0 + 0.12, L + 7.5, z + 0.12, steel, 'Metal', { nc: true, refl: 0.15 });
+      cylV('StallFoot', sx0, L, z, 0.5, 0.22, steel, 'Metal', { nc: true, refl: 0.15 });
+      B('StallEdge', sx0, L + 6.95, z - 0.1, x1, L + 7.05, z + 0.1, steel, 'Metal', { ...so, refl: 0.15 });
+    });
+    if (women && k === 2) {
+      B('StallDoor', sx0 - 0.08, L + 0.5, za + 0.9, sx0 + 0.08, L + 7.0, zb - 0.9, panel, 'SmoothPlastic', { tag: ['StallDoor3', 'LockedDoor'], attr: { Locked: '(화장실 세 번째 칸) 사용 중. 안에서 잠겨 있다.' } });
+      B('Occupied', sx0 - 0.12, L + 4.1, zb - 1.35, sx0 - 0.08, L + 4.3, zb - 1.05, [190, 30, 30], 'SmoothPlastic', so);
+    } else hingeDoor(`Stall${key}_${Math.round(x0)}_${k + 1}`, [sx0 - 0.12, L + 0.5, za + 0.9, sx0 + 0.12, L + 7.0, zb - 0.9], [sx0, za + 0.9], -80, { open: k !== 1 }, () => {
+      B('StallDoor', sx0 - 0.08, L + 0.5, za + 0.9, sx0 + 0.08, L + 7.0, zb - 0.9, panel, 'SmoothPlastic', { nc: true });
+      B('StallLatch', sx0 - 0.14, L + 3.9, zb - 1.3, sx0 + 0.14, L + 4.2, zb - 1.0, steel, 'Metal', so);
+    });
+    // 쪼그려 앉는 변기 (화변기) + 벽에 붙은 물 내림 밸브
+    B('SquatPan', x1 - 3.6, L + 0.04, mz - 0.75, x1 - 1.0, L + 0.32, mz + 0.75, white, 'SmoothPlastic');
+    B('SquatBowl', x1 - 3.3, L + 0.33, mz - 0.4, x1 - 1.9, L + 0.35, mz + 0.4, [206, 212, 214], 'SmoothPlastic', { ...so, min: 0.02 });
+    P('SquatHood', [1.1, 1.3, 1.5], [x1 - 1.35, L + 0.45, mz], white, 'SmoothPlastic', { sh: 'Ball' });
+    cylV('FlushPipe', x1 - 0.3, L + 0.3, mz, 3.2, 0.16, steel, 'Metal', { nc: true, refl: 0.2 });
+    B('FlushValve', x1 - 0.5, L + 3.4, mz - 0.18, x1 - 0.1, L + 3.8, mz + 0.18, steel, 'Metal', { nc: true, refl: 0.2 });
+    B('FlushLever', x1 - 0.95, L + 3.55, mz - 0.05, x1 - 0.5, L + 3.65, mz + 0.05, steel, 'Metal', so);
+    B('PaperHolder', x1 - 2.6, L + 2.3, za + 0.08, x1 - 1.8, L + 2.9, za + 0.3, steel, 'Metal', so);
+    P('PaperRoll', [0.5, 0.45, 0.45], [x1 - 2.2, L + 2.45, za + 0.35], [250, 250, 246], 'SmoothPlastic', { sh: 'Cylinder', nc: true, ns: true });
+    B('Bin', x1 - 4.6, L + 0.04, zb - 1.3, x1 - 3.9, L + 1.0, zb - 0.5, [120, 150, 190], 'Plastic', { nc: true });
+  }
+  B('StallTopRail', sx0 - 0.1, L + 7.4, z0 + 0.9, sx0 + 0.1, L + 7.55, z0 + 1.1 + nStall * 5.2, steel, 'Metal', { nc: true, refl: 0.15 });
+  if (!women) {
+    // 소변기 3개 + 칸막이
+    for (let k = 0; k < 3; k++) {
+      const z = z0 + 1.0 + nStall * 5.2 + 2.6 + k * 3.4;
+      B('Urinal', x1 - 1.3, L + 1.1, z - 0.7, x1 - 0.06, L + 4.4, z + 0.7, white, 'SmoothPlastic');
+      B('UrinalBowl', x1 - 1.5, L + 1.1, z - 0.6, x1 - 1.3, L + 2.2, z + 0.6, white, 'SmoothPlastic', { nc: true });
+      B('UrinalInner', x1 - 1.32, L + 2.2, z - 0.5, x1 - 1.28, L + 4.1, z + 0.5, [214, 220, 222], 'SmoothPlastic', { ...so, min: 0.02 });
+      cylV('UrinalPipe', x1 - 0.3, L + 4.4, z, 1.0, 0.14, steel, 'Metal', so);
+      B('UrinalSensor', x1 - 0.12, L + 5.4, z - 0.25, x1 - 0.06, L + 5.9, z + 0.25, steel, 'Metal', so);
+      if (k < 2) B('UrinalScreen', x1 - 1.8, L + 1.6, z + 1.62, x1 - 0.06, L + 5.2, z + 1.78, panel, 'SmoothPlastic', { nc: true });
+    }
+  }
+  // 세면대 + 거울 (서쪽 벽)
+  const cz0 = z0 + 6, cz1 = women ? z1 - 4 : z0 + 15;
+  B('Counter', x0, L + 2.6, cz0, x0 + 2.4, L + 2.9, cz1, [210, 206, 200], 'Marble');
+  B('CounterApron', x0 + 2.2, L + 1.9, cz0, x0 + 2.4, L + 2.6, cz1, [196, 192, 186], 'Marble', { nc: true });
+  for (let z = cz0 + 2; z < cz1 - 1; z += 3.6) {
+    P('Basin', [0.25, 1.6, 1.6], [x0 + 1.3, L + 2.85, z], white, 'SmoothPlastic', { sh: 'Cylinder', r: [0, 0, 90] });
+    cylBetween('Faucet', [x0 + 0.4, L + 2.9, z], [x0 + 0.4, L + 3.6, z], 0.15, steel, 'Metal', { nc: true });
+    cylBetween('Faucet', [x0 + 0.4, L + 3.6, z], [x0 + 1.0, L + 3.6, z], 0.12, steel, 'Metal', { nc: true });
+    P('Soap', [0.35, 0.2, 0.5], [x0 + 0.5, L + 3.0, z + 1.2], [120, 200, 150], 'SmoothPlastic', so);
+  }
+  B('Mirror', x0, L + 4.0, cz0 + 0.5, x0 + 0.08, L + 8.0, cz1 - 0.5, [200, 210, 214], 'Glass', { refl: 0.85, tag: women ? 'RestroomMirror' : undefined });
+  // 바닥 배수구, 대걸레와 양동이, 손 건조기
+  const dx = (x0 + sx0) / 2 + 1, dz = (z0 + z1) / 2;
+  B('Drain', dx - 0.5, L + 0.04, dz - 0.5, dx + 0.5, L + 0.06, dz + 0.5, [150, 152, 156], 'Metal', { ...so, min: 0.02 });
+  for (let i = -1; i <= 1; i++) B('DrainSlot', dx - 0.35, L + 0.06, dz + i * 0.25 - 0.04, dx + 0.35, L + 0.07, dz + i * 0.25 + 0.04, [40, 40, 42], 'Metal', { ...so, min: 0.01 });
+  rod('MopHandle', [x0 + 0.5, L + 0.3, z1 - 1.6], [x0 + 0.25, L + 5.6, z1 - 1.2], 0.12, [70, 110, 190], 'SmoothPlastic', so);
+  B('MopHead', x0 + 0.2, L + 0.04, z1 - 2.0, x0 + 1.0, L + 0.4, z1 - 1.3, [220, 216, 204], 'Fabric', so);
+  cylV('Bucket', x0 + 1.6, L + 0.04, z1 - 1.4, 1.1, 1.2, [60, 120, 190], 'Plastic', { nc: true });
+  B('HandDryer', x0, L + 4.2, z0 + 3.2, x0 + 0.5, L + 5.4, z0 + 4.4, [236, 236, 232], 'SmoothPlastic', { nc: true });
+}
+
 function interiorRoom(r) {
   const { xa, xb, L, name } = r;
   const z0 = PART1, z1 = ROOM1, zc = (z0 + z1) / 2;
   const top = L + CEIL;
   const restroom = name === '화장실';
-  const doors = restroom ? [[xa + 1.5, xa + 5.1]] : [[xa + 1.8, xa + 6.8], [xb - 6.8, xb - 1.8]];
+  const doors = roomDoors(r);
   if (restroom) {
-    const tile = [218, 226, 230];
-    B('TileN', xa, L, z0, xb, L + 7.5, z0 + 0.06, tile, 'CeramicTiles', { nc: true, ns: true });
+    // 2010년대 학교 화장실: 누런 벽 타일(천장까지), 청회색 바닥 타일. 가운데 벽으로 남·여를 나눈다
+    const tile = [206, 196, 160], xm = xa + 15;
+    B('TileN', xa, L, z0, xb, L + CEIL, z0 + 0.06, tile, 'CeramicTiles', { nc: true, ns: true });
     B('TileS', xa, L, z1 - 0.06, xb, L + 3.0, z1, tile, 'CeramicTiles', { nc: true, ns: true });
-    B('TileW', xa, L, z0, xa + 0.06, L + 7.5, z1, tile, 'CeramicTiles', { nc: true, ns: true });
-    B('TileE', xb - 0.06, L, z0, xb, L + 7.5, z1, tile, 'CeramicTiles', { nc: true, ns: true });
-    B('TileFloor', xa, L, z0, xb, L + 0.04, z1, C.tileFloor, 'CeramicTiles', { ns: true });
+    B('TileW', xa, L, z0, xa + 0.06, L + CEIL, z1, tile, 'CeramicTiles', { nc: true, ns: true });
+    B('TileE', xb - 0.06, L, z0, xb, L + CEIL, z1, tile, 'CeramicTiles', { nc: true, ns: true });
+    B('TileFloor', xa, L, z0, xb, L + 0.04, z1, [128, 146, 140], 'CeramicTiles', { ns: true });
+    B('DividerWall', xm - 0.3, L, z0, xm + 0.3, L + CEIL, z1, tile, 'CeramicTiles');
   } else {
     wainscot('x', xa, xb, z0, 1, L, doors);
     wainscot('x', xa, xb, z1, -1, L, [], { h: 2.6 });
@@ -2135,15 +2305,15 @@ function interiorRoom(r) {
     const roomIdx = r.f * 8 + r.i * 2 + (r.wing === 'R' ? 1 : 0);
     const so = { nc: true, ns: true };
     // 천장: 2등용 형광등 (밤이라 꺼져 있음, 앞문 옆 스위치로 켠다). 교실은 3열 × 2줄
-    const lampRows = restroom ? [[xa + 8.5, zc], [xa + 21.5, zc]]
+    const lampRows = restroom ? [[xa + 7.5, zc], [xa + 22.5, zc]]
       : [xa + 11.5, xa + 22.5].flatMap((x) => [zc - 7.6, zc, zc + 7.6].map((z) => [x, z]));
     lampRows.forEach(([x, z], i) => fluoro(x, z, top, { tag: i === 1 ? ['RoomFixture', 'RoomLight'] : 'RoomFixture',
       light: { type: 'Surface', face: 'Bottom', range: 18, angle: 90, brightness: 0, color: [236, 240, 255], enabled: false, shadows: i === 1 || i === 4 } }));
     // 천장·벽까지 은은하게 밝히는 보조등 (보이지 않는 점광원, 스위치로 함께 켜짐)
-    (restroom ? [xa + 15] : [xa + 11.5, xa + 22.5]).forEach((x) => P('LampFill', [0.2, 0.2, 0.2], [x, top - 2.8, zc], [255, 255, 255], 'SmoothPlastic',
+    (restroom ? [xa + 7.5, xa + 22.5] : [xa + 11.5, xa + 22.5]).forEach((x) => P('LampFill', [0.2, 0.2, 0.2], [x, top - 2.8, zc], [255, 255, 255], 'SmoothPlastic',
       { t: 1, hidden: true, light: { type: 'Point', range: 17, brightness: 0, color: [232, 236, 250], enabled: false } }));
     // 앞문 옆 전등 스위치 (불 켜기 / 끄기)
-    const swz = restroom ? z0 + 0.06 : z0, swx = restroom ? xa + 5.6 : xa + 7.2;
+    const swz = restroom ? z0 + 0.06 : z0, swx = restroom ? xa + 6.0 : xa + 7.2;
     B('SwitchPlate', swx, L + 4.0, swz, swx + 0.5, L + 4.75, swz + 0.05, [240, 240, 236], 'SmoothPlastic', { nc: true, ns: true, tag: 'RoomSwitch', attr: { Room: name } });
     for (let k = 0; k < 3; k++) B('Switch', swx + 0.06 + k * 0.14, L + 4.22, swz + 0.05, swx + 0.16 + k * 0.14, L + 4.52, swz + 0.09, [250, 250, 248], 'SmoothPlastic', { nc: true, ns: true, min: 0.03 });
     if (classLike) {
@@ -2336,40 +2506,63 @@ function interiorRoom(r) {
         B('Nose', xa + 5.65, L + 5.8, zc - 0.12, xa + 5.85, L + 6.2, zc + 0.12, [236, 234, 228], 'Marble', { nc: true });
       }, 'PlasterBust');
     } else if (restroom) {
-      const sx0 = xb - 5.4;
-      for (let k = 0; k < 4; k++) {
-        const za = z0 + 1.0 + k * 5.2, zb = za + 5.2;
-        B('StallWall', sx0, L + 0.5, za - 0.08, xb, L + 7.4, za + 0.08, [214, 196, 186], 'Plastic');
-        if (k === 3) B('StallWall', sx0, L + 0.5, zb - 0.08, xb, L + 7.4, zb + 0.08, [214, 196, 186], 'Plastic');
-        B('StallFront', sx0 - 0.08, L + 0.5, za, sx0 + 0.08, L + 7.4, za + 0.9, [214, 196, 186], 'Plastic');
-        B('StallFront', sx0 - 0.08, L + 0.5, zb - 0.9, sx0 + 0.08, L + 7.4, zb, [214, 196, 186], 'Plastic');
-        if (k === 2) {
-          B('StallDoor', sx0 - 0.08, L + 0.5, za + 0.9, sx0 + 0.08, L + 7.4, zb - 0.9, [200, 180, 170], 'Plastic', { tag: ['StallDoor3', 'LockedDoor'], attr: { Locked: '(화장실 세 번째 칸) 사용 중. 안에서 잠겨 있다.' } });
-          B('Occupied', sx0 - 0.12, L + 4.1, zb - 1.35, sx0 - 0.08, L + 4.3, zb - 1.05, [190, 30, 30], 'SmoothPlastic', { nc: true, ns: true });
-        }
-        else hingeDoor(`Stall_${Math.round(xa)}_${k + 1}`, [sx0 - 0.12, L + 0.5, za + 0.9, sx0 + 0.12, L + 7.4, zb - 0.9], [sx0, za + 0.9], -85, { open: k !== 1 }, () => {
-          B('StallDoor', sx0 - 0.08, L + 0.5, za + 0.9, sx0 + 0.08, L + 7.4, zb - 0.9, [200, 180, 170], 'Plastic', { nc: true });
-          B('StallLatch', sx0 - 0.14, L + 3.9, zb - 1.3, sx0 + 0.14, L + 4.2, zb - 1.0, [196, 198, 202], 'Metal', { nc: true, ns: true });
-        });
-        B('ToiletBase', xb - 3.2, L, (za + zb) / 2 - 0.8, xb - 1.0, L + 1.6, (za + zb) / 2 + 0.8, [244, 244, 242], 'SmoothPlastic');
-        B('ToiletTank', xb - 1.0, L + 1.3, (za + zb) / 2 - 1.0, xb - 0.1, L + 3.4, (za + zb) / 2 + 1.0, [244, 244, 242], 'SmoothPlastic');
-        B('ToiletSeat', xb - 3.25, L + 1.6, (za + zb) / 2 - 0.85, xb - 0.95, L + 1.75, (za + zb) / 2 + 0.85, [236, 236, 234], 'SmoothPlastic');
-      }
-      B('Counter', xa + 0.06, L + 2.6, z0 + 6, xa + 2.4, L + 2.9, z1 - 4, [210, 206, 200], 'Marble');
-      for (let k = 0; k < 4; k++) {
-        const z = z0 + 8 + k * 3.6;
-        P('Basin', [0.25, 1.6, 1.6], [xa + 1.3, L + 2.85, z], [246, 246, 244], 'SmoothPlastic', { sh: 'Cylinder', r: [0, 0, 90] });
-        cylBetween('Faucet', [xa + 0.4, L + 2.9, z], [xa + 0.4, L + 3.6, z], 0.15, C.steel, 'Metal', { nc: true });
-        cylBetween('Faucet', [xa + 0.4, L + 3.6, z], [xa + 1.0, L + 3.6, z], 0.12, C.steel, 'Metal', { nc: true });
-      }
-      B('Mirror', xa + 0.06, L + 4.0, z0 + 6.5, xa + 0.14, L + 8.0, z1 - 4.5, [200, 210, 214], 'Glass', { refl: 0.85, tag: 'RestroomMirror' });
-      B('RestroomSpot', xa + 6, L, zc - 1, xa + 8, L + 0.1, zc + 1, [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'RestroomSpot', attr: { Floor: r.f + 1 } });
+      restroomHalf(xa, xa + 14.7, L, z0, z1, false);
+      restroomHalf(xa + 15.3, xb, L, z0, z1, true);
+      B('RestroomSpot', xa + 21, L, zc - 1, xa + 23, L + 0.1, zc + 1, [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'RestroomSpot', attr: { Floor: r.f + 1 } });
     }
   }, isClass(name) ? 'Classroom' : restroom ? 'Restroom' : 'SpecialRoom');
 }
 
+// ═════════════ 계단실: 올라가는 계단 → 중간 계단참 → 되돌아 올라가는 계단 ═════════════
+// 틀 F: 원점 = 들어가는 쪽 가장자리 한가운데(1층 바닥 높이는 levels 로), +Z = 계단이 뻗는 쪽, X = 폭.
+// 올라가는 계단은 X<0 쪽, 위층에 닿는 계단은 X>0 쪽. W = 반폭, g = 두 계단 사이 반틈, R = 계단 길이, LD = 계단참 깊이
+const STEP_C = [176, 178, 172], BAL_C = [150, 156, 152], CAP_C = [34, 34, 36];
+function uStair(F, o) {
+  const { W, g, R, LD, levels } = o, n = 12, rise = FH / 2 / n, run = R / n;
+  const ang = Math.atan2(FH / 2, R), sn = Math.sin(ang), cs = Math.cos(ang), len = Math.hypot(FH / 2, R);
+  // 비탈을 따라 놓는 판 (dir = +1: +Z 로 갈수록 올라감, -1: 내려감)
+  const slope = (name, x0, x1, yMid, dir, hPerp, col, mat, op) => FP(F, name, [x1 - x0, hPerp, len], [(x0 + x1) / 2, yMid, R / 2], col, mat,
+    { ...op, axes: [[1, 0, 0], [0, cs, -dir * sn], [0, dir * sn, cs]] });
+  levels.forEach((L, li) => {
+    const last = li === levels.length - 1;
+    if (last && !o.toTop) {
+      // 맨 위층: 올라가는 계단 자리를 난간벽으로 막는다
+      FB(F, 'GuardWall', -W, L, 0, -g + 0.5, L + 3.6, 0.5, BAL_C, 'Plaster');
+      FB(F, 'GuardCap', -W, L + 3.6, -0.06, -g + 0.56, L + 3.78, 0.56, CAP_C, 'Wood', { nc: true });
+      return;
+    }
+    const ym = L + FH / 2;
+    for (let i = 0; i < n; i++) {
+      // 올라가는 계단 (X<0)
+      FB(F, 'Step', -W, L + i * rise - 0.5, i * run, -g, L + (i + 1) * rise, (i + 1) * run, STEP_C, 'Marble');
+      FB(F, 'Nosing', -W, L + (i + 1) * rise - 0.02, i * run, -g, L + (i + 1) * rise + 0.03, i * run + 0.3, [50, 50, 52], 'Rubber', { nc: true, ns: true });
+      // 위층에 닿는 계단 (X>0): 계단참(z=R)에서 들어온 쪽(z=0)으로 올라간다
+      const y2 = ym + i * rise;
+      FB(F, 'Step', g, y2 - 0.5, R - (i + 1) * run, W, y2 + rise, R - i * run, STEP_C, 'Marble');
+      FB(F, 'Nosing', g, y2 + rise - 0.02, R - i * run - 0.3, W, y2 + rise + 0.03, R - i * run, [50, 50, 52], 'Rubber', { nc: true, ns: true });
+    }
+    // 계단 밑면 (매끈한 비탈)
+    slope('Soffit', -W, -g, L + FH / 4 - 0.75, 1, 0.5, [224, 222, 214], 'Plaster', { nc: true, ns: true });
+    slope('Soffit', g, W, ym + FH / 4 - 0.75, -1, 0.5, [224, 222, 214], 'Plaster', { nc: true, ns: true });
+    FB(F, 'Landing', -W, ym - 1, R, W, ym, R + LD, STEP_C, 'Marble');
+    // 안쪽 난간벽: 회색 벽 + 검은 손스침 (참고 사진)
+    slope('Balustrade', -g, -g + 0.5, L + FH / 4 + 1.9, 1, 3.4, BAL_C, 'Plaster');
+    slope('HandrailCap', -g - 0.07, -g + 0.57, L + FH / 4 + 3.7, 1, 0.2, CAP_C, 'Wood', { nc: true });
+    slope('Balustrade', g - 0.5, g, ym + FH / 4 + 1.9, -1, 3.4, BAL_C, 'Plaster');
+    slope('HandrailCap', g - 0.57, g + 0.07, ym + FH / 4 + 3.7, -1, 0.2, CAP_C, 'Wood', { nc: true });
+    // 계단참 쪽 난간벽 끝 기둥, 들어가는 쪽 끝 기둥
+    FB(F, 'Newel', -g, ym - 1, R - 0.25, g, ym + 3.9, R + 0.25, BAL_C, 'Plaster');
+    FB(F, 'Newel', -g, L, -0.25, g, L + 3.9, 0.25, BAL_C, 'Plaster');
+    // 바깥벽 쪽 손잡이 봉
+    [[-W + 0.25, 1, L], [W - 0.25, -1, ym]].forEach(([x, dir, y0]) => slope('WallRail', x - 0.09, x + 0.09, y0 + FH / 4 + 3.1, dir, 0.18, CAP_C, 'Wood', { nc: true, ns: true }));
+    // 1층: 위층 계단 밑은 막아 둔다 (창고)
+    if (li === 0) FB(F, 'UnderWall', g, L, 0, W, L + FH - 0.9, 0.5, C.wallIvory, 'Plaster');
+    // 벽 아래 띠 (계단참)
+    FB(F, 'LandingBand', -W, ym, R + LD - 0.06, W, ym + 3.5, R + LD, C.wainscot, 'Plaster', { nc: true, ns: true });
+  });
+}
+
 grp('MainBuilding', () => {
-  const HOLE = { x0: STAIR.mid1, x1: STAIR.x1, z0: STAIR.zTurn, z1: STAIR.zStart };
   B('Foundation', BX0 - 0.4, 0, ZN - 0.4, BX1 + 0.4, 1, ZS + 0.4, [140, 136, 130], 'Concrete');
   for (let f = 0; f < 4; f++) {
     const y1 = f < 3 ? LV[f] : ROOFY, y0 = y1 - 1;
@@ -2383,15 +2576,9 @@ grp('MainBuilding', () => {
     B('WingFloor', HALL1, ya, PART1, BX1, y1, ZS, room, rm);
     if (!deck) {
       terrazzo(BX0 + 0.8, BX1 - 0.8, CORR0, PART0, y1, 4);
-      terrazzo(HALL0, STAIR.x0 - 0.2, PART1, ROOM1, y1, 4);
+      terrazzo(HALL0, HALL1, PART1, ROOM1, y1, 4);
     }
-    if (f === 0) B('HallFloor', HALL0, ya, PART1, HALL1, y1, ZS, hall, hm);
-    else {
-      B('HallFloor', HALL0, y0, PART1, HOLE.x0, y1, ZS, hall, hm);
-      B('HallFloor', HOLE.x0, y0, PART1, HALL1, y1, HOLE.z0, hall, hm);
-      B('HallFloor', HOLE.x0, y0, HOLE.z1, HALL1, y1, ZS, hall, hm);
-      B('HallFloor', HOLE.x1, y0, HOLE.z0, HALL1, y1, HOLE.z1, hall, hm);
-    }
+    B('HallFloor', HALL0, ya, PART1, HALL1, y1, ZS, hall, hm);
   }
 
   for (let f = 0; f < 3; f++) {
@@ -2411,26 +2598,32 @@ grp('MainBuilding', () => {
         B('Sunshade', r.xa - 0.3, L + 9.75, ZS, r.xb + 0.3, L + 10.15, ZS + 3.2, C.sunshade, 'Concrete');
         B('SunshadeLip', r.xa - 0.3, L + 9.5, ZS + 3.0, r.xb + 0.3, L + 10.15, ZS + 3.2, C.facadeShade, 'Concrete', { ns: true });
       });
-      if (f === 0) southHoles.push({ u0: -8.5, u1: -0.5, v0: L, v1: L + 8.6 });
+      if (f === 0) southHoles.push({ u0: -8, u1: 8, v0: L, v1: L + 9.4 });
       else { southHoles.push({ u0: -8.5, u1: 8.5, v0: L - 1.5, v1: L + 10.6 }); slider('x', -8.5, 0, L - 1.5, L + 10.6, ROOM1 + 0.4); slider('x', 0, 8.5, L - 1.5, L + 10.6, ROOM1 + 0.4); }
       wallHoles('ExteriorWall', 'x', BX0, BX1, L - 1, top, ROOM1, ZS, southHoles, C.facade, 'Plaster');
       if (f === 0) {
-        [[-8.5, -4.5], [-4.5, -0.5]].forEach(([a, b], i) => {
-          B('EntranceFrame', a, L, ROOM1 + 0.2, a + 0.15, L + 8.6, ROOM1 + 0.6, C.alumDark, 'Metal');
-          B('EntranceFrame', b - 0.15, L, ROOM1 + 0.2, b, L + 8.6, ROOM1 + 0.6, C.alumDark, 'Metal');
-          // 현관 유리문 두 짝: 가운데에서 갈라져 바깥(+Z)으로 열린다
-          hingeDoor(`EntranceDoor${i + 1}`, [a + 0.15, L + 0.05, ROOM1 + 0.25, b - 0.15, L + 8.2, ROOM1 + 0.55], [i === 0 ? a + 0.15 : b - 0.15, ROOM1 + 0.4], i === 0 ? -90 : 90, {}, () => {
-            B('EntranceGlass', a + 0.15, L + 0.2, ROOM1 + 0.3, b - 0.15, L + 8.2, ROOM1 + 0.5, [130, 160, 170], 'Glass', { t: 0.55, refl: 0.15, nc: true, tag: i === 0 ? 'EntranceDoor' : undefined });
-            B('DoorRail', a + 0.15, L + 0.05, ROOM1 + 0.28, b - 0.15, L + 0.2, ROOM1 + 0.52, C.alumDark, 'Metal', { nc: true });
-            B('PushBar', a + 0.6, L + 3.6, ROOM1 + 0.5, b - 0.6, L + 3.8, ROOM1 + 0.7, C.steel, 'Metal', { nc: true });
-            B('PushBar', a + 0.6, L + 3.6, ROOM1 + 0.1, b - 0.6, L + 3.8, ROOM1 + 0.3, C.steel, 'Metal', { nc: true });
+        // 현관 (참고 사진): 알루미늄 틀 + 옆 고정 유리 + 유리문 네 짝(두 쌍) + 문 위 채광창
+        const zf = ROOM1 + 0.4, al = C.alumDark, gl = [130, 160, 170];
+        [-8, -7.15, -0.15, 7, 7.85].forEach((x) => B('EntranceFrame', x, L, zf - 0.2, x + (x === -0.15 ? 0.3 : 0.15), L + 9.4, zf + 0.2, al, 'Metal'));
+        B('EntranceFrame', -8, L + 7.4, zf - 0.2, 8, L + 7.7, zf + 0.2, al, 'Metal');
+        B('EntranceFrame', -8, L + 9.2, zf - 0.2, 8, L + 9.4, zf + 0.2, al, 'Metal');
+        [[-7.85, -7.15], [7.15, 7.85]].forEach(([a, b]) => B('SideLight', a, L + 0.05, zf - 0.05, b, L + 7.4, zf + 0.05, gl, 'Glass', { t: 0.55, refl: 0.15 }));
+        [[-7.85, -0.15], [0.15, 7.85]].forEach(([a, b]) => B('Transom', a, L + 7.7, zf - 0.05, b, L + 9.2, zf + 0.05, gl, 'Glass', { t: 0.55, refl: 0.15 }));
+        [[-7, -3.5, -7, -90], [-3.5, -0.15, -0.15, 90], [0.15, 3.5, 0.15, -90], [3.5, 7, 7, 90]].forEach(([a, b, hx, sw], i) => {
+          hingeDoor(`EntranceDoor${i + 1}`, [a, L + 0.05, zf - 0.15, b, L + 7.4, zf + 0.15], [hx, zf], sw, {}, () => {
+            B('EntranceGlass', a + 0.2, L + 0.5, zf - 0.03, b - 0.2, L + 7.2, zf + 0.03, gl, 'Glass', { t: 0.55, refl: 0.15, nc: true, tag: i === 0 ? 'EntranceDoor' : undefined });
+            [[a, a + 0.2], [b - 0.2, b]].forEach(([u0, u1]) => B('DoorStile', u0, L + 0.05, zf - 0.08, u1, L + 7.4, zf + 0.08, al, 'Metal', { nc: true }));
+            B('DoorRail', a, L + 0.05, zf - 0.08, b, L + 0.5, zf + 0.08, al, 'Metal', { nc: true });
+            B('DoorRail', a, L + 7.2, zf - 0.08, b, L + 7.4, zf + 0.08, al, 'Metal', { nc: true });
+            const px = Math.abs(hx - a) < 0.01 ? b - 0.45 : a + 0.45;
+            [zf - 0.22, zf + 0.22].forEach((z) => rod('PullHandle', [px, L + 2.6, z], [px, L + 4.8, z], 0.14, C.steel, 'Metal', { nc: true, ns: true }));
           });
         });
-        B('EntranceFrame', -8.5, L + 8.2, ROOM1 + 0.2, -0.5, L + 8.6, ROOM1 + 0.6, C.alumDark, 'Metal');
       }
       const northHoles = [];
-      for (let x = BX0 + 5; x < BX1 - 12; x += 15.5) northHoles.push({ u0: x, u1: x + 10, v0: L + 3.6, v1: L + 9.4 });
-      wallHoles('ExteriorWall', 'x', BX0, BX1, L - 1, top, ZN, CORR0, northHoles, C.facade, 'Plaster');
+      for (let x = BX0 + 5; x < BX1 - 12; x += 15.5) if (Math.abs(x + 5) > CS.W + 5.5) northHoles.push({ u0: x, u1: x + 10, v0: L + 3.6, v1: L + 9.4 });
+      // 중앙 계단실로 들어가는 넓은 입구
+      wallHoles('ExteriorWall', 'x', BX0, BX1, L - 1, top, ZN, CORR0, [...northHoles, { u0: -CS.W, u1: CS.W, v0: L, v1: L + CEIL }], C.facade, 'Plaster');
       northHoles.forEach((h) => {
         slider('x', h.u0, h.u1, h.v0, h.v1, ZN + 0.4);
         B('Sill', h.u0 - 0.2, h.v0 - 0.25, ZN - 0.7, h.u1 + 0.2, h.v0, ZN + 0.1, [196, 192, 184], 'Concrete');
@@ -2438,48 +2631,58 @@ grp('MainBuilding', () => {
       [[BX0, BX0 + 0.8, -1], [BX1 - 0.8, BX1, 1]].forEach(([x0, x1, s]) => {
         // 서쪽 끝 벽은 끝 교실(2-4·3-4)의 칠판 벽이라 창문을 내지 않는다
         const roomWin = s > 0;
-        const holes = [{ u0: -169.5, u1: -165.5, v0: L, v1: L + 7.4 }];
+        const holes = [{ u0: TS.z0, u1: TS.z1, v0: L, v1: L + 7.6 }];
         if (roomWin) holes.push({ u0: -158, u1: -142, v0: L + 3.4, v1: L + 9.4 });
         wallHoles('EndWall', 'z', ZN, ZS, L - 1, top, x0, x1, holes, C.facade, 'Plaster');
         if (roomWin) slider('z', -158, -142, L + 3.4, L + 9.4, (x0 + x1) / 2);
-        // 비상구 철문: 1층은 바깥으로 열리고, 2·3층은 밖이 허공이라 잠겨 있다
-        hingeDoor(`ExitDoor_${f + 1}${s > 0 ? 'E' : 'W'}`, [x0 + (s > 0 ? 0 : 0.5), L, -169.5, x0 + (s > 0 ? 0.3 : 0.8), L + 7.4, -165.5], [x0 + (s > 0 ? 0.1 : 0.7), -169.5], s > 0 ? 90 : -90,
-          f === 0 ? {} : { locked: '비상구가 잠겨 있다. 문 너머는 허공이다.' }, () => {
-            B('ExitDoor', x0 + (s > 0 ? 0 : 0.6), L, -169.5, x0 + (s > 0 ? 0.2 : 0.8), L + 7.4, -165.5, [96, 120, 110], 'Metal', { nc: true });
-            const hx = s > 0 ? x0 + 0.2 : x0 + 0.5;
-            B('PanicBar', hx, L + 3.4, -168.9, hx + 0.1, L + 3.65, -166.1, [196, 198, 202], 'Metal', { nc: true, ns: true });
-          });
+        B('StairCasing', x0, L + 7.6, TS.z0 - 0.2, x1, L + 7.8, TS.z1 + 0.2, C.alumDark, 'Metal', { nc: true, ns: true });
         const sx = s > 0 ? x0 - 0.35 : x1 + 0.05;
         B('ExitSign', sx, L + 7.85, -169.4, sx + 0.3, L + 9.05, -165.6, [24, 168, 86], 'Neon', { nc: true, ns: true, tag: 'ExitSign',
           light: { type: 'Point', range: 9, brightness: 0.5, color: [60, 255, 140] } });
         exitPictogram([s > 0 ? sx : sx + 0.3, L + 8.45, -167.5], [0, 0, s > 0 ? 1 : -1], [0, 1, 0], [s > 0 ? -1 : 1, 0, 0], 1.0);
-        wainscot('z', CORR0, PART0, s > 0 ? x0 : x1, -s, L, [[-169.5, -165.5]]);
+        wainscot('z', CORR0, PART0, s > 0 ? x0 : x1, -s, L, [[TS.z0, TS.z1]]);
       });
       fr.forEach((r) => {
         const restroom = r.name === '화장실';
-        const doorList = restroom ? [[r.xa + 1.5, r.xa + 5.1]] : [[r.xa + 1.8, r.xa + 6.8], [r.xb - 6.8, r.xb - 1.8]];
-        const holes = doorList.flatMap(([a, b]) => [{ u0: a, u1: b, v0: L, v1: L + 7.2 }, { u0: a, u1: b, v0: L + 7.55, v1: L + 9.3 }]);
+        const doorList = roomDoors(r);
+        const holes = doorList.flatMap(([a, b]) => (restroom ? [{ u0: a, u1: b, v0: L, v1: L + 7.2 }] : [{ u0: a, u1: b, v0: L, v1: L + 7.2 }, { u0: a, u1: b, v0: L + 7.55, v1: L + 9.3 }]));
         if (!restroom) holes.push({ u0: r.xa + 8, u1: r.xb - 8, v0: L + 7.6, v1: L + 9.4 });
         wallHoles('PartitionWall', 'x', r.xa - WALL / 2, r.xb + WALL / 2, L, top, PART0, PART1, holes, C.wallIvory, 'Plaster');
         if (!restroom) {
           const hw = r.xb - r.xa - 16;
           for (let k = 0; k < 3; k++) slider('x', r.xa + 8 + (k * hw) / 3, r.xa + 8 + ((k + 1) * hw) / 3, L + 7.6, L + 9.4, (PART0 + PART1) / 2, { depth: 0.6 });
         }
-        doorList.forEach(([a, b], di) => {
+        if (restroom) doorList.forEach(([a, b], di) => {
+          // 화장실: 갈색 나무 여닫이문 (안쪽으로 열림) + 남·여 표지
+          const brown = [112, 66, 44], so = { nc: true, ns: true }, women = di === 1;
+          B('Casing', a - 0.25, L, PART0 - 0.1, a, L + 7.45, PART1 + 0.1, [84, 50, 34], 'Wood');
+          B('Casing', b, L, PART0 - 0.1, b + 0.25, L + 7.45, PART1 + 0.1, [84, 50, 34], 'Wood');
+          B('Casing', a - 0.25, L + 7.2, PART0 - 0.1, b + 0.25, L + 7.45, PART1 + 0.1, [84, 50, 34], 'Wood');
+          hingeDoor(`Door_${women ? '여자' : '남자'}화장실`, [a, L + 0.05, PART0 + 0.1, b, L + 7.2, PART0 + 0.4], [a + 0.05, PART0 + 0.25], -92, {}, () => {
+            B('WoodDoor', a + 0.03, L + 0.05, PART0 + 0.17, b - 0.03, L + 7.2, PART0 + 0.33, brown, 'Wood', { nc: true });
+            B('KickPlate', a + 0.2, L + 0.15, PART0 + 0.15, b - 0.2, L + 0.9, PART0 + 0.35, [176, 178, 182], 'Metal', { ...so, refl: 0.1 });
+            [PART0 + 0.08, PART0 + 0.42].forEach((z) => { P('Knob', [0.22, 0.22, 0.22], [b - 0.35, L + 3.5, z], [196, 176, 110], 'Metal', { ...so, sh: 'Ball', refl: 0.2 }); });
+            B('DoorSign', a + 0.9, L + 5.2, PART0 + 0.13, b - 0.9, L + 6.4, PART0 + 0.17, women ? [200, 52, 70] : [40, 84, 170], 'SmoothPlastic', { ...so, min: 0.02,
+              text: { face: 'Front', text: women ? '여' : '남', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBlack', pps: 90 } });
+          });
+          B('WcSign', a - 0.25, L + 7.7, PART0 - 0.14, b + 0.25, L + 8.6, PART0, women ? [200, 52, 70] : [40, 84, 170], 'SmoothPlastic', { ...so,
+            text: { face: 'Front', text: women ? '여자 화장실' : '남자 화장실', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBold', pps: 70 } });
+        });
+        else doorList.forEach(([a, b], di) => {
           // 오크 문틀 + 위쪽 채광창 (유리 2장, 가운데 살)
           const so = { nc: true, ns: true }, zm = (PART0 + PART1) / 2, mid = (a + b) / 2;
           // 교실 문은 문짝 두 장이 문틀 안에 들어가도록 옆 문틀을 복도 쪽으로 깊게
-          const cz = restroom ? PART0 - 0.12 : PART0 - 0.52;
+          const cz = PART0 - 0.52;
           B('Casing', a - 0.3, L, cz, a, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
           B('Casing', b, L, cz, b + 0.3, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
-          if (!restroom) B('Threshold', a, L, PART0 - 0.52, b, L + 0.04, PART0, OAK_FRAME, 'Wood', { nc: true, ns: true, min: 0.03 });
+          B('Threshold', a, L, PART0 - 0.52, b, L + 0.04, PART0, OAK_FRAME, 'Wood', { nc: true, ns: true, min: 0.03 });
           B('Casing', a - 0.3, L + 9.3, PART0 - 0.12, b + 0.3, L + 9.6, PART1 + 0.12, OAK_FRAME, 'Wood');
           B('Casing', a, L + 7.2, PART0 - 0.12, b, L + 7.55, PART1 + 0.12, OAK_FRAME, 'Wood');
           B('TransomBar', mid - 0.1, L + 7.55, PART0 - 0.08, mid + 0.1, L + 9.3, PART1 + 0.08, OAK_FRAME, 'Wood');
           [[a, mid - 0.1], [mid + 0.1, b]].forEach(([u0, u1]) => B('TransomGlass', u0, L + 7.55, zm - 0.02, u1, L + 9.3, zm + 0.02, [178, 196, 202], 'Glass', { ...so, t: 0.55, refl: 0.12, min: 0.02 }));
-          // 미닫이문: 교실은 쌍미닫이(오크 무늬), 화장실은 외짝(늘 열어 둠)
+          // 미닫이문: 쌍미닫이(오크 무늬)
           const ri = r.f * 8 + r.i * 2 + (r.wing === 'R' ? 1 : 0);
-          slidingDoor(a, b, L, PART0, restroom || (ri + di) % 5 === 0, `Door_${r.name}_${di + 1}`, restroom ? { single: true, dir: 1 } : {});
+          slidingDoor(a, b, L, PART0, (ri + di) % 5 === 0, `Door_${r.name}_${di + 1}`, {});
         });
         const label = isClass(r.name) ? `${r.name[0]}학년 ${r.name[2]}반` : r.name;
         // 교실 번호판: 앞문 옆 벽에서 복도 쪽으로 튀어나온 양면 표지판 (위: 큰 반 번호, 아래: 남색 띠에 "2학년 1반")
@@ -2510,10 +2713,10 @@ grp('MainBuilding', () => {
           troffer(x, (CORR0 + PART0) / 2, L + CEIL, on, { w: 4, d: 1.2, tag: fl ? ['CorridorLight', 'FlickerLight'] : 'CorridorLight',
             light: { type: 'Surface', face: 'Bottom', range: 18, angle: 120, brightness: on ? 0.85 : 0, color: [214, 228, 255], enabled: on, shadows: true } });
         }
-        wainscot('x', BX0 + 0.8, BX1 - 0.8, CORR0, 1, L);
+        wainscot('x', BX0 + 0.8, BX1 - 0.8, CORR0, 1, L, [[-CS.W, CS.W]]);
         fr.forEach((r) => {
           const restroom = r.name === '화장실';
-          const doorList = restroom ? [[r.xa + 1.2, r.xa + 5.4]] : [[r.xa + 1.5, r.xa + 7.1], [r.xb - 7.1, r.xb - 1.5]];
+          const doorList = restroom ? roomDoors(r).map(([a, b]) => [a - 0.25, b + 0.25]) : [[r.xa + 1.5, r.xa + 7.1], [r.xb - 7.1, r.xb - 1.5]];
           wainscot('x', r.xa - 0.3, r.xb + 0.3, PART0, -1, L, doorList);
           if (restroom) return;
           const a = r.xa + 9.2, b = r.xb - 9.2;
@@ -2531,7 +2734,10 @@ grp('MainBuilding', () => {
         });
         // ── 북쪽 벽(창문 쪽): 창문과 창문 사이 벽(기둥)에만 물건을 붙인다 ──
         const piers = [];
-        for (let i = 0; i < northHoles.length - 1; i++) piers.push([northHoles[i].u1, northHoles[i + 1].u0]);
+        for (let i = 0; i < northHoles.length - 1; i++) {
+          const a = northHoles[i].u1, b = northHoles[i + 1].u0;
+          if (a < -CS.W && b > CS.W) { piers.push([a, -CS.W - 0.6]); piers.push([CS.W + 0.6, b]); } else piers.push([a, b]);
+        }
         const pierNear = (x) => piers.reduce((b0, p0) => (Math.abs((p0[0] + p0[1]) / 2 - x) < Math.abs((b0[0] + b0[1]) / 2 - x) ? p0 : b0));
         const W0 = CORR0; // 벽 안쪽 면 (물건은 +Z 쪽으로 나옴)
         // 옥내소화전함 + 발신기 세트 (한국 학교 복도에 있는 그것)
@@ -2628,58 +2834,88 @@ grp('MainBuilding', () => {
       wainscot('z', PART1, ROOM1, HALL0, 1, L);
       wainscot('z', PART1, ROOM1, HALL1, -1, L);
       if (f === 0) {
-        B('ShoeLockers', -9.8, L, -160, -1.5, L + 6.4, -157.6, [176, 144, 104], 'WoodPlanks');
-        for (let x = -9.8 + 1.05; x < -1.6; x += 1.05) B('ShoeSeam', x - 0.03, L + 0.1, -157.62, x + 0.03, L + 6.3, -157.58, [120, 96, 70], 'SmoothPlastic', { nc: true, ns: true });
-        for (let y = 1.3; y < 6.4; y += 1.3) B('ShoeSeam', -9.8, L + y - 0.03, -157.62, -1.5, L + y + 0.03, -157.58, [120, 96, 70], 'SmoothPlastic', { nc: true, ns: true });
-        B('MirrorFrame', -9.95, L + 1, -152, -9.75, L + 9.6, -142, C.woodDark, 'Wood');
-        B('Mirror', -9.78, L + 1.3, -151.7, -9.7, L + 9.3, -142.3, [196, 206, 210], 'Glass', { refl: 0.85, tag: 'HallMirror' });
+        B('ShoeLockers', -9.8, L, -161.5, -7.6, L + 6.4, -153.5, [176, 144, 104], 'WoodPlanks');
+        for (let z = -161.5 + 1.0; z < -153.6; z += 1.0) B('ShoeSeam', -7.62, L + 0.1, z - 0.03, -7.58, L + 6.3, z + 0.03, [120, 96, 70], 'SmoothPlastic', { nc: true, ns: true });
+        for (let y = 1.3; y < 6.4; y += 1.3) B('ShoeSeam', -7.62, L + y - 0.03, -161.5, -7.58, L + y + 0.03, -153.5, [120, 96, 70], 'SmoothPlastic', { nc: true, ns: true });
+        B('MirrorFrame', -9.95, L + 1, -152, -9.75, L + 9.6, -144, C.woodDark, 'Wood');
+        B('Mirror', -9.78, L + 1.3, -151.7, -9.7, L + 9.3, -144.3, [196, 206, 210], 'Glass', { refl: 0.85, tag: 'HallMirror' });
         B('MirrorText', -9.95, L + 9.7, -150, -9.75, L + 10.2, -144, C.woodDark, 'Wood', { text: { face: 'Right', text: '바른 자세 · 단정한 용모', color: [240, 230, 200], bgT: 1, pps: 60 } });
-        B('TrophyCase', -9.8, L, -140.6, -6.6, L + 7.6, -137.6, [110, 80, 52], 'Wood');
-        B('TrophyGlass', -6.62, L + 1, -140.4, -6.58, L + 7.2, -137.8, [180, 200, 210], 'Glass', { t: 0.6, nc: true });
+        B('TrophyCase', 7.4, L, -161.5, 9.8, L + 7.6, -154, [110, 80, 52], 'Wood');
+        B('TrophyGlass', 7.36, L + 1, -161.2, 7.4, L + 7.2, -154.3, [180, 200, 210], 'Glass', { t: 0.6, nc: true });
+        for (let k = 0; k < 5; k++) { cylV('Trophy', 7.9 + (k % 2) * 0.6, L + 3.2, -160.4 + k * 1.3, 1.1 + (k % 3) * 0.3, 0.35, [212, 176, 70], 'Metal', { nc: true, refl: 0.3 }); }
         B('Plaque', 9.75, L + 5, -152, 9.95, L + 9, -142, [60, 40, 26], 'Wood', { text: { face: 'Left', text: '교 훈\n\n성실 · 정직 · 배려', color: [230, 210, 160], bg: [60, 40, 26], bgT: 0, font: 'Merriweather' } });
-        cylV('Pot', -2.6, L, -141, 2, 2, [150, 90, 60], 'Brick');
-        ball('Plant', -2.6, L + 3.4, -141, 3, [50, 90, 50], 'LeafyGrass', { nc: true });
-        B('Doormat', -8.4, L, -140, -0.6, L + 0.08, -137.5, [60, 60, 64], 'Carpet', { nc: true });
+        cylV('Pot', 8.6, L, -140, 2, 1.8, [150, 90, 60], 'Brick');
+        ball('Plant', 8.6, L + 3.4, -140, 2.8, [50, 90, 50], 'LeafyGrass', { nc: true });
+        B('Doormat', -6.5, L, -141.5, 6.5, L + 0.08, -138, [60, 60, 64], 'Carpet', { nc: true });
       }
-      ceiling(HALL0, STAIR.x0 - 0.1, PART1, ROOM1, L + CEIL);
-      troffer(-5, -150, L + CEIL, f === 0, { light: { type: 'Surface', face: 'Bottom', range: 16, angle: 120, brightness: f === 0 ? 0.8 : 0, color: [220, 230, 255], enabled: f === 0, shadows: true } });
-      grp('Stairs', () => {
-        const n = 9, rise = FH / 2 / n, run = (STAIR.zStart - STAIR.zTurn) / n;
-        for (let i = 0; i < n; i++) {
-          B('Step', STAIR.x0, L + i * rise, STAIR.zStart - (i + 1) * run, STAIR.mid0, L + (i + 1) * rise, STAIR.zStart - i * run, [176, 178, 172], 'Marble');
-          B('Nosing', STAIR.x0, L + (i + 1) * rise - 0.02, STAIR.zStart - i * run - 0.35, STAIR.mid0, L + (i + 1) * rise + 0.03, STAIR.zStart - i * run, [50, 50, 52], 'Rubber', { nc: true, ns: true });
-          const y2 = L + FH / 2 + i * rise;
-          B('Step', STAIR.mid1, y2, STAIR.zTurn + i * run, STAIR.x1, y2 + rise, STAIR.zTurn + (i + 1) * run, [176, 178, 172], 'Marble');
-          B('StepUnder', STAIR.mid1, y2 - 0.6, STAIR.zTurn + i * run, STAIR.x1, y2, STAIR.zTurn + (i + 1) * run, [200, 198, 192], 'Plaster', { ns: true });
-          B('Nosing', STAIR.mid1, y2 + rise - 0.02, STAIR.zTurn + (i + 1) * run - 0.35, STAIR.x1, y2 + rise + 0.03, STAIR.zTurn + (i + 1) * run, [50, 50, 52], 'Rubber', { nc: true, ns: true });
-        }
-        B('Landing', STAIR.x0, L + FH / 2 - 1, STAIR.zLand, STAIR.x1, L + FH / 2, STAIR.zTurn, [176, 178, 172], 'Marble');
-        B('Divider', STAIR.mid0, L, STAIR.zTurn, STAIR.mid1, L + FH, STAIR.zStart, C.wallIvory, 'Plaster');
-        cylBetween('Handrail', [STAIR.mid0 - 0.15, L + 3.1, STAIR.zStart], [STAIR.mid0 - 0.15, L + FH / 2 + 3.1, STAIR.zTurn], 0.22, C.rail, 'Wood', { nc: true });
-        cylBetween('Handrail', [STAIR.mid1 + 0.15, L + FH / 2 + 3.1, STAIR.zTurn], [STAIR.mid1 + 0.15, L + FH + 3.1, STAIR.zStart], 0.22, C.rail, 'Wood', { nc: true });
-        if (f > 0) {
-          B('HoleRail', STAIR.mid1, L + 3.4, STAIR.zTurn - 0.15, STAIR.x1, L + 3.6, STAIR.zTurn + 0.05, C.rail, 'Wood');
-          for (let x = STAIR.mid1 + 0.4; x < STAIR.x1; x += 0.7) B('Baluster', x - 0.05, L, STAIR.zTurn - 0.1, x + 0.05, L + 3.4, STAIR.zTurn, C.steel, 'Metal', { ns: true });
-        }
-        const landingText = f < 2 ? `${f + 2}F ↑` : '옥상 ↑ (출입금지)';
-        B('StairSign', STAIR.x0 + 0.2, L + 9.2, STAIR.zLand + 0.1, STAIR.mid0, L + 10.8, STAIR.zLand + 0.25, [246, 246, 240], 'SmoothPlastic', {
-          nc: true, tag: 'StairSign', attr: { Floor: f + 1 }, text: { face: 'Back', text: landingText, color: [30, 40, 70], bg: [246, 246, 240], bgT: 0, lit: 1, font: 'GothamBlack', pps: 70 } });
-        B('StairLight', STAIR.x0 + 2, L + FH - 1.4, STAIR.zLand + 1, STAIR.x0 + 4, L + FH - 1.2, STAIR.zLand + 2, [240, 244, 250], f === 0 ? 'Neon' : 'SmoothPlastic', {
-          nc: true, ns: true, tag: 'CorridorLight', light: { type: 'Point', range: 14, brightness: f === 0 ? 0.6 : 0, color: [220, 230, 255], enabled: f === 0, shadows: true } });
-      });
+      ceiling(HALL0, HALL1, PART1, ROOM1, L + CEIL);
+      troffer(0, -150, L + CEIL, f === 0, { light: { type: 'Surface', face: 'Bottom', range: 16, angle: 120, brightness: f === 0 ? 0.8 : 0, color: [220, 230, 255], enabled: f === 0, shadows: true } });
     });
   }
 
+  // ── 중앙 계단실: 복도 북쪽으로 튀어나온 계단실 (1층 ~ 옥상) ──
+  grp('CentralStair', () => {
+    const { W, R, LD } = CS, zN = ZN - R - LD, top = ROOFY + 10, wc = C.wallIvory;
+    uStair(yawFrame([0, 0, ZN], 180), { W, g: 0.3, R, LD, levels: [...LV, ROOFY], toTop: false });
+    B('StairFloor', -W, 0.9, zN, W, LV[0], ZN, STEP_C, 'Marble');
+    B('Foundation', -W - 0.9, 0, zN - 0.9, W + 0.9, 1, ZN, [140, 136, 130], 'Concrete');
+    B('BayWall', -W - 0.6, 0, zN - 0.6, -W, top, ZN, wc, 'Plaster');
+    B('BayWall', W, 0, zN - 0.6, W + 0.6, top, ZN, wc, 'Plaster');
+    // 계단참 벽: 층마다 세로로 긴 창 (참고 사진)
+    const wins = [];
+    LV.forEach((L) => [[-W + 1, -0.8], [0.8, W - 1]].forEach(([a, b]) => wins.push({ u0: a, u1: b, v0: L + FH / 2 + 2.6, v1: L + FH / 2 + 9.4 })));
+    wallHoles('BayWall', 'x', -W - 0.6, W + 0.6, 0, top, zN - 0.6, zN, wins, wc, 'Plaster');
+    wins.forEach((h) => { slider('x', h.u0, h.u1, h.v0, h.v1, zN - 0.3); B('Sill', h.u0 - 0.2, h.v0 - 0.2, zN - 0.2, h.u1 + 0.2, h.v0, zN + 0.5, [220, 216, 206], 'Marble', { nc: true }); });
+    LV.forEach((L, fi) => {
+      B('StairSign', W - 0.14, L + 7.0, ZN - 6.5, W, L + 8.6, ZN - 2.5, [246, 246, 240], 'SmoothPlastic', {
+        nc: true, tag: 'StairSign', attr: { Floor: fi + 1 }, text: { face: 'Left', text: fi < 2 ? `${fi + 2}F ↑` : '옥상 ↑ (출입금지)', color: [30, 40, 70], bg: [246, 246, 240], bgT: 0, lit: 1, font: 'GothamBlack', pps: 70 } });
+      troffer(0, zN + LD / 2, L + FH / 2 + 10.4, fi === 0, { tag: 'CorridorLight', light: { type: 'Surface', face: 'Bottom', range: 18, angle: 120, brightness: fi === 0 ? 0.7 : 0, color: [220, 230, 255], enabled: fi === 0, shadows: true } });
+      B('LandingCeil', -W, L + FH / 2 + 10.4, zN, W, L + FH / 2 + 10.6, zN + LD, C.ceiling, 'Plaster', { nc: true, ns: true });
+    });
+    // 옥상 계단실: 계단을 다 올라오면 작은 방, 서쪽 벽에 잠긴 옥상 문
+    const vz = ZN + 12;
+    B('BayRoof', -W - 1.1, top, zN - 1.1, W + 1.1, top + 0.7, vz + 1.1, [130, 126, 120], 'Concrete');
+    B('HutWall', W, ROOFY, ZN, W + 0.6, top, vz + 0.6, C.facade, 'Plaster');
+    B('HutWall', -W - 0.6, ROOFY, vz, W + 0.6, top, vz + 0.6, C.facade, 'Plaster');
+    wallHoles('HutWall', 'z', ZN, vz, ROOFY, top, -W - 0.6, -W, [{ u0: RD.z0, u1: RD.z1, v0: ROOFY, v1: ROOFY + 7.2 }], C.facade, 'Plaster');
+    B('RoofDoor', -W - 0.5, ROOFY, RD.z0, -W - 0.1, ROOFY + 7.2, RD.z1, [96, 100, 106], 'Metal', { tag: ['RoofDoor', 'LockedDoor'], attr: { Locked: '옥상 문은 잠겨 있다. 「옥상 출입금지」' } });
+    B('RoofSign', -W + 0.0, ROOFY + 7.6, RD.z0 - 1, -W + 0.15, ROOFY + 8.8, RD.z1 + 1, [246, 246, 240], 'SmoothPlastic', {
+      nc: true, text: { face: 'Right', text: '옥상 출입금지', color: [180, 30, 30], bg: [246, 246, 240], bgT: 0 } });
+    B('RoofStairZone', -W, LV[2] + FH / 2 - 0.6, zN, W, ROOFY + 8, vz, [255, 0, 0], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'RoofStairZone' });
+  });
+  // ── 학생용 계단실: 건물 양 끝 (1층 ~ 3층) ──
+  [[BX1, 1, 'E'], [BX0, -1, 'W']].forEach(([bx, s, nm]) => grp(`StairTower${nm}`, () => {
+    const { W, R, LD } = TS, zc = (TS.z0 + TS.z1) / 2, xe = bx + s * (R + LD), top = ROOFY, wc = C.facade;
+    const X0 = Math.min(bx, xe + s * 0.6), X1 = Math.max(bx, xe + s * 0.6);
+    uStair(yawFrame([bx, 0, zc], s > 0 ? 90 : -90), { W, g: 0.25, R, LD, levels: LV, toTop: false });
+    B('StairFloor', Math.min(bx, xe), 0.9, zc - W, Math.max(bx, xe), LV[0], zc + W, STEP_C, 'Marble');
+    B('Foundation', X0 - 0.3, 0, zc - W - 0.9, X1 + 0.3, 1, zc + W + 0.9, [140, 136, 130], 'Concrete');
+    B('TowerWall', X0, 0, zc - W - 0.6, X1, top, zc - W, wc, 'Plaster');
+    B('TowerWall', X0, 0, zc + W, X1, top, zc + W + 0.6, wc, 'Plaster');
+    const wins = LV.slice(0, 2).map((L) => ({ u0: zc - W + 1, u1: zc + W - 1, v0: L + FH / 2 + 2.6, v1: L + FH / 2 + 9.4 }));
+    wallHoles('TowerWall', 'z', zc - W - 0.6, zc + W + 0.6, 0, top, Math.min(xe, xe + s * 0.6), Math.max(xe, xe + s * 0.6), wins, wc, 'Plaster');
+    wins.forEach((h) => slider('z', h.u0, h.u1, h.v0, h.v1, xe + s * 0.3));
+    B('TowerRoof', X0 - 0.4, top, zc - W - 1, X1 + 0.4, top + 0.7, zc + W + 1, [130, 126, 120], 'Concrete');
+    LV.forEach((L, fi) => {
+      if (fi < 2) B('StairLight', xe - s * 3, L + FH / 2 + 10.2, zc - 1, xe - s * 1, L + FH / 2 + 10.4, zc + 1, [240, 244, 250], 'SmoothPlastic', {
+        nc: true, ns: true, tag: 'CorridorLight', light: { type: 'Point', range: 16, brightness: 0, color: [220, 230, 255], enabled: false, shadows: true } });
+      B('FloorMark', bx + s * 0.4, L + 6.6, zc + W - 0.14, bx + s * 2.6, L + 8.0, zc + W, [246, 246, 240], 'SmoothPlastic', {
+        nc: true, ns: true, text: { face: 'Front', text: `${fi + 1}F`, color: [30, 40, 70], bg: [246, 246, 240], bgT: 0, lit: 1, font: 'GothamBlack', pps: 70 } });
+    });
+  }));
+
   grp('Facade', () => {
-    B('BaseBand', BX0 - 0.3, 0, ZS - 0.2, BX1 + 0.3, 3.2, ZS + 0.35, [120, 116, 110], 'Granite');
-    B('BaseBand', BX0 - 0.3, 0, ZN - 0.35, BX1 + 0.3, 3.2, ZN + 0.2, [120, 116, 110], 'Granite');
-    B('BaseBand', BX0 - 0.35, 0, ZN - 0.35, BX0 + 0.2, 3.2, ZS + 0.35, [120, 116, 110], 'Granite');
-    B('BaseBand', BX1 - 0.2, 0, ZN - 0.35, BX1 + 0.35, 3.2, ZS + 0.35, [120, 116, 110], 'Granite');
+    [[BX0 - 0.3, -8], [8, BX1 + 0.3]].forEach(([a, b]) => B('BaseBand', a, 0, ZS - 0.2, b, 3.2, ZS + 0.35, [120, 116, 110], 'Granite'));
+    // 북쪽 띠는 중앙 계단실 자리를, 양 끝 띠는 학생용 계단실 자리를 비운다
+    const nSeg = [[BX0 - 0.3, -CS.W - 0.6], [CS.W + 0.6, BX1 + 0.3]], zT = (TS.z0 + TS.z1) / 2 + TS.W + 0.6;
+    nSeg.forEach(([a, b]) => B('BaseBand', a, 0, ZN - 0.35, b, 3.2, ZN + 0.2, [120, 116, 110], 'Granite'));
+    B('BaseBand', BX0 - 0.35, 0, zT, BX0 + 0.2, 3.2, ZS + 0.35, [120, 116, 110], 'Granite');
+    B('BaseBand', BX1 - 0.2, 0, zT, BX1 + 0.35, 3.2, ZS + 0.35, [120, 116, 110], 'Granite');
     [LV[1], LV[2], ROOFY].forEach((y) => {
       B('FloorBand', BX0 - 0.35, y - 1.1, ZS - 0.1, BX1 + 0.35, y + 0.15, ZS + 0.4, C.facadeShade, 'Concrete');
-      B('FloorBand', BX0 - 0.35, y - 1.1, ZN - 0.4, BX1 + 0.35, y + 0.15, ZN + 0.1, C.facadeShade, 'Concrete');
-      B('FloorBand', BX0 - 0.4, y - 1.1, ZN - 0.4, BX0 + 0.1, y + 0.15, ZS + 0.4, C.facadeShade, 'Concrete');
-      B('FloorBand', BX1 - 0.1, y - 1.1, ZN - 0.4, BX1 + 0.4, y + 0.15, ZS + 0.4, C.facadeShade, 'Concrete');
+      nSeg.forEach(([a, b]) => B('FloorBand', a, y - 1.1, ZN - 0.4, b, y + 0.15, ZN + 0.1, C.facadeShade, 'Concrete'));
+      B('FloorBand', BX0 - 0.4, y - 1.1, zT, BX0 + 0.1, y + 0.15, ZS + 0.4, C.facadeShade, 'Concrete');
+      B('FloorBand', BX1 - 0.1, y - 1.1, zT, BX1 + 0.4, y + 0.15, ZS + 0.4, C.facadeShade, 'Concrete');
     });
     const pil = new Set([BX0, BX1]);
     rooms.filter((r) => r.f === 0).forEach((r) => { pil.add(Math.round((r.xa - WALL / 2) * 10) / 10); pil.add(Math.round((r.xb + WALL / 2) * 10) / 10); });
@@ -2693,15 +2929,26 @@ grp('MainBuilding', () => {
     B('TowerFace', -11, 0, ZS, -9, ROOFY + 14, ZS + 1.6, [220, 216, 206], 'Plaster');
     B('TowerFace', 9, 0, ZS, 11, ROOFY + 14, ZS + 1.6, [220, 216, 206], 'Plaster');
     B('TowerCap', -11.5, ROOFY + 14, ZS - 6, 11.5, ROOFY + 15.2, ZS + 2, C.facadeShade, 'Concrete');
-    B('Canopy', -14, 9.8, ZS, 14, 10.6, ZS + 9, [196, 192, 184], 'Concrete');
-    B('CanopyFascia', -14.2, 9.2, ZS + 8.7, 14.2, 11.0, ZS + 9.2, [52, 60, 80], 'Metal', {
-      text: { face: 'Back', text: '송 천 고 등 학 교', color: [236, 226, 196], bgT: 1, font: 'Merriweather', lit: 1, pps: 60 } });
-    [-12.8, 12.8].forEach((x) => cylV('CanopyColumn', x, 1, ZS + 8, 8.8, 1.1, [200, 196, 188], 'Concrete'));
-    B('EntranceSteps', -14, 0, ZS, 14, 0.5, ZS + 8, [160, 156, 150], 'Granite');
-    B('EntranceSteps', -14, 0.5, ZS, 14, 1.0, ZS + 4, [160, 156, 150], 'Granite');
-    B('Ramp', 14, 0, ZS, 20, 1.0, ZS + 2, [160, 156, 150], 'Concrete');
-    for (let i = 0; i < 2; i++) B('CanopyLight', -6 + i * 8, 9.6, ZS + 3.5, -2 + i * 8, 9.8, ZS + 5.5, [255, 240, 210], 'Neon', { nc: true, ns: true, light: { type: 'Surface', face: 'Bottom', range: 16, angle: 110, brightness: 0.8, color: [255, 220, 170], shadows: true } });
-    [[BX0 + 2, HALL0 - 6], [HALL1 + 8, BX1 - 2]].forEach(([x0, x1]) => {
+    // 현관 캐노피 (참고 사진): 얇고 넓은 지붕 + 짙은 테두리 + 네모 기둥 + 문 위 전광판
+    B('Canopy', -15, 10.6, ZS, 15, 11.3, ZS + 10, [222, 220, 212], 'Concrete');
+    B('CanopyFascia', -15.2, 10.3, ZS + 9.7, 15.2, 11.6, ZS + 10.2, [44, 48, 56], 'Metal');
+    B('CanopyFascia', -15.2, 10.3, ZS, -14.8, 11.6, ZS + 10.2, [44, 48, 56], 'Metal');
+    B('CanopyFascia', 14.8, 10.3, ZS, 15.2, 11.6, ZS + 10.2, [44, 48, 56], 'Metal');
+    B('CanopyCeil', -14.6, 10.5, ZS + 0.2, 14.6, 10.6, ZS + 9.6, [236, 236, 230], 'SmoothPlastic', { nc: true, ns: true });
+    [-13.4, 13.4].forEach((x) => { B('CanopyColumn', x - 0.7, 1, ZS + 8.2, x + 0.7, 10.6, ZS + 9.6, [200, 196, 188], 'Granite'); B('ColumnBase', x - 0.9, 1, ZS + 8.0, x + 0.9, 1.8, ZS + 9.8, [150, 146, 140], 'Granite'); });
+    B('SchoolName', -9, 11.7, ZS + 9.8, 9, 13.6, ZS + 10.1, [222, 220, 212], 'Concrete', { nc: true,
+      text: { face: 'Back', text: '송 천 고 등 학 교', color: [40, 44, 60], bgT: 1, font: 'GothamBlack', lit: 1, pps: 50 } });
+    // 전광판: 검은 판에 빨강·초록 글씨
+    B('LedBoard', -5.2, 1 + 9.5, ZS + 0.25, 5.2, 1 + 10.5, ZS + 0.55, [14, 14, 16], 'SmoothPlastic', { nc: true });
+    B('LedText', -5.0, 1 + 9.58, ZS + 0.55, 5.0, 1 + 10.42, ZS + 0.58, [14, 14, 16], 'Neon', { nc: true, ns: true, min: 0.02,
+      text: { face: 'Back', text: '송천고  22:00  외부인 출입 금지', color: [60, 255, 120], bg: [10, 10, 12], bgT: 0, lit: 0, font: 'GothamBlack', pps: 60 } });
+    B('EntranceSteps', -15, 0, ZS, 15, 0.5, ZS + 11, [160, 156, 150], 'Granite');
+    B('EntranceSteps', -15, 0.5, ZS, 15, 1.0, ZS + 9.8, [160, 156, 150], 'Granite');
+    B('StepNosing', -15, 0.5, ZS + 10.7, 15, 0.52, ZS + 11, [226, 196, 60], 'SmoothPlastic', { nc: true, ns: true, min: 0.02 });
+    B('StepNosing', -15, 1.0, ZS + 9.5, 15, 1.02, ZS + 9.8, [226, 196, 60], 'SmoothPlastic', { nc: true, ns: true, min: 0.02 });
+    P('Ramp', [5, 0.3, 11.2], [18, 0.48, ZS + 5.5], [160, 156, 150], 'Concrete', { r: [5.1, 0, 0] });
+    for (let i = 0; i < 3; i++) B('CanopyLight', -9 + i * 7, 10.4, ZS + 4, -5 + i * 7, 10.5, ZS + 6, [255, 240, 210], 'Neon', { nc: true, ns: true, light: { type: 'Surface', face: 'Bottom', range: 16, angle: 110, brightness: 0.8, color: [255, 236, 200], shadows: i === 1 } });
+    [[BX0 + 2, HALL0 - 6], [HALL1 + 11, BX1 - 2]].forEach(([x0, x1]) => {
       B('BedEdge', x0, 0, ZS + 3.4, x1, 1.1, ZS + 3.9, [150, 146, 140], 'Granite');
       B('BedEdge', x0, 0, ZS + 8.6, x1, 1.1, ZS + 9.1, [150, 146, 140], 'Granite');
       B('Soil', x0, 0, ZS + 3.9, x1, 0.8, ZS + 8.6, [72, 56, 42], 'Ground', { ns: true });
@@ -2733,18 +2980,6 @@ grp('MainBuilding', () => {
     rail(BX0, ZN, BX1, ZN + 0.8);
     rail(BX0, ZN, BX0 + 0.8, ZS);
     rail(BX1 - 0.8, ZN, BX1, ZS);
-    grp('StairHouse', () => {
-      const x0 = -1, x1 = 11.2, z0 = -159, z1 = -137.4, H = 10;
-      wallHoles('Wall', 'z', z0, z1, ROOFY, ROOFY + H, x0, x0 + 0.6, [{ u0: -147, u1: -143, v0: ROOFY, v1: ROOFY + 7.2 }], C.facade, 'Plaster');
-      B('Wall', x1 - 0.6, ROOFY, z0, x1, ROOFY + H, z1, C.facade, 'Plaster');
-      B('Wall', x0, ROOFY, z0, x1, ROOFY + H, z0 + 0.6, C.facade, 'Plaster');
-      B('Wall', x0, ROOFY, z1 - 0.6, x1, ROOFY + H, z1, C.facade, 'Plaster');
-      B('Roof', x0 - 0.5, ROOFY + H, z0 - 0.5, x1 + 0.5, ROOFY + H + 0.7, z1 + 0.5, [130, 126, 120], 'Concrete');
-      B('RoofDoor', x0 - 0.2, ROOFY, -147, x0 + 0.1, ROOFY + 7.2, -143, [96, 100, 106], 'Metal', { tag: ['RoofDoor', 'LockedDoor'], attr: { Locked: '옥상 문은 잠겨 있다. 「옥상 출입금지」' } });
-      B('RoofSign', x0 - 0.3, ROOFY + 7.6, -148, x0 - 0.1, ROOFY + 8.8, -142, [246, 246, 240], 'SmoothPlastic', {
-        text: { face: 'Left', text: '옥상 출입금지', color: [180, 30, 30], bg: [246, 246, 240], bgT: 0 } });
-      B('RoofStairZone', STAIR.x0, LV[2] + FH / 2 - 0.6, STAIR.zLand, STAIR.x1, ROOFY + 8, ROOM1, [255, 0, 0], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'RoofStairZone' });
-    });
     grp('WaterTank', () => {
       B('Stand', 90, ROOFY, -166, 114, ROOFY + 2, -148, [110, 114, 120], 'Metal');
       B('Tank', 91, ROOFY + 2, -165, 113, ROOFY + 11, -149, [70, 130, 170], 'Plastic');
@@ -2752,10 +2987,10 @@ grp('MainBuilding', () => {
       for (let y = 2; y <= 11; y += 3) B('Rib', 90.9, ROOFY + y - 0.08, -165.1, 113.1, ROOFY + y + 0.08, -148.9, [60, 112, 150], 'Plastic', { nc: true, ns: true });
     });
     for (let x = -120; x <= -50; x += 14) {
-      B('ACUnit', x, ROOFY, -168, x + 5, ROOFY + 4, -162, [226, 226, 222], 'Metal');
-      P('Fan', [0.1, 3, 3], [x + 2.5, ROOFY + 4.05, -165], [80, 80, 84], 'Metal', { sh: 'Cylinder', r: [0, 0, 90], nc: true, ns: true });
+      B('ACUnit', x, ROOFY, -152, x + 5, ROOFY + 4, -146, [226, 226, 222], 'Metal');
+      P('Fan', [0.1, 3, 3], [x + 2.5, ROOFY + 4.05, -149], [80, 80, 84], 'Metal', { sh: 'Cylinder', r: [0, 0, 90], nc: true, ns: true });
     }
-    cylBetween('Duct', [-120, ROOFY + 1, -160], [-40, ROOFY + 1, -160], 1.0, [190, 190, 186], 'Metal');
+    cylBetween('Duct', [-120, ROOFY + 1, -144], [-40, ROOFY + 1, -144], 1.0, [190, 190, 186], 'Metal');
     grp('ClockTower', () => {
       const cy = ROOFY + 8.4, cz2 = ZS + 1.6;
       B('ClockWall', -9, ROOFY - 1, ZS - 4, 9, ROOFY + 14, ZS + 1.2, [224, 220, 210], 'Plaster');
@@ -2781,14 +3016,18 @@ grp('MainBuilding', () => {
 
 // ═════════════════════════ CCTV 카메라 6대 ═════════════════════════
 grp('CCTV', () => {
+  SHIFT = SOUTH;
   cylV('CamPole', -15.5, 0, 184, 12.4, 0.5, [120, 124, 130], 'Metal');
   cctvCam(1, '정문', [-15.5, 11.7, 184.8], [4, 2, 203], 0, null, 18);
-  cctvCam(2, '운동장', [-113, ROOFY + 3.6, ZS + 1.2], [-113, 0, 40], 0, { pos: [-113, ROOFY + 3.4, ZS - 0.2] }, 20);
+  SHIFT = null;
+  cctvCam(2, '운동장', [-113, ROOFY + 3.6, ZS + 1.2], [-113, 0, 0], 0, { pos: [-113, ROOFY + 3.4, ZS - 0.2] }, 20);
   cctvCam(3, '1F 복도', [128.6, LV[0] + CEIL - 0.7, CORR0 + 1.0], [0, LV[0] + 2.5, (CORR0 + PART0) / 2], LV[0], null, 6);
   cctvCam(4, '2F 복도', [128.6, LV[1] + CEIL - 0.7, CORR0 + 1.0], [0, LV[1] + 2.5, (CORR0 + PART0) / 2], LV[1], null, 6);
   cctvCam(5, '3F 복도', [128.6, LV[2] + CEIL - 0.7, CORR0 + 1.0], [0, LV[2] + 2.5, (CORR0 + PART0) / 2], LV[2], null, 6);
+  SHIFT = SOUTH;
   cylV('CamPole', 106.5, 0, 179, 14.4, 0.5, [120, 124, 130], 'Metal');
   cctvCam(6, '주차장', [106.0, 13.8, 178.4], [55, 0, 128], 0, null, 22);
+  SHIFT = null;
 });
 
 // ═════════════════════════ 이상현상 소품 (ServerStorage에 보관했다가 복제해서 씀) ═════════════════════════
@@ -2805,6 +3044,7 @@ function propGroup(name, anchorPos, fn) {
   const floorDrop = (x, y, z, d, a = 0) => P('BloodPool', [0.03, d, d * (0.7 + rnd() * 0.6)], [x, y, z], [88 + rnd() * 25, 4, 4], 'SmoothPlastic',
     { sh: 'Cylinder', r: eulerFromBasis([0, 1, 0], [Math.cos(a), 0, Math.sin(a)], vcross([0, 1, 0], [Math.cos(a), 0, Math.sin(a)])), nc: true, ns: true, refl: 0.12 });
   // 0) 4층: 없어야 할 층. 옥상 계단실 서쪽 문 너머에 생기는 복도 (이상현상 때만 나타남)
+  SHIFT = [-CS.W - 0.6 + 1, 0, RD.z0 + 147];
   propGroup('FourthFloor', [-1, ROOFY, -145], () => {
     const y = ROOFY, xw = -97, xe = -1, zn = -151, zs = -141, hh = 9.0, so = { nc: true, ns: true };
     const wallC = [66, 62, 56], grime = [40, 36, 32], rust = [74, 30, 26];
@@ -2917,6 +3157,7 @@ function propGroup(name, anchorPos, fn) {
     B('FourthEnd', xw, y, zn, xw + 16, y + hh, zs, [255, 0, 0], 'SmoothPlastic', { t: 1, nc: true, hidden: true });
     P('FourthGhostSpot', [0.2, 0.2, 0.2], [xw + 7, y + 0.12, -145], [255, 0, 0], 'SmoothPlastic', { t: 1, nc: true, hidden: true });
   });
+  SHIFT = null;
   // 1) 칠판: "뒤를 돌아보지 마" (2-2 교실 칠판 기준)
   const cls = rooms.find((r) => r.name === '2-2');
   const bc = [cls.xa + 0.32, cls.L + 5.6, (PART1 + ROOM1) / 2];
@@ -2927,7 +3168,8 @@ function propGroup(name, anchorPos, fn) {
   const wc = rooms.find((r) => r.name === '화장실' && r.f === 2);
   const z0 = PART1, z1 = ROOM1, L = wc.L;
   const mz = (z0 + 6.5 + z1 - 4.5) / 2;
-  const mirrorFace = [wc.xa + 0.14, L + 6.0, mz];
+  const wxa = wc.xa + 15.3; // 여자 화장실 서쪽 벽
+  const mirrorFace = [wxa + 0.1, L + 6.0, mz];
   propGroup('RestroomBlood', mirrorFace, () => {
     atlasText('openme', vadd(mirrorFace, [0, -0.3, 0]), [0, 0, -1], [0, 1, 0], [1, 0, 0], 8.6, { tilt: 4, lift: 0.02 });
     const sx0 = wc.xb - 5.4, dz = z0 + 14.0;
@@ -2936,7 +3178,7 @@ function propGroup(name, anchorPos, fn) {
     for (let k = 0; k < 9; k++) floorDrop(sx0 - 0.4 - rnd() * 1.6, L + 0.05, dz + (rnd() - 0.5) * 2.6, 0.6 + rnd() * 1.4, rnd() * 6);
     for (let k = 0; k < 22; k++) {
       const t = k / 21;
-      const x = sx0 - 2.2 + (wc.xa + 3.2 - (sx0 - 2.2)) * t + (rnd() - 0.5) * 0.8;
+      const x = sx0 - 2.2 + (wxa + 3.2 - (sx0 - 2.2)) * t + (rnd() - 0.5) * 0.8;
       const z = dz + (mz - dz) * t + (rnd() - 0.5) * 0.8;
       floorDrop(x, L + 0.05, z, 0.12 + rnd() * 0.3, rnd() * 6);
     }
@@ -2966,7 +3208,9 @@ grp('GirlStatue', () => {
   }, 'StatueFigure');
 });
 
+SHIFT = SOUTH;
 car('IntroCar', 40.5, 162, 0, [46, 52, 64], { tag: 'IntroCar', lightsOn: true, plate: '35싸 0412', pov: true });
+SHIFT = null;
 
 // ═════════════════════════ 내보내기 ═════════════════════════
 const data = { v: 2, groups, colors, mats, parts, lights, texts, tags, gtags, attrs, terrain };

@@ -81,7 +81,7 @@ async function main() {
     await page.evaluate((s) => {
       window.setMood(s.mood);
       window.clearExtras();
-      window.moveGroup('School/IntroCar', s.car ? s.car[0] : [40.5, 0, 162], s.car ? s.car[1] : 0);
+      window.moveGroup('School/IntroCar', s.car ? s.car[0] : [40.5, 0, 62], s.car ? s.car[1] : 0);
       if (s.pov) {
         const e = window.driverEye();
         s.pos = e;

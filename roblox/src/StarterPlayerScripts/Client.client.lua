@@ -458,7 +458,13 @@ local function runIntro()
 		return
 	end
 	local parked = car:GetPivot()
-	local carY = parked.Position.Y + 0.25
+	-- 차 기준점(차체 가운데)에서 바퀴 밑까지의 높이. 바퀴 밑이 바닥보다 살짝 위에 오게 한다
+	local rideHeight = 1.98
+	local carY = parked.Position.Y + 0.3
+	local groundParams = RaycastParams.new()
+	groundParams.FilterType = Enum.RaycastFilterType.Exclude
+	groundParams.FilterDescendantsInstances = { car, player.Character }
+	groundParams.RespectCanCollide = true -- 낙엽·판정 영역 같은 통과되는 것은 바닥으로 치지 않는다
 	local gateClosed = gate and gate:GetPivot()
 	local skipped = false
 	skipBtn.Visible = true
@@ -477,7 +483,7 @@ local function runIntro()
 	local gateOpened = false
 	local t = 0
 	local fadedIn = false
-	local camPos = Vector3.new(-470, 30, 260)
+	local camPos = Vector3.new(-470, 30, 160)
 	-- 운전석 눈 위치 (차 안에 DriverEye 파트가 있음)
 	local eyePart
 	for _, p in ipairs(car:GetDescendants()) do
@@ -507,6 +513,10 @@ local function runIntro()
 		local d = pathLength * (1 - (1 - u) * (1 - u))
 		local p = pointAt(d)
 		local ahead = pointAt(d + 3)
+		-- 차 높이: 발밑 바닥(도로·경사로·과속방지턱)을 찾아 바퀴가 그 위에 닿게 한다
+		local hit = workspace:Raycast(Vector3.new(p.X, carY + 2, p.Z), Vector3.new(0, -14, 0), groundParams)
+		local wantY = (hit and hit.Position.Y or 0) + rideHeight
+		carY = carY + (wantY - carY) * math.min(1, dt * 10)
 		local pos = Vector3.new(p.X, carY, p.Z)
 		local look = Vector3.new(ahead.X, carY, ahead.Z)
 		if (look - pos).Magnitude < 0.05 then
@@ -540,10 +550,10 @@ local function runIntro()
 				wantPos = (carCF * CFrame.new(5, 3.2, 20)).Position
 				target = pos + carCF.LookVector * 30 + Vector3.new(0, 2, 0)
 			elseif t < 16 then
-				wantPos = Vector3.new(-46, 4.5, 254)
+				wantPos = Vector3.new(-46, 4.5, 154)
 				target = pos + Vector3.new(0, 2.5, 0)
 			else
-				wantPos = Vector3.new(-24, 6, 166)
+				wantPos = Vector3.new(-24, 6, 66)
 				target = pos + Vector3.new(0, 2.5, 0)
 			end
 			if (wantPos - camPos).Magnitude > 40 then

@@ -216,7 +216,7 @@ if (PACK) {
 }
 
 const MOVABLE = ['School/IntroCar', 'School/Gate/MainGate'];
-const ORIGIN = { 'School/IntroCar': [40.5, 0, 162], 'School/Gate/MainGate': [0, 0, 0] };
+const ORIGIN = { 'School/IntroCar': [40.5, 0, 62], 'School/Gate/MainGate': [0, 0, 0] };
 const movableOf = (gi) => MOVABLE.find((m) => groupPath[gi] === m || groupPath[gi].startsWith(m + '/'));
 const movRoots = {};
 MOVABLE.forEach((m) => { const o = new THREE.Group(); scene.add(o); movRoots[m] = o; });

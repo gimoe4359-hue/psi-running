@@ -86,17 +86,17 @@ Config.RULE_NINE = "9. 경비원은 한 명입니다. 경비실에 누가 앉아
 -- ───────── 인트로 (차 타고 학교로) ─────────
 -- 자동차가 지나갈 길 (X, Z). 마지막 점이 주차 위치(IntroCar가 원래 놓인 자리)입니다.
 Config.INTRO_PATH = {
-	Vector3.new(-520, 0, 233),
-	Vector3.new(-260, 0, 233),
-	Vector3.new(-70, 0, 233),
-	Vector3.new(-22, 0, 230),
-	Vector3.new(-2, 0, 216),
-	Vector3.new(0, 0, 198),
-	Vector3.new(0, 0, 184),
-	Vector3.new(12, 0, 178),
-	Vector3.new(32, 0, 175),
-	Vector3.new(40.5, 0, 169),
-	Vector3.new(40.5, 0, 162),
+	Vector3.new(-520, 0, 133),
+	Vector3.new(-260, 0, 133),
+	Vector3.new(-70, 0, 133),
+	Vector3.new(-22, 0, 130),
+	Vector3.new(-2, 0, 116),
+	Vector3.new(0, 0, 98),
+	Vector3.new(0, 0, 84),
+	Vector3.new(12, 0, 78),
+	Vector3.new(32, 0, 75),
+	Vector3.new(40.5, 0, 69),
+	Vector3.new(40.5, 0, 62),
 }
 Config.INTRO_SECONDS = 26
 Config.INTRO_LINES = {
