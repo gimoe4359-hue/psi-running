@@ -213,7 +213,7 @@ if (PACK) {
   packMeta = await (await fetch('/assets_meta.json')).json();
   const gltf = await new GLTFLoader().loadAsync('/SongcheonAssets.glb');
   gltf.scene.traverse((o) => { if (o.isMesh) packGeo[o.name] = o.geometry; });
-  (tagsOf.SwapAnchor || []).forEach((i) => { const t = (attrOf[i] || {}).Template; if (t && packMeta[t]) { swapped.add(data.parts[i][0]); swapShow[data.parts[i][0]] = packMeta[t].show || []; } });
+  (tagsOf.SwapAnchor || []).forEach((i) => { const t = (attrOf[i] || {}).Template; if (t && packMeta[t]) { swapped.add(data.parts[i][0]); swapShow[data.parts[i][0]] = [...(packMeta[t].show || []), ...String((attrOf[i] || {}).Show || '').split(',').filter(Boolean)]; } });
 }
 
 const MOVABLE = ['School/IntroCar', 'School/Gate/MainGate'];
@@ -332,11 +332,12 @@ if (PACK) {
     if (!spec) return;
     const sc = a.Scale || 1;
     const am = partMatrix(P[i]).multiply(new THREE.Matrix4().makeScale(sc, sc, sc));
-    spec.meshes.forEach((m) => { if (packGeo[m.mesh]) (inst[m.mesh] = inst[m.mesh] || { m, list: [] }).list.push(am.clone().multiply(packLocal(m))); });
+    const tint = a.Tint ? a.Tint.split(',').map(Number) : null;
+    spec.meshes.forEach((m) => { if (!packGeo[m.mesh]) return; const mm = tint ? { ...m, color: tint, material: 'Metal', reflectance: 0.12 } : m; const key = m.mesh + (tint ? '|' + a.Tint : ''); (inst[key] = inst[key] || { m: mm, mesh: m.mesh, list: [] }).list.push(am.clone().multiply(packLocal(m))); });
   });
   for (const key in inst) {
-    const { m, list } = inst[key];
-    const im = new THREE.InstancedMesh(packGeo[key], packMaterial(m), list.length);
+    const { m, list, mesh } = inst[key];
+    const im = new THREE.InstancedMesh(packGeo[mesh], packMaterial(m), list.length);
     list.forEach((mm, k) => im.setMatrixAt(k, mm));
     im.castShadow = m.shadow !== false; im.receiveShadow = true;
     scene.add(im);

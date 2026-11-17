@@ -164,8 +164,20 @@ function AssetLibrary.Apply(root, yield)
 			local tpl = tname and buildTemplate(tname)
 			if tpl then
 				local group = anchor.Parent
-				local keep = Templates[tname].keep or {}
-				local show = Templates[tname].show or {} -- 그대로 보여 줄 파트 (전조등·번호판·실내 등)
+				local keep = table.clone(Templates[tname].keep or {})
+				local show = table.clone(Templates[tname].show or {}) -- 그대로 보여 줄 파트 (전조등·번호판·실내 등)
+				-- 자리 표시마다 덧붙일 수 있음: Show / Keep = "이름,이름", Tint = "r,g,b" (예: 청동상)
+				for _, nm in ipairs(string.split(anchor:GetAttribute("Show") or "", ",")) do
+					if nm ~= "" then
+						table.insert(show, nm)
+					end
+				end
+				for _, nm in ipairs(string.split(anchor:GetAttribute("Keep") or "", ",")) do
+					if nm ~= "" then
+						table.insert(keep, nm)
+					end
+				end
+				local tint = anchor:GetAttribute("Tint")
 				for _, c in ipairs(group:GetChildren()) do
 					if c:IsA("BasePart") and c ~= anchor and not table.find(show, c.Name) then
 						if table.find(keep, c.Name) then
@@ -186,8 +198,18 @@ function AssetLibrary.Apply(root, yield)
 					end)
 				end
 				clone:PivotTo(anchor.CFrame)
+				local tc
+				if tint then
+					local r, g, b = string.match(tint, "(%d+),(%d+),(%d+)")
+					tc = r and Color3.fromRGB(tonumber(r), tonumber(g), tonumber(b))
+				end
 				for _, c in ipairs(clone:GetChildren()) do
 					if c.Name ~= "TemplateAnchor" then
+						if tc and c:IsA("BasePart") then
+							c.Color = tc
+							c.Material = Enum.Material.Metal
+							c.Reflectance = 0.12
+						end
 						c.Parent = group
 					end
 				end

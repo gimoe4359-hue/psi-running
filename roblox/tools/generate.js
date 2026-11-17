@@ -1661,25 +1661,75 @@ grp('Grounds', () => {
   for (let z = -90; z <= PZ - 6; z += 26) tree(20, z, 'ginkgo', 22 + rnd() * 4);
   // 본관 앞 동쪽 쉼터 (자전거 보관대와 주차장 사이)
   [[46, -62], [78, -50], [62, -30], [94, -34]].forEach(([x, z]) => tree(x, z, 'zelkova', 26));
-  [[46, -76], [70, -40], [90, -20]].forEach(([x, z]) => grp('Bench', () => {
-    B('Seat', x - 3, 1.6, z - 0.8, x + 3, 1.85, z + 0.8, [150, 110, 70], 'WoodPlanks');
-    B('Back', x - 3, 2.1, z + 0.7, x + 3, 3.6, z + 0.9, [150, 110, 70], 'WoodPlanks');
-    B('Leg', x - 2.6, 0, z - 0.7, x - 2.3, 2.1, z + 0.8, [60, 60, 64], 'Metal');
-    B('Leg', x + 2.3, 0, z - 0.7, x + 2.6, 2.1, z + 0.8, [60, 60, 64], 'Metal');
-  }));
+  // 공원 벤치 (주철 다리 + 나무 살 6개, 등받이는 살짝 뒤로 기울어짐). 등하굣길 양옆과 쉼터에
+  const bench = (x, z, yaw) => grp('Bench', () => {
+    const F = yawFrame([x, 0, z], yaw), wood = jit([150, 104, 64], 8), iron = [40, 42, 46], so = { nc: true, ns: true };
+    for (let k = 0; k < 4; k++) FB(F, 'SeatSlat', -2.9, 1.55, -0.75 + k * 0.4, 2.9, 1.72, -0.45 + k * 0.4, wood, 'WoodPlanks');
+    for (let k = 0; k < 3; k++) FP(F, 'BackSlat', [5.8, 0.32, 0.12], [0, 2.25 + k * 0.45, 0.95 + k * 0.05], wood, 'WoodPlanks', { axes: [[1, 0, 0], [0, 0.98, 0.17], [0, -0.17, 0.98]] });
+    [-2.4, 2.4].forEach((lx) => {
+      FB(F, 'LegFront', lx - 0.1, 0, -0.75, lx + 0.1, 1.55, -0.6, iron, 'Metal');
+      FB(F, 'SeatBracket', lx - 0.1, 1.4, -0.8, lx + 0.1, 1.55, 0.85, iron, 'Metal', so);
+      Frod(F, 'LegBack', [lx, 0, 0.75], [lx, 3.5, 1.2], 0.18, iron, 'Metal', { box: true });
+      FB(F, 'Foot', lx - 0.15, 0, -0.85, lx + 0.15, 0.1, 0.9, iron, 'Metal', so);
+      FB(F, 'ArmRest', lx - 0.12, 2.3, -0.8, lx + 0.12, 2.42, 0.85, wood, 'Wood', so);
+      FB(F, 'ArmPost', lx - 0.06, 1.72, -0.75, lx + 0.06, 2.3, -0.62, iron, 'Metal', so);
+    });
+  });
+  [[-17, -100, 90], [-17, -70, 90], [-17, -40, 90], [17, -100, -90], [17, -70, -90], [17, -40, -90], [46, -76, 180], [70, -42, 0], [92, -24, 0], [60, -60, 90]].forEach(([x, z, yw]) => bench(x, z, yw));
+  // 자전거 보관대: 철골 기둥 + 경사진 골함석 지붕 + 앞바퀴 거치대, 자전거 11대 (얇은 바퀴 테·바큇살·몸체·핸들·안장)
   grp('BikeShed', () => {
-    B('Roof', 30, 8, -116, 92, 8.4, -104, [70, 120, 150], 'Plastic', { t: 0.25 });
-    for (let x = 30; x <= 92; x += 10.3) { B('Post', x - 0.2, 0, -104.8, x + 0.2, 8, -104.4, [80, 84, 90], 'Metal'); B('Post', x - 0.2, 0, -115.6, x + 0.2, 8, -115.2, [80, 84, 90], 'Metal'); }
+    const st = [96, 100, 106], so = { nc: true, ns: true }, z0 = -116, z1 = -104, x0 = 30, x1 = 92;
+    for (let x = x0; x <= x1 + 0.1; x += 10.3) { cylV('Post', x, 0, z1 - 0.4, 8.6, 0.32, st, 'Metal'); cylV('Post', x, 0, z0 + 0.4, 7.4, 0.32, st, 'Metal'); }
+    // 지붕: 뒤로 기운 골함석 (골마다 띠)
+    const roofAxes = [[1, 0, 0], [0, 0.995, 0.1], [0, -0.1, 0.995]];
+    const RF = { o: [(x0 + x1) / 2, 8.0, (z0 + z1) / 2], X: [1, 0, 0], Y: [0, 1, 0], Z: [0, 0, 1] };
+    FP(RF, 'ShedRoof', [x1 - x0 + 1.6, 0.1, z1 - z0 + 1.4], [0, 0, 0], [196, 200, 204], 'Metal', { axes: roofAxes });
+    for (let x = x0 - 0.6; x < x1 + 0.8; x += 0.7) FP(RF, 'RoofRib', [0.12, 0.12, z1 - z0 + 1.4], [x - RF.o[0], 0.1, 0], [180, 184, 188], 'Metal', { ...so, axes: roofAxes });
+    B('RoofBeam', x0, 8.4, z1 - 0.55, x1, 8.75, z1 - 0.25, st, 'Metal', so);
+    B('RoofBeam', x0, 7.2, z0 + 0.25, x1, 7.55, z0 + 0.55, st, 'Metal', so);
+    B('ShedFloor', x0 - 0.5, 0, z0 - 0.3, x1 + 0.5, 0.15, z1 + 0.3, [150, 148, 144], 'Concrete');
+    // 앞바퀴 거치대 (낮은 철 고리 줄)
+    B('RackRail', x0 + 1, 0.15, -113.0, x1 - 1, 0.35, -112.8, st, 'Metal', so);
+    const ring = (name, c, axisX, r, w, col) => { // 바퀴 테: 짧은 막대 14개로 둥글게
+      const n = 14;
+      for (let k = 0; k < n; k++) {
+        const a0 = (k / n) * Math.PI * 2, a1 = ((k + 1) / n) * Math.PI * 2;
+        const p0 = [c[0], c[1] + Math.cos(a0) * r, c[2] + Math.sin(a0) * r], p1 = [c[0], c[1] + Math.cos(a1) * r, c[2] + Math.sin(a1) * r];
+        rod(name, p0, p1, w, col, 'Rubber', { ...so });
+      }
+    };
     for (let i = 0; i < 11; i++) {
-      const x = 34 + i * 5.4, col = pick([[180, 40, 40], [40, 80, 180], [30, 30, 30], [220, 220, 220], [60, 120, 70]]);
-      P('Wheel', [0.25, 2.3, 2.3], [x, 1.15, -112.4], [24, 24, 24], 'Rubber', { sh: 'Cylinder', r: [0, 90, 0] });
-      P('Wheel', [0.25, 2.3, 2.3], [x, 1.15, -108.2], [24, 24, 24], 'Rubber', { sh: 'Cylinder', r: [0, 90, 0] });
-      cylBetween('Frame', [x, 1.2, -112.2], [x, 2.6, -110.0], 0.16, col, 'Metal');
-      cylBetween('Frame', [x, 2.6, -110.0], [x, 1.2, -108.4], 0.16, col, 'Metal');
-      cylBetween('Frame', [x, 2.6, -110.0], [x, 2.6, -108.8], 0.16, col, 'Metal');
-      B('Saddle', x - 0.25, 2.9, -110.6, x + 0.25, 3.05, -109.6, [20, 20, 20], 'Leather');
+      const x = 33.5 + i * 5.3, col = pick([[170, 30, 36], [30, 70, 160], [30, 30, 32], [220, 220, 222], [40, 110, 70], [210, 190, 60]]);
+      const zf = -111.6, zr = -106.9, R = 1.12, hy = R + 0.15;
+      grp('Bicycle', () => {
+        [zf, zr].forEach((zc) => {
+          ring('Tire', [x, hy, zc], true, R, 0.16, [22, 22, 24]);
+          ring('Rim', [x, hy, zc], true, R - 0.1, 0.07, [190, 194, 198]);
+          for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI; rod('Spoke', [x, hy + Math.cos(a) * (R - 0.12), zc + Math.sin(a) * (R - 0.12)], [x, hy - Math.cos(a) * (R - 0.12), zc - Math.sin(a) * (R - 0.12)], 0.025, [200, 204, 208], 'Metal', so); }
+          P('Hub', [0.3, 0.2, 0.2], [x, hy, zc], [160, 164, 168], 'Metal', { ...so, sh: 'Cylinder' });
+        });
+        // 다이아몬드 몸체: 핸들 기둥(헤드) · 안장 기둥 · 크랭크
+        const head = [x, hy + 1.35, zf + 0.55], seat = [x, hy + 1.45, zr - 1.55], crank = [x, hy + 0.05, zr - 1.75];
+        rod('Frame', [x, hy, zf], head, 0.1, col, 'Metal', so);
+        rod('Frame', head, seat, 0.1, col, 'Metal', so);
+        rod('Frame', head, crank, 0.12, col, 'Metal', so);
+        rod('Frame', seat, crank, 0.1, col, 'Metal', so);
+        rod('Frame', crank, [x, hy, zr], 0.08, col, 'Metal', so);
+        rod('Frame', seat, [x, hy, zr], 0.08, col, 'Metal', so);
+        rod('Stem', head, [x, hy + 1.8, zf + 0.45], 0.08, [60, 62, 66], 'Metal', so);
+        rod('Handlebar', [x - 0.75, hy + 1.85, zf + 0.35], [x + 0.75, hy + 1.85, zf + 0.35], 0.07, [60, 62, 66], 'Metal', so);
+        [-0.75, 0.75].forEach((d) => P('Grip', [0.35, 0.12, 0.12], [x + d * 0.95, hy + 1.85, zf + 0.35], [24, 24, 26], 'Rubber', { ...so, sh: 'Cylinder' }));
+        rod('SeatPost', seat, [x, hy + 1.85, zr - 1.65], 0.07, [150, 154, 158], 'Metal', so);
+        B('Saddle', x - 0.22, hy + 1.85, zr - 2.05, x + 0.22, hy + 2.0, zr - 1.3, [24, 24, 26], 'Leather', so);
+        P('Chainring', [0.06, 0.65, 0.65], [x + 0.18, crank[1], crank[2]], [80, 82, 86], 'Metal', { ...so, sh: 'Cylinder' });
+        rod('Pedal', [x - 0.5, crank[1] - 0.3, crank[2]], [x + 0.5, crank[1] + 0.3, crank[2]], 0.06, [30, 30, 32], 'Metal', so);
+        rod('Fender', [x, hy + R + 0.12, zr - 0.6], [x, hy + R + 0.05, zr + 0.6], 0.12, [200, 202, 204], 'Metal', so);
+        rod('Kickstand', crank, [x + 0.5, 0.15, crank[2] + 0.6], 0.05, [60, 62, 66], 'Metal', so);
+        if (i % 3 === 0) B('Basket', x - 0.45, hy + 1.3, zf - 0.45, x + 0.45, hy + 1.85, zf + 0.3, [150, 154, 158], 'Metal', { ...so, t: 0.3 });
+      });
     }
   });
+
 });
 
 // ═════════════════════════ 5. 체육관 (아치 지붕) ═════════════════════════
@@ -3736,14 +3786,14 @@ grp('GirlStatue', () => {
   B('PedestalCap', x - 3.3, 3.6, z - 3.3, x + 3.3, 4.0, z + 3.3, [150, 146, 140], 'Granite');
   B('Plaque', x - 1.8, 1.0, z + 3, x + 1.8, 2.6, z + 3.08, [150, 120, 60], 'Metal', { text: { face: 'Back', text: '책 읽는 소녀\n1974', color: [40, 30, 14], bgT: 1, font: 'Merriweather' } });
   grp('Figure', () => {
-    B('Seat', x - 1.4, 4.0, z - 1.1, x + 1.4, 5.3, z + 1.1, bz, 'Metal', { pri: true, refl: 0.1 });
-    B('Body', x - 0.8, 5.3, z - 0.55, x + 0.8, 7.6, z + 0.55, bz, 'Metal', { refl: 0.1 });
-    B('Thigh', x - 0.8, 5.0, z + 0.4, x + 0.8, 5.7, z + 2.2, bz, 'Metal', { refl: 0.1 });
-    B('Shin', x - 0.8, 4.0, z + 1.9, x + 0.8, 5.4, z + 2.5, bz, 'Metal', { refl: 0.1 });
-    ball('Head', x, 8.5, z - 0.05, 1.6, bz, 'Metal', { tag: 'StatueHead', refl: 0.1 });
-    B('Hair', x - 0.85, 7.9, z - 0.95, x + 0.85, 9.2, z - 0.2, bz, 'Metal', { refl: 0.1 });
-    [-1, 1].forEach((s) => cylBetween('Arm', [x + s * 0.9, 7.3, z], [x + s * 0.5, 6.6, z + 1.4], 0.45, bz, 'Metal'));
-    P('Book', [1.8, 0.12, 1.2], [x, 6.8, z + 1.6], bz, 'Metal', { r: [-30, 0, 0], refl: 0.1 });
+    // 받침 위에 선 청동 소녀상 (메시 팩 여학생을 청동색으로 바꿔 씀). 메시가 없으면 단순한 파트 형상
+    const F = yawFrame([x, 4.0, z], 0);
+    swapAnchor(F, 'Ghost', { attr: { Scale: 1.35, Tint: '146,112,70', Show: 'Book,BookPage', Keep: 'Body,Head' } });
+    B('Body', x - 0.75, 4.0, z - 0.5, x + 0.75, 8.6, z + 0.5, bz, 'Metal', { pri: true, refl: 0.1 });
+    ball('Head', x, 9.2, z, 1.4, bz, 'Metal', { tag: 'StatueHead', refl: 0.1 });
+    // 두 손에 펼쳐 든 책
+    P('Book', [1.6, 0.1, 1.1], [x, 7.9, z + 0.75], [110, 84, 52], 'Metal', { r: [-55, 0, 0], refl: 0.15 });
+    P('BookPage', [1.5, 0.05, 1.0], [x, 7.96, z + 0.71], [128, 100, 64], 'Metal', { r: [-55, 0, 0], refl: 0.15, nc: true });
   }, 'StatueFigure');
 });
 
