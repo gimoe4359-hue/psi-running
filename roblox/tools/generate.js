@@ -1556,14 +1556,27 @@ grp('Grounds', () => {
     P('Crossbar', [22.4, 0.4, 0.4], [cx, 7.8, z], C.white, 'Metal', { sh: 'Cylinder' });
     cylBetween('Stay', [cx - 11, 7.8, z], [cx - 11, 0, z - dir * 6], 0.2, C.white, 'Metal');
     cylBetween('Stay', [cx + 11, 7.8, z], [cx + 11, 0, z - dir * 6], 0.2, C.white, 'Metal');
-    B('Net', cx - 11, 0.1, Math.min(z, z - dir * 6), cx + 11, 7.6, Math.max(z, z - dir * 6), [230, 230, 230], 'Fabric', { t: 0.86, nc: true, ns: true });
+    // 그물: 가는 줄 격자 (뒤판 + 지붕 + 양옆), 바닥 고정 프레임
+    const zb = z - dir * 6, so = { nc: true, ns: true, min: 0.03 }, net = [236, 236, 232];
+    cylBetween('NetFrame', [cx - 11, 0.1, zb], [cx + 11, 0.1, zb], 0.15, C.white, 'Metal', { nc: true });
+    for (let x = cx - 11; x <= cx + 11.01; x += 1.1) { cylBetween('NetV', [x, 7.7, z - dir * 0.2], [x, 0.1, zb], 0.04, net, 'SmoothPlastic', { ...so, t: 0.2 }); }
+    for (let k = 1; k < 8; k++) { const t = k / 8; cylBetween('NetH', [cx - 11, 7.7 * (1 - t) + 0.1 * t, z - dir * (0.2 + 5.8 * t)], [cx + 11, 7.7 * (1 - t) + 0.1 * t, z - dir * (0.2 + 5.8 * t)], 0.04, net, 'SmoothPlastic', { ...so, t: 0.2 }); }
+    [-11, 11].forEach((dx) => { for (let k = 1; k < 6; k++) cylBetween('NetSide', [cx + dx, 7.7 * k / 6, z], [cx + dx, 0.1 + 7.6 * k / 6 * 0.1, zb], 0.04, net, 'SmoothPlastic', { ...so, t: 0.2 }); });
+    B('NetBlock', cx - 11, 0.1, Math.min(z, zb), cx + 11, 7.6, Math.max(z, zb), [255, 255, 255], 'SmoothPlastic', { t: 1, ns: true });
   }));
   B('ChairSpot', cx - 1, 0, cz - 1, cx + 1, 0.1, cz + 1, [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, hidden: true, tag: 'ChairSpot' });
   grp('Stands', () => {
     for (let i = 0; i < 4; i++) {
       B('Tier', -196, 0, -112 + i * 2.6, -30, 1.5 * (4 - i), -109.4 + i * 2.6, [178, 174, 166], 'Concrete');
       B('TierEdge', -196, 1.5 * (4 - i) - 0.15, -109.55 + i * 2.6, -30, 1.5 * (4 - i), -109.4 + i * 2.6, [150, 146, 140], 'Concrete', { nc: true, ns: true });
+      // 계단식 스탠드 위 긴 나무 의자 판
+      B('BenchSlat', -195, 1.5 * (4 - i), -111.6 + i * 2.6, -31, 1.5 * (4 - i) + 0.18, -110.4 + i * 2.6, [150, 112, 74], 'WoodPlanks');
     }
+    // 오르내리는 통로 계단 + 뒤쪽 난간
+    [-170, -113, -56].forEach((x) => { for (let i = 0; i < 4; i++) B('AisleStep', x - 1.2, 0, -112 + i * 2.6, x + 1.2, 1.5 * (4 - i) - 0.75, -110.7 + i * 2.6, [196, 192, 184], 'Concrete'); });
+    B('StandRail', -196, 6, -112.2, -30, 6.15, -112.0, [150, 156, 162], 'Metal');
+    for (let x = -196; x <= -30; x += 4) B('RailPost', x - 0.08, 6, -112.2, x + 0.08, 9.2, -112.0, [150, 156, 162], 'Metal', { nc: true });
+    B('StandRail', -196, 9.0, -112.2, -30, 9.2, -112.0, [150, 156, 162], 'Metal');
     B('Podium', cx - 12, 0, -104, cx + 12, 5.2, -96, [190, 186, 178], 'Concrete');
     for (let i = 0; i < 4; i++) B('PodiumStep', cx - 4, 0, -96 + i * 1.1, cx + 4, 5.2 - (i + 1) * 1.3, -94.9 + i * 1.1, [180, 176, 168], 'Concrete');
     B('PodiumRail', cx - 12, 5.2, -104, cx + 12, 7.6, -103.7, [120, 124, 130], 'Metal', { t: 0.1 });
