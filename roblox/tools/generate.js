@@ -437,7 +437,7 @@ function wallWear(axis, uMin, uMax, face, n, L, top, gaps = [], o = {}) {
     P(name, axis === 'x' ? [len, wid, 0.012] : [0.012, wid, len], pos, col, 'SmoothPlastic', { ...so, r, t });
     void c; void sn;
   };
-  const yTop = top - 0.4, h = o.h || 3.5;
+  const yTop = o.yMax ?? top - 0.4, h = o.h || 3.5;
   // 1) 걸레받이 위 때 띠 (발이 닿는 높이), 군데군데 끊김
   for (let u = uMin; u < uMax; u += 3 + rnd() * 3) {
     const u1 = Math.min(uMax, u + 2 + rnd() * 4);
@@ -456,7 +456,7 @@ function wallWear(axis, uMin, uMax, face, n, L, top, gaps = [], o = {}) {
   // 3) 머리카락 같은 균열 (꺾인 짧은 선 2~3개)
   for (let u = uMin + 2; u < uMax - 2; u += 7 + rnd() * 9) {
     if (!free(u - 1, u + 1)) continue;
-    let y = L + h + 0.6 + rnd() * (yTop - L - h - 1.5), uu = u, ang = (rnd() - 0.5) * 1.6 + Math.PI / 2;
+    let y = L + h + 0.6 + rnd() * Math.max(0, yTop - L - h - 3.2), uu = u, ang = (rnd() - 0.5) * 1.6 + Math.PI / 2;
     for (let k = 0; k < 3; k++) {
       const len = 0.4 + rnd() * 0.8;
       line('Crack', uu + Math.cos(ang) * len / 2, y + Math.sin(ang) * len / 2, len, ang, 0.025, 0.026, [104, 100, 92], 0.45);
@@ -2487,6 +2487,10 @@ function interiorRoom(r) {
     wainscot('x', xa, xb, z1, -1, L, [], { h: 2.6 });
     wainscot('z', z0, z1, xa, 1, L);
     wainscot('z', z0, z1, xb, -1, L);
+    // 교실 안쪽 벽의 낡은 흔적: 복도 쪽 벽(위 채광창 아래까지), 뒷벽(사물함 옆), 앞벽 양 끝(칠판 옆)
+    wallWear('x', xa, xb, z0, 1, L, top, doors.map(([a, b]) => [a - 0.3, b + 0.3]), { yMax: L + 7.3 });
+    wallWear('z', z0, z1, xb, -1, L, top, [[z0 + 1.0, z1 - 4.1]]);
+    wallWear('z', z0, z1, xa, 1, L, top, [[zc - 9.5, zc + 9.5]]);
   }
   ceiling(xa, xb, z0, z1, top);
   const classLike = isClass(name) || ['과학실', '음악실', '미술실'].includes(name);
