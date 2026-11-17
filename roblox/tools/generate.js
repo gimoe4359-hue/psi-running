@@ -2289,6 +2289,102 @@ function slidingDoor(a, b, L, zFace, open, gname, o = {}) {
 
 // 화장실 한 쪽 (x0..x1). 동쪽 벽에 칸, 서쪽 벽에 세면대와 거울. 여자 쪽(women)은 칸 4개,
 // 남자 쪽은 칸 2개 + 소변기 3개. 여자 쪽 세 번째 칸과 거울에는 이상현상 표시(tag)가 붙는다.
+// ═════════════ 사무·특별실 가구 (2010년대 한국 학교) ═════════════
+// 모두 yawFrame 틀 F 안에서 만든다: 로컬 +X = 오른쪽, +Z = 앉는 사람 쪽(앞), Y = 위, 원점 = 바닥 가운데
+const STEEL_G = [150, 154, 160], LAMI = [214, 206, 188], BLACKP = [26, 26, 28];
+function officeChair(F) {
+  const so = { nc: true, ns: true }, black = [30, 30, 32], fab = [44, 52, 70];
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * Math.PI * 2;
+    Frod(F, 'ChairLegStar', [0, 0.3, 0], [Math.cos(a) * 1.0, 0.18, Math.sin(a) * 1.0], 0.14, black, 'Metal', { ...so, box: true, d2: 0.1 });
+    P('Caster', [0.2, 0.2, 0.2], fpt(F, [Math.cos(a) * 1.0, 0.1, Math.sin(a) * 1.0]), black, 'SmoothPlastic', { ...so, sh: 'Ball' });
+  }
+  Frod(F, 'GasLift', [0, 0.3, 0], [0, 1.45, 0], 0.18, [70, 72, 76], 'Metal', so);
+  FB(F, 'ChairSeat', -0.95, 1.45, -0.9, 0.95, 1.75, 0.95, fab, 'Fabric');
+  FB(F, 'ChairBackPost', -0.12, 1.5, 0.95, 0.12, 2.4, 1.05, black, 'Metal', so);
+  FB(F, 'ChairBack', -0.9, 2.2, 0.98, 0.9, 4.0, 1.22, fab, 'Fabric');
+  [-1, 1].forEach((s) => { FB(F, 'ArmPost', s * 0.95 - 0.06, 1.75, -0.1, s * 0.95 + 0.06, 2.55, 0.1, black, 'SmoothPlastic', so); FB(F, 'ArmPad', s * 0.95 - 0.14, 2.55, -0.55, s * 0.95 + 0.14, 2.65, 0.45, black, 'SmoothPlastic', so); });
+}
+// 모니터: 얇은 화면 + 목 + 받침. 화면은 로컬 +Z 를 본다
+function monitorAt(F, x, y, z, w = 1.9, on = false) {
+  const so = { nc: true, ns: true };
+  FB(F, 'MonitorBase', x - 0.45, y, z - 0.35, x + 0.45, y + 0.06, z + 0.25, BLACKP, 'SmoothPlastic', so);
+  FB(F, 'MonitorNeck', x - 0.08, y + 0.06, z - 0.12, x + 0.08, y + 0.75, z - 0.02, BLACKP, 'SmoothPlastic', so);
+  FB(F, 'Monitor', x - w / 2, y + 0.55, z - 0.06, x + w / 2, y + 0.55 + w * 0.62, z + 0.06, BLACKP, 'SmoothPlastic', { nc: true });
+  FB(F, 'Screen', x - w / 2 + 0.07, y + 0.62, z + 0.06, x + w / 2 - 0.07, y + 0.48 + w * 0.62, z + 0.075, on ? [70, 100, 160] : [16, 18, 22], on ? 'Neon' : 'Glass', { ...so, refl: 0.2, min: 0.01, tag: on ? 'GlowMonitor' : undefined });
+}
+// 사무용 책상: 회색 철제 다리 + 밝은 상판 + 서랍장 + 모니터·키보드·서류·머그컵, 의자는 앞(+Z)
+function officeDesk(F, o = {}) {
+  const w = o.w || 3.4, d = o.d || 2.4, top = 2.45, so = { nc: true, ns: true };
+  FB(F, 'DeskTop', -w / 2, top, -d / 2, w / 2, top + 0.1, d / 2, LAMI, 'SmoothPlastic');
+  FB(F, 'DeskEdge', -w / 2, top - 0.02, d / 2 - 0.02, w / 2, top + 0.1, d / 2 + 0.02, [120, 110, 96], 'SmoothPlastic', so);
+  FB(F, 'DeskSide', -w / 2, 0, -d / 2 + 0.1, -w / 2 + 0.1, top, d / 2 - 0.1, STEEL_G, 'Metal');
+  FB(F, 'Modesty', -w / 2 + 0.1, 0.8, -d / 2 + 0.1, w / 2 - 0.1, top, -d / 2 + 0.16, STEEL_G, 'Metal', so);
+  FB(F, 'Pedestal', w / 2 - 1.2, 0, -d / 2 + 0.1, w / 2, top, d / 2 - 0.15, STEEL_G, 'Metal');
+  for (let k = 0; k < 3; k++) {
+    const y0 = 0.15 + k * 0.75;
+    FB(F, 'DrawerFace', w / 2 - 1.15, y0, d / 2 - 0.15, w / 2 - 0.05, y0 + 0.68, d / 2 - 0.12, [164, 168, 174], 'Metal', so);
+    FB(F, 'DrawerPull', w / 2 - 0.85, y0 + 0.5, d / 2 - 0.12, w / 2 - 0.35, y0 + 0.56, d / 2 - 0.06, [90, 92, 96], 'Metal', so);
+  }
+  const y = top + 0.1;
+  monitorAt(F, -0.2, y, -d / 2 + 0.6, 1.9, o.on);
+  FB(F, 'Keyboard', -0.95, y, d / 2 - 1.1, 0.55, y + 0.08, d / 2 - 0.6, [40, 40, 44], 'SmoothPlastic', so);
+  FB(F, 'Mouse', 0.8, y, d / 2 - 0.95, 1.0, y + 0.07, d / 2 - 0.65, [40, 40, 44], 'SmoothPlastic', so);
+  FB(F, 'DeskMat', -1.1, y, d / 2 - 1.2, 1.2, y + 0.01, d / 2 - 0.4, [40, 52, 70], 'Fabric', { ...so, min: 0.01 });
+  const nP = 2 + Math.floor(rnd() * 3);
+  for (let k = 0; k < nP; k++) FB(F, 'PaperStack', -w / 2 + 0.25 + k * 0.05, y + k * 0.06, -0.4 + k * 0.03, -w / 2 + 1.05 + k * 0.05, y + 0.06 + k * 0.06, 0.65 + k * 0.03, k % 2 ? [244, 244, 238] : [232, 228, 210], 'SmoothPlastic', so);
+  if (rnd() < 0.7) { const cx = w / 2 - 0.5; P('Mug', [0.32, 0.4, 0.32], fpt(F, [cx, y + 0.2, 0.2]), pick([[236, 236, 230], [40, 90, 160], [200, 60, 50]]), 'SmoothPlastic', { ...so, sh: 'Cylinder', r: eulerFromBasis(F.Y, vmul(F.X, -1), F.Z) }); }
+  P('PenCup', [0.25, 0.45, 0.25], fpt(F, [w / 2 - 0.4, y + 0.22, -0.7]), [60, 60, 64], 'SmoothPlastic', { ...so, sh: 'Cylinder', r: eulerFromBasis(F.Y, vmul(F.X, -1), F.Z) });
+  if (o.chair !== false) officeChair({ o: fpt(F, [0, 0, d / 2 + 1.2]), X: F.X, Y: F.Y, Z: F.Z });
+}
+// 칸막이 (사무실 책상 섬 사이): 천 판 + 알루미늄 테두리
+function partitionPanel(F, x0, x1, z, h = 4.0, col = [120, 134, 150]) {
+  FB(F, 'Partition', x0, 0.2, z - 0.08, x1, h, z + 0.08, col, 'Fabric');
+  FB(F, 'PartitionCap', x0, h, z - 0.1, x1, h + 0.08, z + 0.1, [190, 194, 198], 'Metal', { nc: true, ns: true });
+  FB(F, 'PartitionFoot', x0, 0, z - 0.12, x1, 0.2, z + 0.12, [150, 154, 160], 'Metal', { nc: true, ns: true });
+}
+// 철제 서류함 (4단), 서랍은 +Z 쪽
+function fileCabinet(F, n = 4, w = 1.6, d = 2.2) {
+  const h = n * 1.25 + 0.2, so = { nc: true, ns: true };
+  FB(F, 'FileCabinet', -w / 2, 0, -d / 2, w / 2, h, d / 2, [164, 168, 172], 'Metal');
+  for (let k = 0; k < n; k++) {
+    const y0 = 0.15 + k * 1.25;
+    FB(F, 'FileDrawer', -w / 2 + 0.06, y0, d / 2, w / 2 - 0.06, y0 + 1.15, d / 2 + 0.03, [176, 180, 184], 'Metal', so);
+    FB(F, 'FileHandle', -0.35, y0 + 0.8, d / 2 + 0.03, 0.35, y0 + 0.92, d / 2 + 0.1, [90, 92, 96], 'Metal', so);
+    FB(F, 'FileLabel', -0.25, y0 + 0.55, d / 2 + 0.03, 0.25, y0 + 0.72, d / 2 + 0.04, [244, 244, 236], 'SmoothPlastic', { ...so, min: 0.01 });
+  }
+}
+// 나무 책장 + 책 (앞 = +Z)
+function bookcase(F, w = 4, h = 7.2, d = 1.4, o = {}) {
+  const wood = o.wood || [150, 112, 74], so = { nc: true, ns: true };
+  FB(F, 'CaseBack', -w / 2, 0, -d / 2, w / 2, h, -d / 2 + 0.08, wood.map((v) => v - 20), 'Wood');
+  [-w / 2, w / 2 - 0.12].forEach((x) => FB(F, 'CaseSide', x, 0, -d / 2, x + 0.12, h, d / 2, wood, 'Wood'));
+  const rows = o.rows || 5, rh = (h - 0.3) / rows;
+  for (let r2 = 0; r2 <= rows; r2++) FB(F, 'CaseShelf', -w / 2 + 0.12, r2 * rh + (r2 ? 0 : 0), -d / 2, w / 2 - 0.12, r2 * rh + 0.12, d / 2, wood, 'Wood');
+  if (o.empty) return;
+  for (let r2 = 0; r2 < rows; r2++) {
+    let x = -w / 2 + 0.16;
+    while (x < w / 2 - 0.4) {
+      const bw = 0.16 + rnd() * 0.22, bh = rh * (0.62 + rnd() * 0.3), bd = d * (0.7 + rnd() * 0.2), lean = rnd() < 0.06;
+      if (rnd() < 0.08) { x += 0.4; continue; }
+      FB(F, 'Book', x, r2 * rh + 0.12, d / 2 - 0.05 - bd, x + bw, r2 * rh + 0.12 + bh, d / 2 - 0.05,
+        pick([[150, 40, 40], [40, 70, 130], [50, 110, 70], [200, 170, 90], [90, 60, 120], [220, 220, 210], [60, 60, 60], [180, 120, 60], [30, 90, 110]]).map((v) => Math.max(0, v - rnd() * 20)), 'SmoothPlastic', { ...so, min: 0.05 });
+      x += bw + 0.02;
+      if (lean) x += 0.2;
+    }
+  }
+}
+// 낮은 소파 + 탁자 (교무실 응접)
+function sofaSet(F) {
+  const lea = [70, 46, 40], so = { nc: true, ns: true };
+  FB(F, 'SofaBase', -3, 0, -1.2, 3, 1.5, 1.2, lea, 'Leather');
+  FB(F, 'SofaBack', -3, 1.5, 0.6, 3, 3.3, 1.2, lea, 'Leather');
+  [-1, 1].forEach((s) => FB(F, 'SofaArm', s * 3 - (s > 0 ? 0.6 : 0), 1.5, -1.2, s * 3 + (s < 0 ? 0.6 : 0), 2.4, 1.2, lea, 'Leather'));
+  [-1.2, 1.2].forEach((x) => FB(F, 'Cushion', x - 1.15, 1.5, -1.1, x + 1.15, 1.8, 0.6, lea.map((v) => v + 8), 'Leather', so));
+  FB(F, 'LowTable', -2, 1.2, -4.2, 2, 1.35, -2.4, [40, 36, 34], 'Glass', { refl: 0.3 });
+  [[-1.8, -4.0], [1.8, -4.0], [-1.8, -2.6], [1.8, -2.6]].forEach(([x, z]) => FB(F, 'TableLeg', x - 0.08, 0, z - 0.08, x + 0.08, 1.2, z + 0.08, [60, 50, 40], 'Wood', so));
+}
+
 function restroomHalf(x0, x1, L, z0, z1, women) {
   const panel = [234, 218, 178], steel = [186, 190, 194], white = [246, 246, 242], so = { nc: true, ns: true };
   const sx0 = x1 - 5.4, nStall = women ? 4 : 2, key = women ? 'F' : 'M';
@@ -2501,49 +2597,117 @@ function interiorRoom(r) {
       cylV('TrashBin', xb - 4.2, L, z1 - 1.2, 1.9, 1.5, [70, 130, 190], 'Plastic');
       cylV('RecycleBin', xb - 6.0, L, z1 - 1.2, 1.9, 1.5, [210, 180, 50], 'Plastic');
     } else if (name === '교무실') {
-      for (let g = 0; g < 4; g++) for (let k = 0; k < 6; k++) {
-        const x = xa + 6 + (g % 2) * 12 + (k % 2) * 3.6, z = z0 + 4.5 + Math.floor(g / 2) * 11 + Math.floor(k / 2) * 3.2;
-        B('Desk', x - 1.7, L, z - 1.45, x + 1.7, L + 2.45, z + 1.45, [134, 138, 144], 'Metal');
-        B('DeskTop', x - 1.75, L + 2.45, z - 1.5, x + 1.75, L + 2.57, z + 1.5, [214, 208, 192], 'SmoothPlastic');
-        const glow = rnd() < 0.3, mx = x + (k % 2 ? -1.2 : 1.2);
-        B('Monitor', mx - 0.08, L + 2.9, z - 1.0, mx + 0.08, L + 4.2, z + 1.0, glow ? [50, 80, 150] : [14, 14, 16], glow ? 'Neon' : 'SmoothPlastic', { nc: true, tag: glow ? 'GlowMonitor' : undefined });
-        B('Stand', mx - 0.15, L + 2.57, z - 0.15, mx + 0.15, L + 2.9, z + 0.15, [30, 30, 32], 'SmoothPlastic', { nc: true });
-        B('Papers', x - 1.2, L + 2.57, z - 0.6, x - 0.2, L + 2.7 + rnd() * 0.7, z + 0.6, [244, 244, 238], 'SmoothPlastic', { nc: true });
-      }
+      // 교무실: 칸막이로 나뉜 선생님 책상 섬 2개(마주 보는 2줄 × 3자리), 응접 소파, 복사기, 서류함, 정수기, 열쇠함, 일정 화이트보드
+      [z0 + 8.2, z0 + 17.2].forEach((zr, isl) => {
+        for (let k = 0; k < 3; k++) {
+          const x = xa + 9.7 + k * 3.45;
+          grp('TeacherDesk', () => officeDesk(yawFrame([x, L, zr - 1.25], 180), { on: isl === 0 && k === 1 }));
+          grp('TeacherDesk', () => officeDesk(yawFrame([x, L, zr + 1.25], 0), { on: false }));
+        }
+        grp('Partition', () => partitionPanel(yawFrame([xa + 13.15, L, zr], 0), -5.2, 5.2, 0, 4.0));
+      });
       B('Whiteboard', xa + 0.1, L + 3.4, z0 + 4, xa + 0.3, L + 8.4, z1 - 4, [246, 246, 246], 'SmoothPlastic', { refl: 0.05,
         text: { face: 'Right', text: '11월 행사\n· 13일(금) 야간경비 교대\n· 신규 경비원: 공유 씨\n· ※ 4층 출입 금지', color: [30, 60, 160], bgT: 1, font: 'PatrickHand' } });
-      B('Copier', xb - 4, L, z1 - 4, xb - 0.5, L + 3.8, z1 - 0.5, [226, 226, 222], 'SmoothPlastic');
-      B('Sofa', xb - 3, L, z0 + 3, xb - 0.5, L + 2.4, z0 + 12, [96, 56, 46], 'Leather');
+      B('BoardFrame', xa + 0.06, L + 3.3, z0 + 3.9, xa + 0.34, L + 3.4, z1 - 3.9, [180, 184, 188], 'Metal', { nc: true });
+      grp('Sofa', () => sofaSet(yawFrame([xb - 2.4, L, z1 - 7], 90)));
+      grp('Copier', () => {
+        const F = yawFrame([xb - 2.2, L, z0 + 4.5], -90), so = { nc: true, ns: true };
+        FB(F, 'CopierBody', -1.6, 0, -1.4, 1.6, 3.3, 1.4, [226, 226, 222], 'SmoothPlastic');
+        FB(F, 'CopierTop', -1.6, 3.3, -1.4, 1.6, 3.8, 1.0, [210, 210, 206], 'SmoothPlastic');
+        FB(F, 'CopierPanel', -1.5, 3.4, 1.0, 0.2, 3.7, 1.5, [60, 62, 66], 'SmoothPlastic', so);
+        FB(F, 'CopierLcd', -1.2, 3.55, 1.48, -0.4, 3.68, 1.52, [120, 180, 220], 'Neon', so);
+        for (let k = 0; k < 3; k++) FB(F, 'PaperTray', -1.4, 0.4 + k * 0.85, 1.4, 1.4, 1.1 + k * 0.85, 1.45, [200, 200, 196], 'SmoothPlastic', so);
+        FB(F, 'OutTray', 1.6, 2.2, -0.8, 2.3, 2.3, 0.8, [190, 190, 186], 'SmoothPlastic', so);
+      });
+      for (let k = 0; k < 4; k++) grp('FileCabinet', () => fileCabinet(yawFrame([xa + 21 + k * 1.7, L, z0 + 1.4], 0)));
+      waterPurifier(xb - 6, L, z0);
+      B('KeyBoxWall', xb - 0.3, L + 5.5, zc - 1.5, xb - 0.05, L + 7.5, zc + 1.5, [190, 160, 110], 'Wood', { nc: true });
+      for (let k = 0; k < 12; k++) B('Key', xb - 0.35, L + 5.8 + Math.floor(k / 6) * 0.8, zc - 1.2 + (k % 6) * 0.48, xb - 0.3, L + 6.3 + Math.floor(k / 6) * 0.8, zc - 1.05 + (k % 6) * 0.48, [200, 180, 90], 'Metal', { nc: true, ns: true });
+      pottedPlant(xb - 1.6, L, z1 - 1.8, 1);
     } else if (name === '행정실') {
-      B('Counter', xa + 1, L, z0 + 4, xb - 1, L + 3.6, z0 + 5.6, [170, 140, 100], 'WoodPlanks');
-      B('CounterTop', xa + 0.9, L + 3.6, z0 + 3.8, xb - 0.9, L + 3.75, z0 + 5.8, [210, 200, 180], 'Marble');
-      for (let k = 0; k < 4; k++) {
-        const x = xa + 5 + k * 6.6;
-        B('Desk', x - 1.8, L, z1 - 9, x + 1.8, L + 2.5, z1 - 6, [134, 138, 144], 'Metal');
-        B('Monitor', x - 1.1, L + 2.5, z1 - 8.9, x + 1.1, L + 4.0, z1 - 8.75, [14, 14, 16], 'SmoothPlastic', { nc: true });
-      }
-      B('Safe', xb - 3.5, L, z1 - 3.5, xb - 0.5, L + 4, z1 - 0.5, [62, 64, 66], 'DiamondPlate');
-      for (let k = 0; k < 3; k++) B('FileCabinet', xa + 0.5, L, z1 - 2.6 - k * 2.6, xa + 2.6, L + 5.4, z1 - 0.6 - k * 2.6, [150, 154, 160], 'Metal');
+      // 행정실: 복도 쪽 민원 창구(유리 칸막이 + 반달 구멍), 뒤쪽 책상 2줄, 금고, 서류함, 프린터
+      const cz = z0 + 5;
+      B('Counter', xa + 8, L, cz - 0.9, xb - 1, L + 3.4, cz + 0.9, [196, 176, 146], 'Wood');
+      B('CounterTop', xa + 7.9, L + 3.4, cz - 1.1, xb - 0.9, L + 3.55, cz + 1.1, [226, 220, 206], 'Marble');
+      B('CounterGlass', xa + 8, L + 3.55, cz - 0.05, xb - 1, L + 7.6, cz + 0.05, [200, 216, 222], 'Glass', { t: 0.75, refl: 0.2 });
+      for (let x = xa + 8; x <= xb - 1; x += 5.25) B('GlassPost', x - 0.06, L + 3.55, cz - 0.08, x + 0.06, L + 7.6, cz + 0.08, [190, 194, 198], 'Metal', { nc: true });
+      B('CounterSign', xa + 13, L + 6.6, cz - 0.1, xa + 17, L + 7.3, cz - 0.06, [30, 52, 104], 'SmoothPlastic', { nc: true, ns: true,
+        text: { face: 'Front', text: '민 원 창 구', color: [255, 255, 255], bgT: 1, lit: 1, font: 'GothamBold', pps: 70 } });
+      for (let r2 = 0; r2 < 2; r2++) for (let k = 0; k < 4; k++) grp('AdminDesk', () => officeDesk(yawFrame([xa + 10 + k * 4.2, L, z0 + 11 + r2 * 6], r2 ? 0 : 180), { on: r2 === 0 && k === 2 }));
+      grp('Safe', () => {
+        const F = yawFrame([xa + 2.4, L, zc + 4.5], 90), so = { nc: true, ns: true };
+        FB(F, 'SafeBody', -1.3, 0, -1.3, 1.3, 4.2, 1.3, [70, 74, 78], 'Metal');
+        FB(F, 'SafeDoor', -1.15, 0.2, 1.3, 1.15, 4.0, 1.38, [84, 88, 92], 'Metal', so);
+        P('SafeDial', [0.5, 0.5, 0.1], fpt(F, [0.4, 2.6, 1.45]), [190, 192, 196], 'Metal', { ...so, sh: 'Cylinder', r: eulerFromBasis(F.Z, F.Y, vmul(F.X, -1)) });
+        FB(F, 'SafeHandle', -0.6, 2.0, 1.38, 0.1, 2.15, 1.5, [190, 192, 196], 'Metal', so);
+      });
+      for (let k = 0; k < 4; k++) grp('FileCabinet', () => fileCabinet(yawFrame([xa + 1.4, L, z0 + 8 + k * 1.7], 90)));
+      B('PrinterTable', xb - 3.5, L, z1 - 3, xb - 0.5, L + 2.4, z1 - 0.8, [176, 160, 136], 'Wood');
+      B('Printer', xb - 3.2, L + 2.4, z1 - 2.8, xb - 0.8, L + 3.4, z1 - 1.0, [226, 226, 222], 'SmoothPlastic');
+      pottedPlant(xa + 7, L, z0 + 1.6, 0);
     } else if (name === '보건실') {
+      // 보건실: 철제 침대 3개 + 천장 레일 커튼, 약품장(유리문), 보건 선생님 책상, 세면대, 체중계·신장계, 시력표, 칸막이 병풍
       for (let k = 0; k < 3; k++) {
-        const x = xa + 6 + k * 8.5;
-        B('BedFrame', x - 1.9, L + 0.8, z1 - 9.5, x + 1.9, L + 1.6, z1 - 1, [226, 226, 232], 'Metal');
-        B('Mattress', x - 1.75, L + 1.6, z1 - 9.3, x + 1.75, L + 2.3, z1 - 1.2, [240, 242, 246], 'Fabric');
-        B('Pillow', x - 1.3, L + 2.3, z1 - 2.8, x + 1.3, L + 2.75, z1 - 1.5, C.white, 'Fabric');
-        B('BedCurtain', x + 2.9, L + 0.6, z1 - 10.5, x + 3.0, L + 9.2, z1 - 0.8, [196, 222, 226], 'Fabric', { t: 0.1 });
+        const x = xa + 8 + k * 7.5, zb2 = z1 - 2.6, so = { nc: true, ns: true };
+        grp('SickBed', () => {
+          [zb2, zb2 - 7.6].forEach((z) => { B('BedHead', x - 1.9, L, z - 0.12, x + 1.9, L + 3.4, z + 0.12, [226, 228, 232], 'Metal'); });
+          B('BedFrame', x - 1.9, L + 1.2, zb2 - 7.6, x + 1.9, L + 1.5, zb2, [210, 212, 218], 'Metal');
+          [[-1.8, -7.5], [1.8, -7.5], [-1.8, -0.1], [1.8, -0.1]].forEach(([dx, dz]) => cylV('BedLeg', x + dx, L, zb2 + dz, 1.2, 0.18, [200, 202, 208], 'Metal', so));
+          B('Mattress', x - 1.75, L + 1.5, zb2 - 7.4, x + 1.75, L + 2.2, zb2 - 0.2, [236, 240, 244], 'Fabric');
+          B('Pillow', x - 1.2, L + 2.2, zb2 - 1.8, x + 1.2, L + 2.6, zb2 - 0.5, [248, 248, 248], 'Fabric');
+          B('Blanket', x - 1.8, L + 2.2, zb2 - 7.3, x + 1.8, L + 2.4 + (k === 0 ? 0.8 : 0), zb2 - 2.2, [150, 176, 204], 'Fabric', { tag: k === 0 ? 'SickBedLump' : undefined });
+          // 커튼 레일 (천장) + 반쯤 쳐진 커튼
+          B('CurtainRail', x - 3.3, L + CEIL - 0.25, zb2 - 8.4, x - 3.2, L + CEIL - 0.15, zb2, [200, 202, 206], 'Metal', so);
+          B('CurtainRail', x - 3.3, L + CEIL - 0.25, zb2 - 8.5, x + 3.3, L + CEIL - 0.15, zb2 - 8.4, [200, 202, 206], 'Metal', so);
+          for (let q = 0; q < 8; q++) rod('BedCurtain', [x - 3.25, L + CEIL - 0.3, zb2 - 2.0 - q * 0.45], [x - 3.25, L + 0.8, zb2 - 2.0 - q * 0.45 + (q % 2 ? 0.05 : -0.05)], 0.28, [178, 214, 214], 'Fabric', { nc: true, ns: q % 2 === 1 });
+        });
       }
-      B('Blanket', xa + 4.3, L + 2.3, z1 - 8.5, xa + 7.7, L + 3.2, z1 - 3.5, [140, 168, 196], 'Fabric', { tag: 'SickBedLump' });
-      B('MedCabinet', xa + 0.3, L, z0 + 2, xa + 2.3, L + 7, z0 + 9, [240, 240, 240], 'SmoothPlastic');
-      B('Desk', xb - 7, L, z0 + 2, xb - 2, L + 2.5, z0 + 4.8, [134, 138, 144], 'Metal');
+      grp('MedCabinet', () => {
+        const F = yawFrame([xa + 1.0, L, z0 + 6], 90), so = { nc: true, ns: true };
+        FB(F, 'CabBody', -2.4, 0, -0.9, 2.4, 7.2, 0.9, [238, 238, 236], 'SmoothPlastic');
+        FB(F, 'CabGlass', -2.3, 3.6, 0.9, 2.3, 7.0, 0.95, [210, 226, 230], 'Glass', { t: 0.6, ...so });
+        for (let r2 = 0; r2 < 2; r2++) for (let k = 0; k < 7; k++) FB(F, 'MedBox', -2.1 + k * 0.6, 3.8 + r2 * 1.6, -0.5, -1.7 + k * 0.6, 4.6 + r2 * 1.6 + rnd() * 0.4, 0.4, pick([[240, 240, 236], [220, 60, 50], [60, 120, 200], [250, 220, 90]]), 'SmoothPlastic', so);
+        FB(F, 'CabDoors', -2.3, 0.2, 0.9, 2.3, 3.4, 0.95, [228, 228, 226], 'SmoothPlastic', so);
+        FB(F, 'RedCross', -0.35, 2.2, 0.95, 0.35, 2.4, 0.97, [220, 40, 40], 'SmoothPlastic', so);
+        FB(F, 'RedCross', -0.1, 1.95, 0.95, 0.1, 2.65, 0.97, [220, 40, 40], 'SmoothPlastic', so);
+      });
+      grp('NurseDesk', () => officeDesk(yawFrame([xb - 6, L, z0 + 4.2], 180), { on: true }));
+      B('Sink', xb - 2.2, L + 2.6, z0 + 9, xb - 0.2, L + 2.9, z0 + 11.5, [236, 236, 236], 'SmoothPlastic');
+      B('SinkStand', xb - 2.0, L, z0 + 9.2, xb - 0.4, L + 2.6, z0 + 11.3, [220, 220, 220], 'SmoothPlastic');
+      cylBetween('Faucet', [xb - 0.4, L + 2.9, z0 + 10.2], [xb - 0.4, L + 3.6, z0 + 10.2], 0.12, C.steel, 'Metal', { nc: true });
+      B('Scale', xb - 4.5, L, zc + 1, xb - 3.3, L + 0.2, zc + 2.2, [230, 230, 232], 'SmoothPlastic');
+      cylV('HeightPole', xb - 0.6, L, zc + 3, 7.2, 0.2, [220, 220, 222], 'Metal');
+      B('HeightBase', xb - 1.4, L, zc + 2.3, xb - 0.2, L + 0.15, zc + 3.7, [220, 220, 222], 'SmoothPlastic');
       B('EyeChart', xb - 0.2, L + 4, zc - 1.6, xb - 0.06, L + 8.2, zc + 1.6, C.white, 'SmoothPlastic',
         { text: { face: 'Left', text: 'E\nㅂ ㅍ\nㅁ ㅎ ㄹ\n나 를 봐\n뒤 에 있 어', color: [10, 10, 10], bgT: 1, font: 'Arial' } });
+      for (let k = 0; k < 3; k++) P('Screen', [3.2, 5.0, 0.12], [xa + 4 + k * 2.9, L + 2.8, z0 + 12], [230, 236, 236], 'Fabric', { r: [0, k % 2 ? 20 : -20, 0], nc: true });
+      B('MedFridge', xa + 6, L, z0 + 0.4, xa + 8, L + 3.2, z0 + 2.2, [244, 244, 244], 'SmoothPlastic');
     } else if (name === '방송실') {
-      B('Console', xa + 2, L, zc - 7, xa + 6, L + 2.8, zc + 7, [54, 56, 60], 'Metal', { tag: 'BroadcastConsole' });
-      B('ConsoleTop', xa + 2, L + 2.8, zc - 7, xa + 6, L + 3.1, zc + 7, [36, 36, 40], 'SmoothPlastic');
-      for (let i = 0; i < 24; i++) B('Fader', xa + 2.6 + (i % 4) * 0.8, L + 3.1, zc - 6 + Math.floor(i / 4) * 2.2, xa + 2.8 + (i % 4) * 0.8, L + 3.25, zc - 5.4 + Math.floor(i / 4) * 2.2,
-        pick([[255, 60, 60], [60, 255, 120], [255, 200, 60], [200, 200, 200]]), i % 3 ? 'SmoothPlastic' : 'Neon', { nc: true, ns: true });
-      cylV('MicStand', xa + 7.5, L, zc, 4.2, 0.18, C.steel, 'Metal');
-      P('Mic', [0.6, 0.6, 1.2], [xa + 7.5, L + 4.4, zc], [30, 30, 30], 'Metal', { sh: 'Cylinder', r: [0, 90, 0] });
+      // 방송실: 방송 탁자(믹서·모니터·마이크 팔), 장비 랙, 흡음 벽, ON AIR 등 (이상현상 태그 유지)
+      B('Console', xa + 2, L, zc - 7, xa + 6, L + 2.6, zc + 7, [54, 56, 60], 'Metal', { tag: 'BroadcastConsole' });
+      B('ConsoleTop', xa + 1.9, L + 2.6, zc - 7.1, xa + 6.1, L + 2.75, zc + 7.1, [36, 36, 40], 'SmoothPlastic');
+      grp('Mixer', () => {
+        const so = { nc: true, ns: true };
+        B('MixerBody', xa + 3.2, L + 2.75, zc - 3, xa + 5.6, L + 3.05, zc + 3, [40, 42, 46], 'Metal', so);
+        for (let i = 0; i < 12; i++) {
+          const z = zc - 2.7 + i * 0.48;
+          for (let k = 0; k < 4; k++) P('Knob', [0.12, 0.12, 0.12], [xa + 3.5 + k * 0.32, L + 3.12, z], pick([[220, 220, 220], [230, 60, 60], [60, 160, 230]]), 'SmoothPlastic', { ...so, sh: 'Ball' });
+          B('Fader', xa + 4.9, L + 3.05, z - 0.04, xa + 5.4, L + 3.1, z + 0.04, [20, 20, 22], 'SmoothPlastic', so);
+          B('FaderCap', xa + 5.0 + rnd() * 0.3, L + 3.1, z - 0.08, xa + 5.1 + rnd() * 0.3, L + 3.22, z + 0.08, [230, 230, 230], 'SmoothPlastic', so);
+        }
+      });
+      [zc - 5, zc + 4.5].forEach((z, i) => monitorAt(yawFrame([xa + 3, L + 2.75, z], 90), 0, 0, 0, 1.7, i === 0));
+      cylV('MicBase', xa + 5.3, L + 2.75, zc - 4.2, 0.3, 0.4, [30, 30, 32], 'Metal', { nc: true });
+      cylBetween('MicArm', [xa + 5.3, L + 3.05, zc - 4.2], [xa + 6.4, L + 4.4, zc - 3.6], 0.08, [30, 30, 32], 'Metal', { nc: true });
+      P('Mic', [0.9, 0.35, 0.35], [xa + 6.7, L + 4.2, zc - 3.5], [30, 30, 30], 'Metal', { sh: 'Cylinder', r: [0, 30, 0], nc: true });
+      grp('OperatorChair', () => officeChair(yawFrame([xa + 7.5, L, zc], 90)));
+      grp('Rack', () => {
+        const F = yawFrame([xb - 2, L, z0 + 4], -90), so = { nc: true, ns: true };
+        FB(F, 'RackBody', -1.3, 0, -1.2, 1.3, 7.0, 1.2, [24, 24, 26], 'Metal');
+        for (let k = 0; k < 8; k++) { FB(F, 'RackUnit', -1.2, 0.5 + k * 0.8, 1.2, 1.2, 1.15 + k * 0.8, 1.26, [44, 46, 50], 'Metal', so); FB(F, 'RackLed', 0.8, 0.8 + k * 0.8, 1.26, 0.9, 0.88 + k * 0.8, 1.28, k % 3 ? [60, 230, 90] : [240, 160, 40], 'Neon', so); }
+      });
+      // 흡음 벽 (회색 천 판 격자)
+      for (let k = 0; k < 6; k++) B('AcousticPanel', xb - 0.18, L + 3.5, z0 + 4 + k * 3.2, xb - 0.06, L + 8.5, z0 + 6.9 + k * 3.2, [96, 98, 104], 'Fabric', { nc: true, ns: true });
       B('Speaker', xa + 0.2, L + 7.5, zc - 11, xa + 1.6, L + 10, zc - 8.4, [24, 24, 26], 'Fabric');
       B('Speaker', xa + 0.2, L + 7.5, zc + 8.4, xa + 1.6, L + 10, zc + 11, [24, 24, 26], 'Fabric');
       B('OnAir', xa + 0.1, L + 8.6, zc - 1.8, xa + 0.3, L + 9.8, zc + 1.8, [70, 16, 16], 'SmoothPlastic', { tag: 'OnAirSign',
@@ -2610,24 +2774,36 @@ function interiorRoom(r) {
       B('SpecimenShelf', xb - 1.6, L, z0 + 1.5, xb - 0.06, L + 7.6, z0 + 12, [126, 98, 70], 'Wood');
       for (let i = 0; i < 10; i++) cylV('Jar', xb - 0.9, L + 0.6 + (i % 4) * 1.8, z0 + 3 + Math.floor(i / 4) * 3.4, 1.3, 0.9, pick([[180, 200, 120], [200, 180, 140], [150, 190, 170]]), 'Glass', { t: 0.35, nc: true });
     } else if (name === '도서실') {
-      for (let k = 0; k < 5; k++) {
-        const x = xa + 5 + k * 5.2;
-        B('Shelf', x - 0.75, L, z0 + 2, x + 0.75, L + 7.4, z0 + 14, [126, 92, 58], 'Wood');
-        for (let sIdx = 0; sIdx < 4; sIdx++) for (let side = 0; side < 2; side++) {
-          let z = z0 + 2.2;
-          while (z < z0 + 13.4) {
-            const w = 0.35 + rnd() * 0.45, h = 1.2 + rnd() * 0.45;
-            B('Book', x - 0.72 + side * 0.76, L + 0.3 + sIdx * 1.8, z, x - 0.04 + side * 0.76, L + 0.3 + sIdx * 1.8 + h, z + w,
-              pick([[150, 40, 40], [40, 70, 130], [50, 110, 70], [200, 170, 90], [90, 60, 120], [220, 220, 210], [60, 60, 60]]), 'SmoothPlastic', { nc: true, ns: true });
-            z += w + 0.03;
-          }
-        }
+      // 도서실: 양면 책장 4줄, 벽 책장, 열람 테이블 + 의자, 사서 책상(컴퓨터), 반납 카트, 신간 진열대
+      for (let k = 0; k < 4; k++) {
+        const x = xa + 6 + k * 4.4;
+        grp('Bookcase', () => { bookcase(yawFrame([x, L, z0 + 6.2], 90), 9, 6.4, 1.3); bookcase(yawFrame([x + 1.32, L, z0 + 6.2], -90), 9, 6.4, 1.3); });
       }
-      for (let k = 0; k < 3; k++) {
-        const x = xa + 7 + k * 8.5;
-        B('ReadingTable', x - 2.8, L + 2.4, z1 - 10, x + 2.8, L + 2.6, z1 - 4, [176, 136, 90], 'Wood');
-        B('TableLeg', x - 0.2, L, z1 - 7.2, x + 0.2, L + 2.4, z1 - 6.8, C.steelDark, 'Metal');
+      for (let k = 0; k < 5; k++) grp('WallBookcase', () => bookcase(yawFrame([xa + 4 + k * 4.2, L, z0 + 0.8], 0), 4.1, 7.4, 1.2));
+      for (let k = 0; k < 2; k++) {
+        const x = xa + 8 + k * 9, z = z1 - 6;
+        grp('ReadingTable', () => {
+          B('TableTop', x - 3.4, L + 2.4, z - 1.8, x + 3.4, L + 2.58, z + 1.8, [196, 160, 112], 'Wood');
+          [[-3.1, -1.5], [3.1, -1.5], [-3.1, 1.5], [3.1, 1.5]].forEach(([dx, dz]) => B('TableLeg', x + dx - 0.12, L, z + dz - 0.12, x + dx + 0.12, L + 2.4, z + dz + 0.12, [150, 112, 74], 'Wood'));
+          [-2, 0, 2].forEach((dx) => [-1, 1].forEach((sd) => {
+            const cx = x + dx, cz2 = z + sd * 2.6;
+            B('ChairSeat', cx - 0.75, L + 1.55, cz2 - 0.7, cx + 0.75, L + 1.75, cz2 + 0.7, [176, 136, 90], 'Wood');
+            B('ChairBack', cx - 0.75, L + 1.75, cz2 + sd * 0.6 - 0.08, cx + 0.75, L + 3.4, cz2 + sd * 0.6 + 0.08, [176, 136, 90], 'Wood');
+            [[-0.6, -0.55], [0.6, -0.55], [-0.6, 0.55], [0.6, 0.55]].forEach(([a, b]) => B('ChairLeg', cx + a - 0.07, L, cz2 + b - 0.07, cx + a + 0.07, L + 1.55, cz2 + b + 0.07, [150, 112, 74], 'Wood', { nc: true }));
+          }));
+          if (k === 0) { B('OpenBook', x - 1.4, L + 2.58, z - 0.6, x - 0.2, L + 2.62, z + 0.4, [244, 240, 228], 'SmoothPlastic', { nc: true, ns: true }); }
+        });
       }
+      grp('LibrarianDesk', () => officeDesk(yawFrame([xb - 4, L, z0 + 4.5], 180), { on: true, w: 4.2 }));
+      grp('ReturnCart', () => {
+        const F = yawFrame([xb - 3, L, zc + 2], 0);
+        FB(F, 'CartFrame', -1.2, 0.5, -0.6, 1.2, 3.2, 0.6, [80, 84, 90], 'Metal');
+        bookcase(yawFrame(fpt(F, [0, 0.6, 0]), 0), 2.3, 2.5, 1.1, { rows: 2, wood: [90, 94, 100] });
+        [[-1, -0.5], [1, -0.5], [-1, 0.5], [1, 0.5]].forEach(([a, b]) => P('CartWheel', [0.4, 0.4, 0.15], fpt(F, [a, 0.25, b]), [30, 30, 32], 'Rubber', { sh: 'Cylinder', nc: true }));
+      });
+      B('NewBooks', xa + 1, L, zc + 4, xa + 2.6, L + 3.6, zc + 9, [150, 112, 74], 'Wood');
+      for (let k = 0; k < 4; k++) P('ShowBook', [0.1, 1.4, 1.0], [xa + 2.62, L + 2.8, zc + 4.7 + k * 1.15], pick([[200, 60, 60], [60, 120, 200], [240, 200, 60], [80, 160, 100]]), 'SmoothPlastic', { r: [0, 0, -12], nc: true });
+      pottedPlant(xb - 1.6, L, z1 - 1.8, 0);
     } else if (name === '음악실') {
       // 음악실 (참고 사진): 화이트보드, 벽걸이 TV, 아랫벽 나무 판, 윗벽 흡음판, 접이식 책상 + 자주색 의자, 보면대, 업라이트 피아노
       const wood = [206, 172, 120], felt = [214, 206, 188];
@@ -2679,13 +2855,39 @@ function interiorRoom(r) {
       B('CeilingAC', xa + 13, L + CEIL - 0.5, zc - 2, xa + 17, L + CEIL - 0.05, zc + 2, [236, 236, 232], 'SmoothPlastic', { nc: true });
       B('ACGrille', xa + 14, L + CEIL - 0.52, zc - 1, xa + 16, L + CEIL - 0.5, zc + 1, [180, 182, 184], 'Metal', { nc: true, ns: true });
     } else if (name === '미술실') {
-      for (let k = 0; k < 8; k++) {
-        const x = xa + 10 + (k % 4) * 5, z = z0 + 6 + Math.floor(k / 4) * 12;
-        cylBetween('EaselLeg', [x - 0.3, L, z - 0.9], [x - 0.1, L + 6.2, z], 0.18, [150, 110, 70], 'Wood');
-        cylBetween('EaselLeg', [x - 0.3, L, z + 0.9], [x - 0.1, L + 6.2, z], 0.18, [150, 110, 70], 'Wood');
-        cylBetween('EaselLeg', [x + 1.0, L, z], [x - 0.1, L + 5.6, z], 0.18, [150, 110, 70], 'Wood');
-        B('Canvas', x - 0.75, L + 3.2, z - 1.3, x - 0.6, L + 5.8, z + 1.3, [242, 240, 234], 'Fabric');
+      // 미술실: 큰 나무 작업대 + 등받이 없는 의자, 이젤(그리다 만 그림), 개수대, 작품 선반, 석고상(이상현상 태그), 정물대
+      for (let k = 0; k < 4; k++) {
+        const x = xa + 11 + (k % 2) * 9, z = z0 + 8 + Math.floor(k / 2) * 9;
+        grp('ArtTable', () => {
+          B('ArtTop', x - 3.2, L + 2.6, z - 2.2, x + 3.2, L + 2.85, z + 2.2, [188, 150, 104], 'Wood');
+          for (let q = 0; q < 6; q++) B('PaintStain', x - 2.6 + rnd() * 5, L + 2.85, z - 1.8 + rnd() * 3.4, x - 2.2 + rnd() * 5, L + 2.86, z - 1.5 + rnd() * 3.4, pick([[200, 60, 60], [60, 110, 200], [240, 200, 60], [60, 160, 90], [30, 30, 30]]), 'SmoothPlastic', { nc: true, ns: true, t: 0.3, min: 0.01 });
+          [[-2.9, -1.9], [2.9, -1.9], [-2.9, 1.9], [2.9, 1.9]].forEach(([dx, dz]) => B('ArtLeg', x + dx - 0.15, L, z + dz - 0.15, x + dx + 0.15, L + 2.6, z + dz + 0.15, [140, 104, 70], 'Wood'));
+          [[-2, -3], [0, -3], [2, -3], [-2, 3], [0, 3], [2, 3]].forEach(([dx, dz]) => { cylV('StoolTop', x + dx, L + 1.85, z + dz, 0.15, 1.2, [176, 136, 90], 'Wood'); [[-0.4, -0.4], [0.4, -0.4], [-0.4, 0.4], [0.4, 0.4]].forEach(([a, b]) => cylBetween('StoolLeg', [x + dx + a * 0.7, L + 1.85, z + dz + b * 0.7], [x + dx + a, L, z + dz + b], 0.1, [140, 104, 70], 'Wood', { nc: true })); });
+          if (k === 1) { cylV('PaintJar', x - 1, L + 2.85, z, 0.6, 0.45, [200, 220, 230], 'Glass', { t: 0.3, nc: true }); B('Palette', x + 0.5, L + 2.85, z - 0.6, x + 1.8, L + 2.9, z + 0.4, [236, 230, 210], 'SmoothPlastic', { nc: true }); }
+        });
       }
+      for (let k = 0; k < 4; k++) {
+        const x = xb - 3.5, z = z0 + 4 + k * 4.5;
+        grp('Easel', () => {
+          cylBetween('EaselLeg', [x + 0.5, L, z - 1.0], [x, L + 6.6, z], 0.16, [170, 128, 80], 'Wood');
+          cylBetween('EaselLeg', [x + 0.5, L, z + 1.0], [x, L + 6.6, z], 0.16, [170, 128, 80], 'Wood');
+          cylBetween('EaselLeg', [x + 1.6, L, z], [x + 0.1, L + 6.0, z], 0.16, [170, 128, 80], 'Wood');
+          B('EaselTray', x - 0.1, L + 2.9, z - 1.2, x + 0.4, L + 3.05, z + 1.2, [170, 128, 80], 'Wood', { nc: true });
+          B('Canvas', x - 0.15, L + 3.05, z - 1.3, x + 0.0, L + 5.9, z + 1.3, [242, 240, 234], 'Fabric');
+          B('Painting', x - 0.17, L + 3.4, z - 1.0, x - 0.15, L + 5.5, z + 1.0, pick([[90, 130, 170], [190, 150, 90], [120, 160, 110], [170, 90, 90]]), 'SmoothPlastic', { nc: true, ns: true, t: 0.2, min: 0.01 });
+        });
+      }
+      B('ArtSink', xa + 1, L, z1 - 6, xa + 3, L + 2.8, z1 - 1, [220, 220, 216], 'SmoothPlastic');
+      B('ArtSinkBowl', xa + 1.2, L + 2.7, z1 - 5.6, xa + 2.8, L + 2.82, z1 - 1.4, [170, 172, 176], 'Metal', { nc: true });
+      for (let q = 0; q < 8; q++) B('PaintDrip', xa + 1.2 + rnd() * 1.6, L + 2.5 + rnd() * 0.3, z1 - 6.02, xa + 1.25 + rnd() * 1.6, L + 1.2 + rnd() * 1.2, z1 - 6.0, pick([[200, 60, 60], [60, 110, 200], [240, 200, 60]]), 'SmoothPlastic', { nc: true, ns: true, t: 0.4, min: 0.01 });
+      grp('WorkShelf', () => { bookcase(yawFrame([xa + 9, L, z0 + 0.8], 0), 8, 6.6, 1.3, { rows: 4, empty: true });
+        for (let k = 0; k < 12; k++) { const px = xa + 5.6 + (k % 6) * 1.25, py = L + 0.2 + Math.floor(k / 6) * 3.1 + 1.65; cylV('Pottery', px, py - 1.55, z0 + 0.8, 0.6 + rnd() * 0.5, 0.5 + rnd() * 0.3, pick([[170, 110, 80], [196, 160, 120], [120, 140, 150]]), 'Slate', { nc: true }); } });
+      grp('StillLife', () => {
+        B('StillTable', xa + 7, L, zc - 1.5, xa + 10, L + 2.4, zc + 1.5, [230, 226, 216], 'Fabric');
+        ball('Apple', xa + 8.2, L + 2.75, zc - 0.4, 0.5, [200, 40, 40], 'SmoothPlastic', { nc: true });
+        cylV('Vase', xa + 8.8, L + 2.4, zc + 0.5, 1.3, 0.6, [60, 90, 140], 'Glass', { nc: true, refl: 0.2 });
+        B('Drape', xa + 7.2, L + 2.4, zc - 1.4, xa + 9.8, L + 2.5, zc + 1.4, [170, 60, 60], 'Fabric', { nc: true });
+      });
       grp('PlasterBust', () => {
         B('Pedestal', xa + 3.5, L, zc - 1.4, xa + 6.3, L + 3.8, zc + 1.4, [232, 230, 224], 'Marble');
         B('Shoulders', xa + 4.1, L + 3.8, zc - 1.3, xa + 5.7, L + 4.8, zc + 1.3, [242, 240, 234], 'Marble');
@@ -2770,7 +2972,7 @@ function uStair(F, o) {
 }
 
 grp('MainBuilding', () => {
-  B('Foundation', BX0 - 0.4, 0, ZN - 0.4, BX1 + 0.4, 1, ZS + 0.4, [140, 136, 130], 'Concrete');
+  B('Foundation', BX0 - 0.4, 0, ZN - 0.4, BX1 + 0.4, 0.88, ZS + 0.4, [140, 136, 130], 'Concrete');
   for (let f = 0; f < 4; f++) {
     const y1 = f < 3 ? LV[f] : ROOFY, y0 = y1 - 1;
     const deck = f === 3;
@@ -3146,7 +3348,7 @@ grp('MainBuilding', () => {
     const { W, R, LD } = CS, zN = ZN - R - LD, top = ROOFY + 10, wc = C.wallIvory;
     uStair(yawFrame([0, 0, ZN], 180), { W, g: 0.3, R, LD, levels: [...LV, ROOFY], toTop: false });
     B('StairFloor', -W, 0.9, zN, W, LV[0], ZN, STEP_C, 'Marble');
-    B('Foundation', -W - 0.9, 0, zN - 0.9, W + 0.9, 1, ZN, [140, 136, 130], 'Concrete');
+    B('Foundation', -W - 0.9, 0, zN - 0.9, W + 0.9, 0.88, ZN, [140, 136, 130], 'Concrete');
     B('BayWall', -W - 0.6, 0, zN - 0.6, -W, top, ZN, wc, 'Plaster');
     B('BayWall', W, 0, zN - 0.6, W + 0.6, top, ZN, wc, 'Plaster');
     // 계단참 벽: 층마다 세로로 긴 창 (참고 사진)
@@ -3178,7 +3380,7 @@ grp('MainBuilding', () => {
     const X0 = Math.min(bx, xe + s * 0.6), X1 = Math.max(bx, xe + s * 0.6);
     uStair(yawFrame([bx, 0, zc], s > 0 ? 90 : -90), { W, g: 0.25, R, LD, levels: LV, toTop: false });
     B('StairFloor', Math.min(bx, xe), 0.9, zc - W, Math.max(bx, xe), LV[0], zc + W, STEP_C, 'Marble');
-    B('Foundation', X0 - 0.3, 0, zc - W - 0.9, X1 + 0.3, 1, zc + W + 0.9, [140, 136, 130], 'Concrete');
+    B('Foundation', X0 - 0.3, 0, zc - W - 0.9, X1 + 0.3, 0.88, zc + W + 0.9, [140, 136, 130], 'Concrete');
     B('TowerWall', X0, 0, zc - W - 0.6, X1, top, zc - W, wc, 'Plaster');
     B('TowerWall', X0, 0, zc + W, X1, top, zc + W + 0.6, wc, 'Plaster');
     B('BrickSkin', X0, 0, zc - W - 0.84, X1 + (s > 0 ? 0.24 : 0), top, zc - W - 0.6, BRICK, 'Brick');
