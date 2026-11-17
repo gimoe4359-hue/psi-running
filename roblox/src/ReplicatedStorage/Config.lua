@@ -46,6 +46,8 @@ Config.TEXT_ATLAS_IDS = { 0, 0, 0, 0 }
 Config.TEXT_ATLAS_DECAL_IDS = { 75904825982096, 116811792359111, 116869249478191, 77362890761808 }
 -- 벽·바닥·천장 실사 텍스처 (tools/make_textures.js 로 만들어 aied0 계정에 데칼로 올림). 0 이면 기본 재질 그대로
 -- 나뭇잎 뭉치 그림 (tools/make_leaves.js, 투명 배경). 나무의 LeafG/LeafZ/LeafP 판에 붙는다
+-- 나무껍질 그림 (메시 팩 나무 줄기에 입힘)
+Config.BARK_DECALS = { bark = 134397603485015, pinebark = 95573024406047 }
 Config.LEAF_DECALS = { LeafG = 74745740424068, LeafZ = 82472763357930, LeafP = 94881683993132 }
 Config.SURFACE_TEXTURE_DECALS = {
 	paint = 129088089710208, -- 칠한 콘크리트 벽
@@ -60,7 +62,7 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 113794410956733
+Config.MESH_PACK_ID = 109476792363980
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)

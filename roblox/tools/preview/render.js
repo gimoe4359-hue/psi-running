@@ -307,7 +307,10 @@ for (const key in buckets) {
   }
 }
 
+const barkTex = {};
+for (const k of ['bark', 'pinebark']) { try { const t = await new THREE.TextureLoader().loadAsync(`/textures/${k}.png`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; barkTex[k] = t; } catch (e) { /* 없음 */ } }
 function packMaterial(m) {
+  if (m.bark && barkTex[m.bark]) return new THREE.MeshStandardMaterial({ map: barkTex[m.bark], roughness: 0.95 });
   const leafy = /Leaves|Hair/.test(m.mesh);
   return new THREE.MeshStandardMaterial({
     color: new THREE.Color().setRGB(m.color[0] / 255, m.color[1] / 255, m.color[2] / 255, THREE.SRGBColorSpace),

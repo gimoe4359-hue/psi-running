@@ -58,6 +58,31 @@ end
 
 -- 템플릿 만들기: 메시 크기·위치는 Templates.lua 에 적힌 값으로 다시 맞춘다
 -- (가져오기 단위 설정이 달라도 크기가 틀어지지 않게)
+-- 나무껍질 그림: Config.BARK_DECALS 의 데칼에서 이미지 주소를 찾는다 (aied0 계정으로 게시해야 열림)
+local barkCache = {}
+local function barkImage(kind)
+	if barkCache[kind] ~= nil then
+		return barkCache[kind] or nil
+	end
+	local okCfg, Config = pcall(function()
+		return require(ReplicatedStorage:WaitForChild("Config"))
+	end)
+	local did = okCfg and (Config.BARK_DECALS or {})[kind]
+	local img = false
+	if did and did ~= 0 then
+		local ok, model = pcall(function()
+			return game:GetService("InsertService"):LoadAsset(did)
+		end)
+		if ok and model then
+			local d = model:FindFirstChildWhichIsA("Decal", true)
+			img = d and d.Texture or false
+			model:Destroy()
+		end
+	end
+	barkCache[kind] = img
+	return img or nil
+end
+
 local function buildTemplate(name)
 	if cache[name] ~= nil then
 		return cache[name] or nil
@@ -101,9 +126,15 @@ local function buildTemplate(name)
 		p.Transparency = m.transparency or 0
 		p.Reflectance = m.reflectance or 0
 		p.CastShadow = m.shadow ~= false
+		-- 나무 줄기·가지: 나무껍질 그림 (없으면 단색)
+		local bark = m.bark and barkImage(m.bark) or ""
 		pcall(function()
-			p.TextureID = ""
+			p.TextureID = bark
 		end)
+		if bark ~= "" then
+			p.Material = Enum.Material.SmoothPlastic
+			p.Color = Color3.new(1, 1, 1)
+		end
 		for _, c in ipairs(p:GetChildren()) do
 			if c:IsA("SurfaceAppearance") then
 				c:Destroy()

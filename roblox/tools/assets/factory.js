@@ -36,6 +36,7 @@ export async function exportAll(which) {
   let tri = 0;
   for (const t of templates) {
     meta[t.name] = { keep: t.keep || [], show: t.show || [], meshes: [] };
+    if (t.leafSpots) meta[t.name].leafSpots = t.leafSpots;
     t.meshes.forEach((m, i) => {
       const geo = m.geo;
       geo.computeBoundingBox();
@@ -44,7 +45,7 @@ export async function exportAll(which) {
       let g2 = geo.clone();
       g2.translate(-c.x, -c.y, -c.z);
       // 파일 크기 줄이기: uv·색 버리고 같은 점은 하나로 (인덱스 메시)
-      ['uv', 'uv1', 'uv2', 'color'].forEach((a) => { if (g2.attributes[a]) g2.deleteAttribute(a); });
+      (m.keepUV ? ['uv1', 'uv2', 'color'] : ['uv', 'uv1', 'uv2', 'color']).forEach((a) => { if (g2.attributes[a]) g2.deleteAttribute(a); });
       if (!g2.attributes.normal) g2.computeVertexNormals();
       if (!g2.index) g2 = mergeVertices(g2, 1e-4);
       const meshName = `${t.name}_${m.name.replace(/^.*?_/, '')}`.replace(/[^A-Za-z0-9_]/g, '');
@@ -57,7 +58,7 @@ export async function exportAll(which) {
       meta[t.name].meshes.push({
         mesh: meshName, name: m.partName || m.name, size: [s.x, s.y, s.z].map((v) => Math.max(0.05, +v.toFixed(4))),
         pos: [c.x, c.y, c.z].map((v) => +v.toFixed(4)), color: m.color, material: m.material || 'SmoothPlastic',
-        reflectance: m.reflectance || 0, transparency: m.transparency || 0, collide: !!m.collide, shadow: m.shadow !== false, tris: n,
+        reflectance: m.reflectance || 0, transparency: m.transparency || 0, collide: !!m.collide, shadow: m.shadow !== false, tris: n, ...(m.bark ? { bark: m.bark } : {}),
       });
     });
   }

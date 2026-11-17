@@ -6,10 +6,12 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const UP = V(0, 1, 0);
+const BARK_TILE = 3.0; // 나무껍질 그림 한 장이 덮는 길이(stud)
 
 // 점 목록 + 반지름 목록 → 인덱스 관 메시 (평행 이동 프레임)
 function tubeGeo(points, radii, sides) {
-  const n = points.length, pos = [], idx = [];
+  const n = points.length, pos = [], idx = [], uv = [];
+  let arc = 0;
   let T = points[1].clone().sub(points[0]).normalize();
   const N0 = (Math.abs(T.y) < 0.9 ? UP.clone() : V(1, 0, 0)).cross(T).normalize();
   const B0 = T.clone().cross(N0).normalize();
@@ -20,18 +22,24 @@ function tubeGeo(points, radii, sides) {
       if (s > 1e-6) { axis.normalize(); const ang = Math.atan2(s, T.dot(T2)); N0.applyAxisAngle(axis, ang); B0.applyAxisAngle(axis, ang); }
       T = T2;
     }
-    for (let k = 0; k < sides; k++) {
+    if (i > 0) arc += points[i].distanceTo(points[i - 1]);
+    // 둘레를 한 바퀴 돌고 이음매 열을 하나 더 (나무껍질 그림이 끊기지 않게)
+    const around = Math.max(1, Math.round((2 * Math.PI * radii[0]) / BARK_TILE));
+    for (let k = 0; k <= sides; k++) {
       const a = (k / sides) * Math.PI * 2;
       const p = points[i].clone().addScaledVector(N0, Math.cos(a) * radii[i]).addScaledVector(B0, Math.sin(a) * radii[i]);
       pos.push(p.x, p.y, p.z);
+      uv.push((k / sides) * around, arc / BARK_TILE);
     }
   }
+  const S1 = sides + 1;
   for (let i = 0; i < n - 1; i++) for (let k = 0; k < sides; k++) {
-    const a = i * sides + k, b = i * sides + ((k + 1) % sides), c = (i + 1) * sides + k, d = (i + 1) * sides + ((k + 1) % sides);
+    const a = i * S1 + k, b = i * S1 + k + 1, c = (i + 1) * S1 + k, d = (i + 1) * S1 + k + 1;
     idx.push(a, b, c, b, d, c);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setIndex(idx);
   g.computeVertexNormals();
   return g;
@@ -140,25 +148,36 @@ function scatterLeaves(rng, tips, S) {
 function finish(name, rng, S) {
   const { wood, tips } = grow(rng, S);
   const out = [];
-  // 나무 줄기는 한 메시 (1만 삼각형 넘으면 둘로)
-  const all = mergeGeometries(wood.map((g) => g.toNonIndexed()).map((g) => { g.deleteAttribute('normal'); return g; }));
-  const triW = all.attributes.position.count / 3;
-  if (triW <= 9500) out.push({ name: 'Wood', geo: wood.length === 1 ? wood[0] : mergeGeometries(wood), color: S.bark, material: 'Wood', collide: false });
+  // 줄기·가지: 나무껍질 그림을 입힐 수 있게 UV 를 남긴다 (keepUV). 1만 삼각형 넘으면 둘로
+  const tri = wood.reduce((a, g) => a + g.index.count / 3, 0);
+  const tex = S.barkTex || 'bark';
+  if (tri <= 9500) out.push({ name: 'Wood', geo: mergeGeometries(wood), color: S.bark, material: 'Wood', keepUV: true, bark: tex });
   else {
     const half = Math.ceil(wood.length / 2);
-    out.push({ name: 'WoodA', geo: mergeGeometries(wood.slice(0, half)), color: S.bark, material: 'Wood' });
-    out.push({ name: 'WoodB', geo: mergeGeometries(wood.slice(half)), color: S.bark, material: 'Wood' });
+    out.push({ name: 'WoodA', geo: mergeGeometries(wood.slice(0, half)), color: S.bark, material: 'Wood', keepUV: true, bark: tex });
+    out.push({ name: 'WoodB', geo: mergeGeometries(wood.slice(half)), color: S.bark, material: 'Wood', keepUV: true, bark: tex });
   }
-  const leaves = scatterLeaves(rng, tips, S);
-  S.leafColors.forEach((col, ci) => {
-    const mine = leaves.filter((l) => l.col === ci);
-    for (let k = 0; k * 2400 < mine.length; k++) {
-      const chunk = mine.slice(k * 2400, (k + 1) * 2400);
-      if (chunk.length < 50) continue;
-      out.push({ name: `Leaves${ci + 1}${String.fromCharCode(65 + k)}`, geo: leafGeo(chunk), color: col, material: 'SmoothPlastic', shadow: true });
+  // 잎은 메시 대신 '잎 뭉치 자리'만 적어 둔다. 맵에서는 그 자리에 잎 그림을 붙인 판(LeafG/LeafZ/LeafP)을 놓는다
+  const spots = [];
+  tips.forEach((b) => {
+    const n = b.pts.length, k = S.spotsPerTip || 2;
+    for (let q = 0; q < k; q++) {
+      const t = k === 1 ? 0.85 : 0.45 + 0.5 * (q / (k - 1));
+      const i = Math.min(n - 2, Math.floor(t * (n - 1))), f = t * (n - 1) - i;
+      const p = b.pts[i].clone().lerp(b.pts[i + 1], f);
+      if (S.keep && !S.keep(p)) continue;
+      spots.push([+p.x.toFixed(2), +(p.y + S.spotLift).toFixed(2), +p.z.toFixed(2), +(S.spotSize * (0.8 + rng() * 0.4)).toFixed(2)]);
     }
   });
-  return { name, keep: ['Trunk'], meshes: out };
+  // 판 수를 줄이려고 자리를 고르게 솎아 낸다 (빈틈이 생기지 않게 남는 판은 조금 키움)
+  const max = S.maxSpots || 40;
+  let picked = spots;
+  if (spots.length > max) {
+    const grow2 = Math.sqrt(spots.length / max) * 0.8;
+    picked = [];
+    for (let q = 0; q < max; q++) { const sp = spots[Math.floor((q * spots.length) / max)]; picked.push([sp[0], sp[1], sp[2], +(sp[3] * Math.max(1, grow2)).toFixed(2)]); }
+  }
+  return { name, keep: ['Trunk'], show: ['LeafG', 'LeafZ', 'LeafP'], leafSpots: picked, meshes: out };
 }
 
 // ── 은행나무: 곧은 줄기가 꼭대기까지, 가지는 비스듬히 위로, 원뿔꼴 수관 ──
@@ -167,7 +186,7 @@ function ginkgo(rng) {
   return finish('Tree_Ginkgo', rng, {
     H, trunkLen: 0.97, trunkR: 0.62, trunkTaper: 0.12, trunkWiggle: 0.05, lean: 0.03,
     bark: [106, 94, 82], leafColors: [[230, 188, 38], [216, 162, 24], [238, 206, 84], [196, 172, 58]],
-    leafCount: 7000, leafSize: 0.46, leafW: 1.05, leafSpread: 1.35, leafFlat: 0.8,
+    leafCount: 7000, leafSize: 0.46, leafW: 1.05, leafSpread: 1.35, leafFlat: 0.8, spotSize: 3.4, spotLift: 0.6, spotsPerTip: 1, maxSpots: 44,
     levels: [
       { count: () => 26, at: (c, n, r) => 0.3 + 0.64 * (c / n) + (r() - 0.5) * 0.02, elev: 0.95, sides: 6, r0: 0.3, r1: 0.06, wiggle: 0.18, up: 0.05, segLen: 1.3,
         len: (b, r) => crownR(b.y) * (1.05 + 0.25 * r()) },
@@ -185,7 +204,7 @@ function zelkova(rng) {
   return finish('Tree_Zelkova', rng, {
     H, trunkLen: 0.33, trunkR: 0.85, trunkTaper: 0.75, trunkWiggle: 0.06, lean: 0.04,
     bark: [118, 106, 94], leafColors: [[178, 98, 40], [152, 82, 36], [196, 132, 56], [132, 96, 50]],
-    leafCount: 7500, leafSize: 0.4, leafW: 0.75, leafSpread: 1.25, leafFlat: 0.85,
+    leafCount: 7500, leafSize: 0.4, leafW: 0.75, leafSpread: 1.25, leafFlat: 0.85, spotSize: 4.8, spotLift: 0.6, spotsPerTip: 1, maxSpots: 40,
     keep: (c) => c.y > 6.5,
     levels: [
       { count: () => 6, at: (c, n, r) => 0.9 + r() * 0.1, sides: 7, r0: 0.55, r1: 0.18, wiggle: 0.12, up: 0.02, segLen: 1.4,
@@ -204,7 +223,7 @@ function pine(rng) {
   return finish('Tree_Pine', rng, {
     H, trunkLen: 0.95, trunkR: 0.7, trunkTaper: 0.18, trunkWiggle: 0.12, lean: 0.12,
     bark: [122, 84, 62], leafColors: [[44, 72, 46], [36, 60, 40], [58, 86, 54]],
-    leafCount: 6500, leafSize: 0.55, leafW: 0.22, leafSpread: 1.2, leafFlat: 0.45,
+    leafCount: 6500, leafSize: 0.55, leafW: 0.22, leafSpread: 1.2, leafFlat: 0.45, spotSize: 4.2, spotLift: 0.5, spotsPerTip: 2, barkTex: 'pinebark', maxSpots: 36,
     levels: [
       { count: () => 16, at: (c, n, r) => 0.45 + 0.5 * (c / n) + (r() - 0.5) * 0.03, sides: 5, r0: 0.24, r1: 0.06, wiggle: 0.2, up: 0.06, segLen: 1.3,
         dir: (pd, az, b, r) => spread(UP, 1.25 - (b.y / H) * 0.5 + (r() - 0.5) * 0.2, az), len: (b, r) => Math.max(1.5, (H - b.y) * 0.42) * (0.8 + r() * 0.4) },

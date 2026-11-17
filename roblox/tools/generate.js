@@ -514,61 +514,31 @@ function leafCluster(kind, cx, cy, cz, d, tint) {
   for (let k = 0; k < 3; k++) P(nm, [d, d * 0.92, 0.05], [cx, cy, cz], tint, 'SmoothPlastic', { ...op, r: [(rnd() - 0.5) * 16, r0 + k * 60, (rnd() - 0.5) * 16] });
   P(nm, [d, d, 0.05], [cx, cy + d * 0.08, cz], tint, 'SmoothPlastic', { ...op, r: [90, r0, 0] });
 }
+const TREE_META = (() => { try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'build', 'assets_meta.json'), 'utf8')); } catch (e) { return {}; } })();
 function tree(x, z, kind = 'ginkgo', h = 26, ground = 0) {
   grp(`Tree${++treeCount}`, () => {
-    const lean = (rnd() - 0.5) * 0.6;
-    const bark = jit(kind === 'pine' ? [112, 72, 52] : C.bark, 12);
-    const tw = 1.1 + h * 0.03;
-    const tint = () => { const v = 0.82 + rnd() * 0.36; return [Math.min(255, 255 * v), Math.min(255, 255 * v), Math.min(255, 255 * v * (0.92 + rnd() * 0.12))]; };
-    // 줄기: 밑동이 넓고 위로 가늘어지며 살짝 굽는다 (3마디)
-    const t0 = [x, ground - 0.5, z], t1 = [x + lean * 0.4, ground + h * 0.25, z + lean * 0.2], t2 = [x + lean, ground + h * (kind === 'pine' ? 0.62 : 0.5), z + lean * 0.5];
-    const t3 = [x + lean * 1.3, ground + h * (kind === 'pine' ? 0.96 : 0.78), z + lean * 0.4];
-    cylBetween('Trunk', t0, t1, tw, bark, 'Wood');
-    cylBetween('Trunk', t1, t2, tw * 0.82, bark, 'Wood', { nc: true });
-    cylBetween('Trunk', t2, t3, tw * 0.55, bark, 'Wood', { nc: true });
-    const along = (u) => (u < 0.5 ? [0, 1, 2].map((k) => t1[k] + (t2[k] - t1[k]) * u * 2) : [0, 1, 2].map((k) => t2[k] + (t3[k] - t2[k]) * (u - 0.5) * 2));
-    if (kind === 'pine') {
-      // 소나무: 위로 갈수록 짧아지는 층층 가지, 가지 끝마다 솔잎 뭉치 (아래쪽 가지는 떨어지고 없음)
-      for (let i = 0; i < 7; i++) {
-        const u = 0.1 + i * 0.13, b = along(Math.min(1, u)), reach = h * (0.3 - i * 0.03);
-        for (let k = 0; k < 4; k++) {
-          const a = rnd() * Math.PI * 2, r1 = reach * (0.7 + rnd() * 0.4), dy = -h * 0.02 + rnd() * h * 0.04;
-          const end = [b[0] + Math.cos(a) * r1, b[1] + dy, b[2] + Math.sin(a) * r1];
-          cylBetween('Branch', b, end, tw * 0.22, bark, 'Wood', { nc: true, ns: true });
-          leafCluster('pine', end[0], end[1] + 0.6, end[2], h * 0.2 * (0.8 + rnd() * 0.3), tint());
-          leafCluster('pine', (b[0] + end[0]) / 2, b[1] + dy / 2 + 0.8, (b[2] + end[2]) / 2, h * 0.15, tint());
-        }
-      }
-      leafCluster('pine', t3[0], t3[1] + 1, t3[2], h * 0.2, tint());
-      return;
-    }
-    // 은행·느티: 굵은 가지 → 잔가지 → 끝마다 잎 뭉치. 은행은 위로 좁고 길게, 느티는 옆으로 넓게 퍼진다
-    const gk = kind === 'ginkgo', nb = gk ? 7 : 6;
-    for (let i = 0; i < nb; i++) {
-      const a = (i / nb) * Math.PI * 2 + rnd() * 0.6, u = gk ? 0.15 + (i / nb) * 0.75 : 0.25 + rnd() * 0.5, b = along(u);
-      const reach = h * (gk ? 0.16 : 0.3) * (0.8 + rnd() * 0.4), up = h * (gk ? 0.22 : 0.18) * (0.8 + rnd() * 0.4);
-      const mid = [b[0] + Math.cos(a) * reach * 0.6, b[1] + up * 0.6, b[2] + Math.sin(a) * reach * 0.6];
-      const end = [b[0] + Math.cos(a) * reach, b[1] + up, b[2] + Math.sin(a) * reach];
-      cylBetween('Branch', b, mid, tw * 0.4, bark, 'Wood', { nc: true });
-      cylBetween('Branch', mid, end, tw * 0.26, bark, 'Wood', { nc: true, ns: true });
-      for (let k = 0; k < 3; k++) {
-        const a2 = a + (k - 1) * 0.8 + (rnd() - 0.5) * 0.3, r2 = reach * (0.35 + rnd() * 0.25);
-        const tip = [end[0] + Math.cos(a2) * r2, end[1] + up * (0.2 + rnd() * 0.3), end[2] + Math.sin(a2) * r2];
-        cylBetween('Twig', end, tip, tw * 0.12, bark, 'Wood', { nc: true, ns: true });
-        leafCluster(kind, tip[0], tip[1], tip[2], h * (gk ? 0.24 : 0.28) * (0.8 + rnd() * 0.35), tint());
-      }
-      leafCluster(kind, mid[0], mid[1] + 1, mid[2], h * (gk ? 0.22 : 0.26), tint());
-    }
-    // 우듬지
-    for (let k = 0; k < (gk ? 3 : 4); k++) leafCluster(kind, t3[0] + (rnd() - 0.5) * h * 0.18, t3[1] + rnd() * h * 0.08, t3[2] + (rnd() - 0.5) * h * 0.18, h * (gk ? 0.26 : 0.3), tint());
+    // 줄기·가지는 메시 팩의 나무(나무껍질 그림을 입힌 매끈한 가지)로 바뀐다.
+    // 잎은 템플릿에 적힌 '잎 뭉치 자리'마다 잎 그림 판을 놓는다 (메시로 바뀌어도 그대로 남음)
+    const TT = TREE_TEMPLATE[kind], sc = h / TT[1], yaw = rnd() * 360;
+    const F = yawFrame([x, ground, z], yaw);
+    swapAnchor(F, TT[0], { attr: { Scale: Math.round(sc * 1000) / 1000 } });
+    const bark = jit(kind === 'pine' ? [112, 72, 52] : C.bark, 12), tw = 1.1 + h * 0.03;
+    // 메시 팩이 없을 때 보이는 줄기 (팩이 있으면 투명한 충돌용으로만 남음)
+    cylBetween('Trunk', [x, ground - 0.5, z], [x, ground + h * (kind === 'pine' ? 0.9 : 0.55), z], tw, bark, 'Wood');
+    const spots = (TREE_META[TT[0]] || {}).leafSpots || [];
+    spots.forEach(([lx, ly, lz, d]) => {
+      const p = fpt(F, [lx * sc, ly * sc, lz * sc]);
+      const v = 0.82 + rnd() * 0.36;
+      leafCluster(kind, p[0], p[1], p[2], d * sc, [Math.min(255, 255 * v), Math.min(255, 255 * v), Math.min(255, 255 * v * (0.92 + rnd() * 0.12))]);
+    });
   }, 'Tree');
   // 떨어진 잎 (나무 묶음 밖에 둬서 메시로 바뀌어도 남는다)
   if (kind !== 'pine') {
-    const leafA = kind === 'ginkgo' ? C.ginkgo : C.zelkova;
-    for (let k = 0; k < 14; k++) {
-      const a = rnd() * Math.PI * 2, rr = rnd() * h * 0.45;
-      P('FallenLeaf', [0.5 + rnd() * 0.7, 0.04, 0.4 + rnd() * 0.5], [x + Math.cos(a) * rr, ground + 0.05, z + Math.sin(a) * rr],
-        jit(leafA, 30), 'Fabric', { r: [0, rnd() * 180, 0], nc: true, ns: true });
+    // 땅에 떨어진 잎: 잎 그림 판을 땅에 눕혀 깐다 (네모 조각 대신 실제 잎 무늬)
+    const nm = kind === 'ginkgo' ? 'LeafG' : 'LeafZ';
+    for (let k = 0; k < 4; k++) {
+      const a = rnd() * Math.PI * 2, rr = rnd() * h * 0.3, d = h * (0.2 + rnd() * 0.12), v = 0.75 + rnd() * 0.25;
+      P(nm, [d, d * 0.8, 0.05], [x + Math.cos(a) * rr, ground + 0.06 + k * 0.01, z + Math.sin(a) * rr], [255 * v, 255 * v, 240 * v], 'SmoothPlastic', { t: 1, nc: true, ns: true, r: [90, rnd() * 180, 0], min: 0.05 });
     }
   }
 }

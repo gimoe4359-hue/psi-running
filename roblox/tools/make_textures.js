@@ -89,6 +89,20 @@ T.ceiling = () => { const n = 2, tw = N / n, hole = rng(111), holes = new Uint8A
 T.concrete = () => { const lo = makeFbm(4, 4, 121), mid = makeFbm(32, 3, 122), pores = makeFbm(320, 1, 123), streak = makeFbm(32, 3, 124);
   return put((x, y) => { let v = 214 + (lo(x, y) - 0.5) * 22 + (mid(x, y) - 0.5) * 10 + (pores(x, y) > 0.72 ? -24 : 0) - Math.max(0, streak(x, y * 0.08) - 0.55) * 60;
     return [v, v - 1, v - 4]; }); };
+// 8) 나무껍질 (은행·느티): 회갈색, 세로로 길게 갈라진 골 + 이끼 낀 얼룩
+T.bark = () => { const ridge = makeFbm(10, 4, 131), fine = makeFbm(96, 2, 132), lo = makeFbm(3, 3, 133), moss = makeFbm(6, 3, 134);
+  return put((x, y) => { const r = ridge(x, y * 0.12 % N), fis = Math.pow(Math.abs(Math.sin((x / N * 14 + r * 3) * Math.PI)), 0.35);
+    let v = 0.42 + fis * 0.5 + (fine(x, y) - 0.5) * 0.25 + (lo(x, y) - 0.5) * 0.15;
+    const m = Math.max(0, moss(x, y) - 0.62) * 2.2;
+    return [112 * v + m * 10, 98 * v + m * 40, 84 * v + m * 6]; }); };
+// 9) 소나무 껍질: 아래는 회갈색 거북등 조각, 위로 갈수록 붉은빛 (조각 무늬 + 갈라진 틈)
+T.pinebark = () => { const cell = 6, r = rng(141), pts = []; for (let i = 0; i < cell * cell * 3; i++) pts.push([r() * N, r() * N]);
+  const fine = makeFbm(80, 2, 142), lo = makeFbm(3, 3, 143);
+  return put((x, y) => { let d1 = 1e9, d2 = 1e9;
+    for (const [px, py] of pts) { let dx = Math.abs(x - px), dy = Math.abs(y - py) * 0.55; dx = Math.min(dx, N - dx); dy = Math.min(dy, N * 0.55 - dy); const d = dx * dx + dy * dy; if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+    const edge = Math.min(1, (Math.sqrt(d2) - Math.sqrt(d1)) / 9);
+    let v = 0.35 + edge * 0.55 + (fine(x, y) - 0.5) * 0.2 + (lo(x, y) - 0.5) * 0.15;
+    return [150 * v, 92 * v, 68 * v]; }); };
 window.T = T; window.READY = true;
 </script>`;
 
@@ -98,7 +112,7 @@ window.T = T; window.READY = true;
   const page = await browser.newPage();
   await page.setContent(PAGE);
   await page.waitForFunction(() => window.READY === true);
-  const names = ['paint', 'lower', 'brick', 'floor', 'wood', 'ceiling', 'concrete'];
+  const names = (process.argv[2] ? process.argv.slice(2) : ['paint', 'lower', 'brick', 'floor', 'wood', 'ceiling', 'concrete', 'bark', 'pinebark']);
   for (const n of names) {
     const url = await page.evaluate((k) => window.T[k](), n);
     fs.writeFileSync(path.join(OUT, `${n}.png`), Buffer.from(url.split(',')[1], 'base64'));
