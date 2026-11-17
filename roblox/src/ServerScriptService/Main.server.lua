@@ -37,6 +37,15 @@ pcall(function()
 end)
 local Builder = require(ServerScriptService:WaitForChild("SchoolBuilder"))
 local school = Builder.Build(workspace, true)
+-- 벽·바닥·천장에 실사 텍스처를 붙인다 (데칼 이미지를 못 불러오면 기본 재질 그대로)
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(ServerScriptService:WaitForChild("SurfaceTextures")).Apply(school)
+	end)
+	if not ok then
+		warn("[SurfaceTextures] " .. tostring(err))
+	end
+end)
 workspace:SetAttribute("MapReady", true)
 
 local function tagged(tag)

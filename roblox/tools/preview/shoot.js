@@ -25,6 +25,7 @@ function resolve(url) {
   if (url === '/text_atlas.json') return path.join(ROOT, 'build', 'text_atlas.json');
   if (url.startsWith('/text_atlas/')) return path.join(ROOT, 'text_atlas', path.basename(url));
   if (url === '/assets_meta.json') return path.join(ROOT, 'build', 'assets_meta.json');
+  if (url.startsWith('/textures/')) return path.join(ROOT, 'textures', path.basename(url));
   return null;
 }
 

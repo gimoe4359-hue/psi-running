@@ -3602,7 +3602,6 @@ grp('MainBuilding', () => {
       P('HourHand', [0.36, 2.6, 0.12], [hx, hy, cz2 + 0.5], [26, 22, 20], 'Metal', { r: [0, 0, hourA], tag: 'ClockHour', nc: true, ns: true });
       P('MinuteHand', [0.24, 3.9, 0.12], [mx, my, cz2 + 0.6], [26, 22, 20], 'Metal', { r: [0, 0, minA], tag: 'ClockMinute', nc: true, ns: true });
       P('Pin', [0.15, 0.5, 0.5], [0, cy, cz2 + 0.7], [190, 160, 70], 'Metal', { sh: 'Cylinder', r: [0, 90, 0], nc: true, ns: true });
-      B('Emblem', -2.6, ROOFY + 1.2, cz2 - 0.35, 2.6, ROOFY + 2.6, cz2 - 0.05, [40, 60, 110], 'SmoothPlastic', { text: { face: 'Back', text: 'SINCE 1974', color: [230, 220, 180], bgT: 1, font: 'Merriweather' } });
       cylV('Antenna', 6, ROOFY + 15.2, ZS - 2, 8, 0.25, C.steel, 'Metal');
     });
   });

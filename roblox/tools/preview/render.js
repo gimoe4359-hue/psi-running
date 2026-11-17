@@ -236,18 +236,48 @@ const toggleRoot = (key) => {
 };
 const rootFor = (gi) => { const mv = movableOf(gi); if (mv) return movRoots[mv]; const tg = toggleOf(gi); return tg ? toggleRoot(tg) : scene; };
 const roomOf = (gi) => { const m = groupPath[gi].match(/^School\/MainBuilding\/F\d\/([^/]+)/); return m ? m[1] : null; };
+// ───────── 실사 텍스처 (SurfaceTextures.lua 와 같은 규칙) ─────────
+const SURF = { paint: [12, 12], lower: [8, 8], brick: [3.0, 3.6], floor: [6, 6], wood: [5, 5], ceiling: [4, 4], concrete: [10, 10] };
+const SURF_FLOOR = { CorridorFloor: 'floor', HallFloor: 'floor', Landing: 'floor', StairFloor: 'floor', WingFloor: 'wood', Floor: 'wood' };
+const SURF_ON = new URLSearchParams(location.search).get('surf') !== '0';
+const surfTex = {};
+if (SURF_ON) {
+  const ld = new THREE.TextureLoader();
+  await Promise.all(Object.keys(SURF).map(async (k) => {
+    try { const t = await ld.loadAsync(`/textures/${k}.png`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; surfTex[k] = t; } catch (e) { /* 없으면 기본 재질 */ }
+  }));
+}
+function surfKind(p) {
+  if (!SURF_ON || p.t > 0.05 || p.s[0] * p.s[1] * p.s[2] < 2) return null;
+  const g = groupPath[p.g];
+  if (!(g.startsWith('School/MainBuilding') || g.startsWith('School/Gym'))) return null;
+  let k = null;
+  if (SURF_FLOOR[p.name]) k = SURF_FLOOR[p.name];
+  else if (p.name === 'CeilingTile') k = 'ceiling';
+  else if (p.name === 'Wainscot') k = 'lower';
+  else if (p.mat === 'Brick') k = 'brick';
+  else if (p.mat === 'Plaster') k = 'paint';
+  else if (p.mat === 'Concrete' && ['FloorBand', 'Sunshade', 'SunshadeLip', 'GymBand', 'ParapetCap', 'Canopy'].includes(p.name)) k = 'concrete';
+  return k && surfTex[k] ? k : null;
+}
 const buckets = {};
 P.forEach((p, i) => {
   if (p.flags & 8 || p.t >= 0.99) return;
   if (swapped.has(p.g) && !(swapShow[p.g] || []).includes(p.name)) return;
-  const key = `${movableOf(p.g) || ''}|${toggleOf(p.g) || ''}|${p.mat}|${Math.round(p.t * 20)}|${Math.round(p.refl * 10)}`;
+  if (p.name === 'TBar' && surfTex.ceiling) return;
+  const key = `${movableOf(p.g) || ''}|${toggleOf(p.g) || ''}|${p.mat}|${Math.round(p.t * 20)}|${Math.round(p.refl * 10)}|${surfKind(p) || ''}`;
   (buckets[key] = buckets[key] || []).push(i);
 });
 for (const key in buckets) {
-  const [mv, tg, mat, tq, rq] = key.split('|');
+  const [mv, tg, mat, tq, rq, sk] = key.split('|');
   const ids = buckets[key];
   for (let k = 0; k < ids.length; k += 6000) {
-    const mesh = new THREE.Mesh(mergeGeometries(ids.slice(k, k + 6000).map((i) => partGeometry(P[i]))), makeMaterial(mat, +tq / 20, +rq / 10));
+    let mtl;
+    if (sk) {
+      const t = surfTex[sk].clone(); t.repeat.set(1 / SURF[sk][0], 1 / SURF[sk][1]); t.needsUpdate = true;
+      mtl = new THREE.MeshStandardMaterial({ map: t, roughness: sk === 'floor' ? 0.45 : sk === 'lower' ? 0.55 : 0.9, metalness: 0, envMapIntensity: 0.6 });
+    } else mtl = makeMaterial(mat, +tq / 20, +rq / 10);
+    const mesh = new THREE.Mesh(mergeGeometries(ids.slice(k, k + 6000).map((i) => partGeometry(P[i]))), mtl);
     mesh.castShadow = mat !== 'Glass' && mat !== 'Neon' && +tq < 10;
     mesh.receiveShadow = true;
     if (+tq > 0) mesh.renderOrder = 2;
