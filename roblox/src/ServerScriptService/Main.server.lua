@@ -41,6 +41,7 @@ local school = Builder.Build(workspace, true)
 task.spawn(function()
 	local ok, err = pcall(function()
 		require(ServerScriptService:WaitForChild("SurfaceTextures")).Apply(school)
+		require(ServerScriptService:WaitForChild("SurfaceTextures")).ApplyLeaves(school)
 	end)
 	if not ok then
 		warn("[SurfaceTextures] " .. tostring(err))

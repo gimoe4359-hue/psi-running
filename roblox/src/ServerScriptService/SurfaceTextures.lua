@@ -159,4 +159,38 @@ function SurfaceTextures.Apply(root)
 	return count
 end
 
+-- 나무 잎 뭉치: 투명한 판(LeafG/LeafZ/LeafP)의 앞뒤에 잎 그림을 붙인다.
+-- 그림을 못 불러오면 판을 반투명한 잎 색으로 보이게 해 나무가 앙상해지지 않게 한다.
+local LEAF_FALLBACK = { LeafG = Color3.fromRGB(226, 182, 48), LeafZ = Color3.fromRGB(186, 96, 40), LeafP = Color3.fromRGB(44, 72, 46) }
+function SurfaceTextures.ApplyLeaves(root)
+	local images = {}
+	for name, did in pairs(Config.LEAF_DECALS or {}) do
+		images[name] = resolve(did)
+	end
+	local n = 0
+	for _, p in ipairs(root:GetDescendants()) do
+		if p:IsA("BasePart") and LEAF_FALLBACK[p.Name] then
+			local image = images[p.Name]
+			if image then
+				for _, face in ipairs({ Enum.NormalId.Front, Enum.NormalId.Back }) do
+					local d = Instance.new("Decal")
+					d.Texture = image
+					d.Face = face
+					d.Color3 = p.Color
+					d.Parent = p
+				end
+			else
+				p.Transparency = 0.35
+				p.Color = LEAF_FALLBACK[p.Name]
+				p.Material = Enum.Material.LeafyGrass
+			end
+			n = n + 1
+			if n % 400 == 0 then
+				task.wait()
+			end
+		end
+	end
+	return n
+end
+
 return SurfaceTextures

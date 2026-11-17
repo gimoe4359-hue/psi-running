@@ -45,6 +45,8 @@ Config.TEXT_ATLAS_IDS = { 0, 0, 0, 0 }
 -- 위 TEXT_ATLAS_IDS 에 이미지 ID 를 직접 넣으면 그쪽이 먼저 쓰인다.
 Config.TEXT_ATLAS_DECAL_IDS = { 75904825982096, 116811792359111, 116869249478191, 77362890761808 }
 -- 벽·바닥·천장 실사 텍스처 (tools/make_textures.js 로 만들어 aied0 계정에 데칼로 올림). 0 이면 기본 재질 그대로
+-- 나뭇잎 뭉치 그림 (tools/make_leaves.js, 투명 배경). 나무의 LeafG/LeafZ/LeafP 판에 붙는다
+Config.LEAF_DECALS = { LeafG = 74745740424068, LeafZ = 82472763357930, LeafP = 94881683993132 }
 Config.SURFACE_TEXTURE_DECALS = {
 	paint = 129088089710208, -- 칠한 콘크리트 벽
 	lower = 124372305476660, -- 회색 아랫벽

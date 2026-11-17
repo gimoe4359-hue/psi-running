@@ -260,6 +260,28 @@ function surfKind(p) {
   else if (p.mat === 'Concrete' && ['FloorBand', 'Sunshade', 'SunshadeLip', 'GymBand', 'ParapetCap', 'Canopy'].includes(p.name)) k = 'concrete';
   return k && surfTex[k] ? k : null;
 }
+// ───────── 나뭇잎 판 (LeafCards: 투명 판 + 잎 그림) ─────────
+const LEAF_IMG = { LeafG: 'leaf_ginkgo', LeafZ: 'leaf_zelkova', LeafP: 'leaf_pine' };
+{
+  const ld = new THREE.TextureLoader(), groupsL = {};
+  P.forEach((p) => { if (LEAF_IMG[p.name]) (groupsL[p.name] = groupsL[p.name] || []).push(p); });
+  for (const nm in groupsL) {
+    let tex = null;
+    try { tex = await ld.loadAsync(`/textures/${LEAF_IMG[nm]}.png`); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; } catch (e) { continue; }
+    const geos = groupsL[nm].map((p) => {
+      const g = new THREE.PlaneGeometry(p.s[0], p.s[1]);
+      g.applyMatrix4(partMatrix(p));
+      const col = new Float32Array(g.attributes.position.count * 3);
+      for (let k = 0; k < col.length; k += 3) { col[k] = p.color.r; col[k + 1] = p.color.g; col[k + 2] = p.color.b; }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      return g;
+    });
+    const mesh = new THREE.Mesh(mergeGeometries(geos), new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.45, side: THREE.DoubleSide, vertexColors: true, roughness: 0.85 }));
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.45 });
+    scene.add(mesh);
+  }
+}
 const buckets = {};
 P.forEach((p, i) => {
   if (p.flags & 8 || p.t >= 0.99) return;
