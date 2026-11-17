@@ -1711,11 +1711,18 @@ grp('Grounds', () => {
 });
 
 // ═════════════════════════ 5. 체육관 (아치 지붕) ═════════════════════════
+const BRICK = [146, 74, 54], BRICK_G = [150, 80, 60];
 grp('Gym', () => {
   const x0 = 104, x1 = 200, z0 = -100, z1 = -30, H = 20;
   const wc = [214, 208, 196];
   B('Floor', x0, 0, z0, x1, 1, z1, [196, 156, 104], 'WoodPlanks');
-  B('Base', x0 - 0.3, 0, z0 - 0.3, x1 + 0.3, 3, z1 + 0.3, C.brick, 'Brick');
+  // 벽 아래 받침: 벽 바깥 둘레만 (예전엔 바닥 전체를 덮어 실내 바닥이 벽돌로 보였음)
+  B('Base', x0 - 0.3, 0, z1 - 0.8, x1 + 0.3, 3, z1 + 0.3, C.brick, 'Brick');
+  B('Base', x0 - 0.3, 0, z0 - 0.3, x1 + 0.3, 3, z0 + 0.8, C.brick, 'Brick');
+  B('Base', x1 - 0.8, 0, z0, x1 + 0.3, 3, z1, C.brick, 'Brick');
+  B('Base', x0 - 0.3, 0, z0, x0 + 0.8, 3, -72, C.brick, 'Brick');
+  B('Base', x0 - 0.3, 0, -58, x0 + 0.8, 3, z1, C.brick, 'Brick');
+  B('Threshold', x0 - 0.3, 0, -72, x0 + 0.8, 1.05, -58, [150, 146, 140], 'Granite');
   const holesX = [];
   for (let x = x0 + 4; x < x1 - 8; x += 10) holesX.push({ u0: x, u1: x + 7, v0: 11, v1: 17 });
   [[z1 - 0.8, z1], [z0, z0 + 0.8]].forEach(([a, b]) => {
@@ -1724,8 +1731,22 @@ grp('Gym', () => {
   });
   wallHoles('Wall', 'z', z0, z1, 3, H, x0, x0 + 0.8, [{ u0: -72, u1: -58, v0: 3, v1: 12 }], wc, 'Plaster');
   wallHoles('Wall', 'z', z0, z1, 3, H, x1 - 0.8, x1, [], wc, 'Plaster');
-  B('DoorL', x0 - 0.2, 1, -72, x0 + 0.2, 12, -65, [90, 120, 140], 'Glass', { t: 0.4, refl: 0.2 });
-  B('DoorR', x0 - 0.2, 1, -65, x0 + 0.2, 12, -58, [90, 120, 140], 'Glass', { t: 0.4, refl: 0.2 });
+  // 출입구: 알루미늄 틀 + 양옆 고정 유리 + 가운데 유리 여닫이문 두 짝 (누르면 열림)
+  {
+    const al = C.alumDark, gl = [130, 160, 170], xf = x0 + 0.4;
+    [-72, -68.5, -61.5, -58.15].forEach((z) => B('GymDoorFrame', xf - 0.2, 1, z, xf + 0.2, 12, z + 0.15, al, 'Metal'));
+    B('GymDoorFrame', xf - 0.2, 9.4, -72, xf + 0.2, 9.7, -58, al, 'Metal');
+    [[-71.85, -68.5], [-61.5, -58.15]].forEach(([a, b]) => { B('GymSideGlass', xf - 0.05, 1, a, xf + 0.05, 9.4, b, gl, 'Glass', { t: 0.55, refl: 0.15 }); });
+    B('GymTransom', xf - 0.05, 9.7, -71.85, xf + 0.05, 12, -58.15, gl, 'Glass', { t: 0.55, refl: 0.15 });
+    [[-68.35, -65, -68.35, 95], [-65, -61.65, -61.65, -95]].forEach(([a, b, hz, sw], i) => hingeDoor(`GymDoor${i + 1}`, [xf - 0.15, 1.05, a, xf + 0.15, 9.4, b], [xf, hz], sw, {}, () => {
+      B('GymDoorGlass', xf - 0.04, 1.5, a + 0.2, xf + 0.04, 9.2, b - 0.2, gl, 'Glass', { t: 0.55, refl: 0.15, nc: true });
+      [[a, a + 0.2], [b - 0.2, b]].forEach(([u0, u1]) => B('GymDoorStile', xf - 0.1, 1.05, u0, xf + 0.1, 9.4, u1, al, 'Metal', { nc: true }));
+      B('GymDoorRail', xf - 0.1, 1.05, a, xf + 0.1, 1.5, b, al, 'Metal', { nc: true });
+      B('GymDoorRail', xf - 0.1, 9.2, a, xf + 0.1, 9.4, b, al, 'Metal', { nc: true });
+      const pz = i ? a + 0.5 : b - 0.5;
+      [xf - 0.3, xf + 0.3].forEach((xx) => rod('GymPull', [xx, 3.6, pz], [xx, 6.4, pz], 0.14, C.steel, 'Metal', { nc: true, ns: true }));
+    }));
+  }
   B('Canopy', x0 - 6, 12.5, -74, x0, 13.2, -56, [110, 114, 120], 'Metal');
   const R = 42, czm = (z0 + z1) / 2, half = (z1 - z0) / 2 + 1.5, cy = H - Math.sqrt(R * R - half * half);
   const a0 = Math.asin(half / R), N = 16;
@@ -1742,8 +1763,73 @@ grp('Gym', () => {
     [x0, x1 - 0.8].forEach((x) => B('Gable', x, H, czm + R * Math.sin(t) - half / 14, x + 0.8, top, czm + R * Math.sin(t) + half / 14, wc, 'Plaster'));
   }
   B('Sign', x0 - 0.3, 14, -73, x0 - 0.05, 17, -57, [30, 60, 120], 'SmoothPlastic', { text: { face: 'Left', text: '송 천 체 육 관', color: [255, 255, 255], bg: [30, 60, 120], bgT: 0, lit: 0.5 } });
-  B('Stage', x1 - 14, 1, z0 + 1, x1 - 1, 5, z1 - 1, [140, 100, 60], 'WoodPlanks');
-  B('Curtain', x1 - 2, 5, z0 + 3, x1 - 1.4, 18, z1 - 3, [130, 26, 36], 'Fabric');
+  // 바깥: 벽돌 겉면 + 흰 띠 (본관과 같은 재료)
+  wallHoles('BrickSkin', 'x', x0 - 0.24, x1 + 0.24, 3, H, z1, z1 + 0.24, holesX, BRICK_G, 'Brick');
+  wallHoles('BrickSkin', 'x', x0 - 0.24, x1 + 0.24, 3, H, z0 - 0.24, z0, holesX, BRICK_G, 'Brick');
+  wallHoles('BrickSkin', 'z', z0 - 0.24, z1 + 0.24, 3, H, x0 - 0.24, x0, [{ u0: -74.5, u1: -55.5, v0: 3, v1: 13.2 }], BRICK_G, 'Brick');
+  B('BrickSkin', x1, 3, z0 - 0.24, x1 + 0.24, H, z1 + 0.24, BRICK_G, 'Brick');
+  [[z1, z1 + 0.4], [z0 - 0.4, z0]].forEach(([a, b]) => { B('GymBand', x0 - 0.4, 9.6, a, x1 + 0.4, 10.2, b, [230, 228, 222], 'Concrete'); B('GymBand', x0 - 0.4, H - 0.4, a, x1 + 0.4, H + 0.2, b, [230, 228, 222], 'Concrete'); });
+  B('Gutter', x0 - 1.5, H - 0.2, z1 + 1.1, x1 + 1.5, H + 0.4, z1 + 1.6, [190, 192, 196], 'Metal', { nc: true });
+  B('Gutter', x0 - 1.5, H - 0.2, z0 - 1.6, x1 + 1.5, H + 0.4, z0 - 1.1, [190, 192, 196], 'Metal', { nc: true });
+  // 안: 코트 라인(농구·배구), 벽 보호 매트, 철골 트러스, 고천장 등, 시계, 점수판, 농구대, 무대
+  {
+    const Y = 1.01, lc = [236, 236, 230], so = { nc: true, ns: true, min: 0.01 };
+    const cz = (z0 + z1) / 2, cx = (x0 + x1 - 14) / 2, hx = 30, hz = 16;
+    const ln = (a0, b0, a1, b1, col = lc) => B('CourtLine', Math.min(a0, a1) - 0.08, Y, Math.min(b0, b1) - 0.08, Math.max(a0, a1) + 0.08, Y + 0.01, Math.max(b0, b1) + 0.08, col, 'SmoothPlastic', so);
+    ln(cx - hx, cz - hz, cx + hx, cz - hz); ln(cx - hx, cz + hz, cx + hx, cz + hz); ln(cx - hx, cz - hz, cx - hx, cz + hz); ln(cx + hx, cz - hz, cx + hx, cz + hz); ln(cx, cz - hz, cx, cz + hz);
+    P('CenterCircle', [0.01, 11, 11], [cx, Y + 0.005, cz], lc, 'SmoothPlastic', { ...so, sh: 'Cylinder', r: [0, 0, 90], t: 0.0 });
+    P('CenterFill', [0.012, 10.7, 10.7], [cx, Y + 0.008, cz], [196, 156, 104], 'WoodPlanks', { ...so, sh: 'Cylinder', r: [0, 0, 90] });
+    [-1, 1].forEach((sd) => {
+      const bx = cx + sd * hx;
+      B('KeyPaint', Math.min(bx, bx - sd * 17), Y, cz - 5, Math.max(bx, bx - sd * 17), Y + 0.006, cz + 5, [170, 60, 50], 'SmoothPlastic', { ...so, t: 0.2 });
+      ln(bx - sd * 17, cz - 5, bx - sd * 17, cz + 5);
+      // 벽에 붙은 접이식 농구대
+      const wx = sd < 0 ? x0 + 0.8 : x1 - 14.5, nx = sd < 0 ? 1 : -1;
+      grp('GymHoop', () => {
+        B('HoopArm', Math.min(wx, wx + nx * 4), 12.5, cz - 0.15, Math.max(wx, wx + nx * 4), 12.8, cz + 0.15, [200, 60, 50], 'Metal');
+        B('Backboard', wx + nx * 4 - 0.1, 10.5, cz - 3, wx + nx * 4 + 0.1, 14.2, cz + 3, [230, 236, 240], 'Glass', { t: 0.35, refl: 0.2 });
+        B('BoardBox', wx + nx * 4 - 0.12, 11.0, cz - 1.0, wx + nx * 4 + 0.12, 12.4, cz + 1.0, [200, 60, 50], 'SmoothPlastic', so);
+        P('Rim', [0.08, 2.0, 2.0], [wx + nx * 5.2, 11.0, cz], [220, 90, 40], 'Metal', { sh: 'Cylinder', r: [0, 0, 90], nc: true });
+        B('NetHang', wx + nx * 4.4, 9.9, cz - 0.7, wx + nx * 6.0, 11.0, cz + 0.7, [240, 240, 240], 'Fabric', { t: 0.7, nc: true, ns: true });
+      });
+    });
+    // 배구 기둥 (구석에 세워 둠)
+    [cz - hz - 2, cz + hz + 2].forEach((z) => cylV('VolleyPole', cx, 1, z, 9, 0.4, [60, 90, 160], 'Metal'));
+    // 벽 보호 매트 (파란 쿠션)
+    [[z0 + 0.8, 1], [z1 - 0.8, -1]].forEach(([zf, n]) => { for (let x = x0 + 2; x < x1 - 16; x += 4.2) B('WallPad', x, 1, Math.min(zf, zf + n * 0.4), x + 4, 7, Math.max(zf, zf + n * 0.4), [40, 80, 150], 'Fabric'); });
+    // 아치 철골 트러스 (지붕 아래) + 고천장 등
+    for (let x = x0 + 6; x < x1 - 2; x += 12) {
+      for (let i = 0; i < 12; i++) {
+        const t0 = -a0 + (2 * a0 * i) / 12, t1 = -a0 + (2 * a0 * (i + 1)) / 12;
+        const p0 = [x, cy + (R - 1.2) * Math.cos(t0), czm + (R - 1.2) * Math.sin(t0)], p1 = [x, cy + (R - 1.2) * Math.cos(t1), czm + (R - 1.2) * Math.sin(t1)];
+        rod('Truss', p0, p1, 0.35, [70, 80, 96], 'Metal', { nc: true, box: true });
+        const q0 = [x, cy + (R - 2.6) * Math.cos(t0), czm + (R - 2.6) * Math.sin(t0)];
+        rod('TrussWeb', p0, q0, 0.15, [70, 80, 96], 'Metal', { nc: true, ns: true });
+        rod('TrussLow', q0, [x, cy + (R - 2.6) * Math.cos(t1), czm + (R - 2.6) * Math.sin(t1)], 0.25, [70, 80, 96], 'Metal', { nc: true, ns: true, box: true });
+      }
+      [cz - 12, cz, cz + 12].forEach((z, k) => grp('HighBay', () => {
+        const yy = cy + (R - 2.8) * Math.cos(Math.asin((z - czm) / (R - 2.8)));
+        cylBetween('LampWire', [x, yy, z], [x, yy - 2.5, z], 0.05, [30, 30, 30], 'Metal', { nc: true, ns: true });
+        P('LampShade', [1.0, 1.8, 1.8], [x, yy - 3.0, z], [180, 184, 190], 'Metal', { sh: 'Cylinder', r: [0, 0, 90], nc: true });
+        P('LampGlow', [0.05, 1.4, 1.4], [x, yy - 3.52, z], [255, 246, 220], 'Neon', { sh: 'Cylinder', r: [0, 0, 90], nc: true, ns: true,
+          light: k === 1 ? { type: 'Spot', face: 'Bottom', range: 30, angle: 90, brightness: 0, color: [255, 240, 210], enabled: false } : undefined });
+      }));
+    }
+    // 무대: 나무 무대 + 앞 계단 + 붉은 커튼 + 태극기·교기 + 강단
+    B('Stage', x1 - 14, 1, z0 + 1, x1 - 1, 5, z1 - 1, [150, 108, 66], 'WoodPlanks');
+    B('StageSkirt', x1 - 14.1, 1, z0 + 1, x1 - 14, 5, z1 - 1, [110, 30, 36], 'Fabric', { nc: true });
+    for (let k = 0; k < 4; k++) B('StageStep', x1 - 14 - (4 - k) * 0.9, 1, cz - 3, x1 - 14, 1 + (k + 1), cz + 3, [150, 108, 66], 'WoodPlanks');
+    for (let q = 0; q < 16; q++) rod('StageCurtain', [x1 - 2, 18, z0 + 3 + q * 4.0], [x1 - 2 + (q % 2 ? 0.2 : -0.2), 5, z0 + 3 + q * 4.0], 2.2, [130, 26, 36], 'Fabric', { nc: true, ns: q % 2 === 1 });
+    B('Valance', x1 - 3, 16.5, z0 + 1, x1 - 1.4, 18.5, z1 - 1, [110, 20, 30], 'Fabric', { nc: true });
+    B('Podium', x1 - 9, 5, cz - 1.2, x1 - 7.4, 8.4, cz + 1.2, [120, 84, 54], 'Wood');
+    B('SchoolFlag', x1 - 1.3, 9, cz + 6, x1 - 1.2, 13, cz + 11, [30, 60, 140], 'Fabric', { text: { face: 'Left', text: '송천', color: [240, 220, 120], bgT: 1 } });
+    // 시계·점수판 (입구 맞은편 벽 위)
+    B('Scoreboard', x0 + 0.85, 13, cz - 4, x0 + 1.1, 16, cz + 4, [20, 20, 22], 'SmoothPlastic');
+    B('ScoreDigits', x0 + 1.1, 13.6, cz - 3.4, x0 + 1.12, 15.4, cz + 3.4, [20, 20, 22], 'Neon', { nc: true, ns: true, text: { face: 'Right', text: 'HOME 00 : 00 GUEST', color: [255, 70, 50], bgT: 1, lit: 0, font: 'GothamBlack' } });
+  }
+  // 안쪽 벽 아래 흔적
+  wallWear('x', x0 + 1, x1 - 15, z0 + 0.8, 1, 1, H, [], { yMax: 10.5 });
+  wallWear('x', x0 + 1, x1 - 15, z1 - 0.8, -1, 1, H, [], { yMax: 10.5 });
 });
 
 // ═════════════════════════ 6. 본관 ═════════════════════════
@@ -1766,7 +1852,7 @@ for (let f = 0; f < 3; f++) for (let i = 0; i < 4; i++) {
   rooms.push({ xa: xaL, xb: xbL, f, L: LV[f], name: ROOMS[f].L[i], wing: 'L', i });
   rooms.push({ xa: xaR, xb: xbR, f, L: LV[f], name: ROOMS[f].R[i], wing: 'R', i });
 }
-const BRICK = [146, 74, 54];
+
 const isClass = (n) => /^\d-\d$/.test(n);
 // 방마다 복도 쪽 문 자리 [x0, x1]. 화장실은 남자(서쪽 반)·여자(동쪽 반) 문이 따로 있다
 const WC_DOOR = 3.3;
