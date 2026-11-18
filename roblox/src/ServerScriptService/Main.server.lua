@@ -174,6 +174,9 @@ function api.addSanity(player, delta, reason)
 	if not player:GetAttribute("IntroDone") or player:GetAttribute("Ended") then
 		return
 	end
+	if delta < 0 then
+		delta = delta * (Config.SANITY_DAMAGE_SCALE or 1)
+	end
 	local s = math.clamp((player:GetAttribute("Sanity") or Config.START_SANITY) + delta, 0, 100)
 	player:SetAttribute("Sanity", s)
 	if reason then
@@ -275,9 +278,10 @@ local function onHourPassed(h)
 			end
 		end
 		if done < 3 then
-			api.addSanity(p, -Config.PATROL_MISS_PENALTY, string.format("순찰을 다 돌지 못했다 (%d/3). 어딘가에서 발소리가 따라온다…", done))
+			api.addSanity(p, -Config.PATROL_MISS_PENALTY, string.format("순찰을 다 돌지 못했다 (%d/3). …불안하다.", done))
 		else
-			api.say(p, "순찰 완료. 무사히 한 시간을 넘겼다.", 3, "green")
+			api.addSanity(p, Config.PATROL_DONE_BONUS or 0)
+			api.say(p, "순찰 완료. 무사히 한 시간을 넘겼다. 조금 마음이 놓인다.", 3, "green")
 		end
 		resetPatrol(p)
 	end
@@ -538,6 +542,30 @@ for _, part in ipairs(tagged("LockedDoor")) do
 	setupLocked(part)
 end
 CollectionService:GetInstanceAddedSignal("LockedDoor"):Connect(setupLocked)
+
+-- 옥상 철문: 남쪽 모서리를 축으로 바깥(서쪽)으로 열린다
+do
+	local door = first("RoofDoor")
+	if door then
+		local closed = door.CFrame
+		local hinge = closed * CFrame.new(0, 0, door.Size.Z / 2) -- 문 한쪽 끝
+		local openCF = hinge * CFrame.Angles(0, math.rad(100), 0) * hinge:ToObjectSpace(closed)
+		local isOpen = false
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = "문 열기"
+		prompt.ObjectText = "옥상 문"
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 8
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = door
+		prompt.Triggered:Connect(function()
+			isOpen = not isOpen
+			prompt.ActionText = isOpen and "문 닫기" or "문 열기"
+			TweenService:Create(door, TweenInfo.new(0.9, Enum.EasingStyle.Sine), { CFrame = isOpen and openCF or closed }):Play()
+			playSound("DoorSlide", door)
+		end)
+	end
+end
 
 -- ───────── 교실 전등 스위치 ─────────
 -- 앞문 옆 스위치로 그 방의 형광등(Tube)과 조명을 켜고 끈다.

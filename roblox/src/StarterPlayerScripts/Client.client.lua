@@ -675,55 +675,63 @@ local function rideCinematic()
 	return gateOpened
 end
 
--- 처음 들어올 때: 검은 화면에 이야기 (공유가 오래된 학교로 출근 → 수칙 → 당근에 대타 5명 구함 → 도망)
+-- 처음 들어올 때: 오프닝. 실제 학교 곳곳을 카메라가 천천히 비추고, 게임 자막으로 이야기를 들려준다 (건너뛰기 가능)
 local function runPrologue()
-	local lines = Config.PROLOGUE or {}
-	if #lines == 0 then
+	local shots = Config.PROLOGUE or {}
+	if #shots == 0 then
 		return
 	end
-	local story = make("TextLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.47), Size = UDim2.new(0.8, 0, 0.3, 0), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 30, TextColor3 = Color3.fromRGB(232, 232, 232), TextWrapped = true, Text = "", ZIndex = 53 }, gui)
-	local tag = make("TextLabel", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0.47, -70), Size = UDim2.new(0.8, 0, 0, 22), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, TextSize = 17, TextColor3 = Color3.fromRGB(130, 130, 130), Text = "", ZIndex = 53 }, gui)
-	local skip = make("TextButton", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -28, 1, -24), Size = UDim2.new(0, 130, 0, 34), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 18, TextColor3 = Color3.fromRGB(150, 150, 150), Text = "건너뛰기  ▶", ZIndex = 55 }, gui)
+	local skip = make("TextButton", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -28, 1, -24), Size = UDim2.new(0, 130, 0, 34), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 18, TextColor3 = Color3.fromRGB(170, 170, 170), TextStrokeTransparency = 0.6, Text = "건너뛰기  ▶", ZIndex = 55 }, gui)
 	local skipped = false
 	skip.MouseButton1Click:Connect(function()
 		skipped = true
 	end)
-	local STYLE = {
-		text = { Color3.fromRGB(232, 232, 232), "" },
-		msg = { Color3.fromRGB(196, 214, 236), "문자 메시지" },
-		post = { Color3.fromRGB(255, 186, 120), "당근 · 알바 구인" },
-		red = { Color3.fromRGB(200, 34, 34), "" },
-	}
-	for _, L in ipairs(lines) do
+	camera.CameraType = Enum.CameraType.Scriptable
+	-- 오프닝 동안만 화면을 조금 밝게 (이야기 장면이 보이도록)
+	local savedExposure = Lighting.ExposureCompensation
+	Lighting.ExposureCompensation = savedExposure + 0.9
+	tween(barTop, 0.8, { Position = UDim2.fromScale(0, 0) })
+	tween(barBottom, 0.8, { Position = UDim2.fromScale(0, 0.89) })
+	for _, sh in ipairs(shots) do
 		if skipped then
 			break
 		end
-		local st = STYLE[L[3] or "text"] or STYLE.text
-		story.TextColor3 = st[1]
-		story.Text = L[1]
-		tag.Text = st[2]
-		story.TextTransparency = 0
-		tag.TextTransparency = 0
-		-- 한 글자씩 찍히듯
-		local n = utf8.len(L[1]) or #L[1]
-		story.MaxVisibleGraphemes = 0
-		local t0, dur = os.clock(), math.min(1.4, n * 0.045)
-		while os.clock() - t0 < dur and not skipped do
-			story.MaxVisibleGraphemes = math.floor(n * (os.clock() - t0) / dur)
+		if sh.from then
+			camera.CFrame = CFrame.lookAt(sh.from, sh.look)
+			camera.FieldOfView = 55
+			flash.Enabled = sh.flashlight == true
+			fade.BackgroundTransparency = 0 -- 장면마다 검은 화면에서 밝아진다
+			tween(fade, 0.9, { BackgroundTransparency = 1 })
+		end
+		showSubtitle(sh.text, sh.sec - 0.4, sh.color)
+		local t0 = os.clock()
+		while os.clock() - t0 < sh.sec and not skipped do
 			RunService.RenderStepped:Wait()
+			if sh.from then
+				local u = math.clamp((os.clock() - t0) / sh.sec, 0, 1)
+				local e = u * u * (3 - 2 * u)
+				camera.CFrame = CFrame.lookAt(sh.from:Lerp(sh.to, e), sh.look)
+			end
 		end
-		story.MaxVisibleGraphemes = -1
-		local hold = os.clock()
-		while os.clock() - hold < (L[2] or 3) and not skipped do
-			task.wait(0.05)
+		if sh.from and not skipped then
+			tween(fade, 0.5, { BackgroundTransparency = 0 }).Completed:Wait()
 		end
-		tween(story, 0.45, { TextTransparency = 1 })
-		tween(tag, 0.45, { TextTransparency = 1 })
-		task.wait(0.5)
 	end
-	story:Destroy()
-	tag:Destroy()
+	fade.BackgroundTransparency = 0
+	flash.Enabled = false
+	Lighting.ExposureCompensation = savedExposure
+	subtitle.TextTransparency = 1
+	subtitle.TextStrokeTransparency = 1
 	skip:Destroy()
+	tween(barTop, 0.6, { Position = UDim2.fromScale(0, -0.11) })
+	tween(barBottom, 0.6, { Position = UDim2.fromScale(0, 1) })
+	camera.CameraType = Enum.CameraType.Custom
+	local hum = humanoid()
+	if hum then
+		camera.CameraSubject = hum
+	end
+	camera.FieldOfView = Config.FIELD_OF_VIEW
+	task.wait(0.3)
 end
 
 local function runLobby()

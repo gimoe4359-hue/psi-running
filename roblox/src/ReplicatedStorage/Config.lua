@@ -36,7 +36,11 @@ Config.FIRST_ANOMALY_DELAY = 20
 
 -- ───────── 정신력 ─────────
 Config.START_SANITY = 100
-Config.PATROL_MISS_PENALTY = 15
+Config.PATROL_MISS_PENALTY = 10
+-- 정신력이 깎일 때 이만큼만 깎인다 (0.6 = 원래의 60%). 낮출수록 오래 버틴다
+Config.SANITY_DAMAGE_SCALE = 0.6
+-- 순찰을 다 돌면 정신력 회복
+Config.PATROL_DONE_BONUS = 6
 
 -- ───────── 소리 (선택) ─────────
 -- Creator Store에서 쓸 수 있는 사운드 ID를 넣으면 재생됩니다. 0이면 자막만 나와요.
@@ -66,7 +70,7 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상·출근 차량 SUV) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 134995537311448
+Config.MESH_PACK_ID = 101092188577697
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
@@ -138,19 +142,23 @@ Config.AFTER_INTRO_LINES = {
 	{ 14.0, "쪽지 옆에 '근무 수칙'이 붙어 있다. 꼭 읽어 보자. [R]" },
 }
 
--- ───────── 처음 들어올 때 나오는 이야기 (프롤로그) ─────────
--- { 글, 보여 줄 초, 모양 } 모양: "text"(기본) / "msg"(휴대폰 문자) / "post"(알바 구인 글) / "red"(빨간 글)
+-- ───────── 처음 들어올 때 나오는 오프닝 (실제 학교를 카메라로 비추며 자막) ─────────
+-- text: 자막, sec: 보여 줄 초, color: 자막 색(white/static/red), from→to: 카메라가 천천히 움직이는 길, look: 바라보는 곳
+-- flashlight: 그 장면에서 카메라에 손전등을 켠다. from 이 없으면 검은 화면에 자막만
 Config.PROLOGUE = {
-	{ "[싸이 경비용역]\n공유 씨, 오늘 밤부터 송천고등학교 야간 경비입니다.\n22시까지 출근 바랍니다.", 4.2, "msg" },
-	{ "송천고등학교.\n작년에 새로 지은, 최신식 학교다.", 3.6 },
-	{ "그날 밤 공유가 찾아간 곳은\n낡고 오래된 학교였다.", 3.8 },
-	{ "공유는 눈치채지 못했다.", 2.8 },
-	{ "경비실 책상 위에는 이상한 '근무 수칙'이 붙어 있었다.", 3.4 },
-	{ "4. 4층은 없습니다.", 2.6, "red" },
-	{ "겁에 질린 공유는 당근에 글을 올렸다.", 3.0 },
-	{ "[급구] 학교 야간 경비 대타 5명\n오늘 22:00 ~ 06:00 · 시급 30,000원\n송천고 앞 편의점에서 만나요", 4.6, "post" },
-	{ "그리고 공유는 도망쳤다.", 3.0 },
-	{ "지원자 5명.", 2.6 },
+	{ text = "[싸이 경비용역] 공유 씨, 오늘 밤부터 송천고등학교 야간 경비입니다.", sec = 5.2, color = "static",
+		from = Vector3.new(0, 7, 126), to = Vector3.new(0, 7, 113), look = Vector3.new(0, 13, -130) },
+	{ text = "송천고등학교. 작년에 새로 지은 최신식 학교… 라고 들었다.", sec = 4.6,
+		from = Vector3.new(12, 6, 62), to = Vector3.new(7, 6, 24), look = Vector3.new(0, 16, -130) },
+	{ text = "그날 밤 공유가 찾아간 곳은, 낡고 오래된 학교였다. 공유는 눈치채지 못했다.", sec = 5.6,
+		from = Vector3.new(-42, 3.5, -96), to = Vector3.new(-27, 3.5, -104), look = Vector3.new(-10, 22, -136) },
+	{ text = "경비실 벽에는 이상한 '근무 수칙'이 붙어 있었다.", sec = 4.6, flashlight = true,
+		from = Vector3.new(29.4, 6.4, 84.4), to = Vector3.new(31.0, 6.2, 83.3), look = Vector3.new(37.5, 5.9, 81.3) },
+	{ text = "4. 4층은 없습니다.", sec = 3.8, color = "red", flashlight = true,
+		from = Vector3.new(-2, 31.6, -167.1), to = Vector3.new(-16, 31.6, -167.2), look = Vector3.new(-120, 30.8, -167.6) },
+	{ text = "겁에 질린 공유는 당근에 대타 5명을 구하는 글을 올리고… 차도 버려 둔 채 도망쳤다.", sec = 5.8,
+		from = Vector3.new(65, 4.6, 51), to = Vector3.new(60, 4.2, 46.5), look = Vector3.new(49.65, 2.6, 62) },
+	{ text = "지원자 5명. 오늘 밤 10시, 송천고 앞 편의점.", sec = 3.6 },
 }
 
 return Config
