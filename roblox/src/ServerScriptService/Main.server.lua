@@ -667,6 +667,7 @@ end
 -- 도착하면 서버가 모두를 자리에서 내려 경비실로 옮긴 뒤 근무를 시작한다.
 -- 상태는 workspace 속성으로 알린다: SUVState(waiting/countdown/driving/arrived), SUVDepartAt, SUVTripStart, SUVSeat1~5(이름)
 local IntroPath = require(ReplicatedStorage:WaitForChild("IntroPath"))
+local GuardOutfit = require(ServerScriptService:WaitForChild("GuardOutfit"))
 local suv = school:FindFirstChild("IntroCar")
 local rideSeats = {}
 local lobbyCF, parkedCF
@@ -753,6 +754,10 @@ local function finishIntro(player)
 		hrp.Anchored = false
 	end
 	api.teleportToBooth(player)
+	-- 경비실에 도착하면 경비복으로 갈아입는다 (로비·차 안에서는 자기 옷)
+	if Config.GUARD_OUTFIT and player.Character then
+		task.spawn(GuardOutfit.Apply, player, player.Character)
+	end
 	startShift()
 end
 
@@ -891,7 +896,6 @@ Players.PlayerRemoving:Connect(function(p)
 end)
 
 -- ───────── 플레이어 ─────────
-local GuardOutfit = require(ServerScriptService:WaitForChild("GuardOutfit"))
 
 local function onCharacter(player, character)
 	local hrp = character:WaitForChild("HumanoidRootPart", 10)
@@ -912,8 +916,8 @@ local function onCharacter(player, character)
 			end
 		end)
 	end)
-	if Config.GUARD_OUTFIT then
-		GuardOutfit.Apply(player, character)
+	if Config.GUARD_OUTFIT and player:GetAttribute("IntroDone") then
+		GuardOutfit.Apply(player, character) -- 이미 근무 중(다시 살아남·새 밤)이면 바로 경비복
 	end
 	-- 가슴 앞에 든 손전등 (다른 플레이어에게 보이는 불빛). 내 화면에선 카메라에 붙은 손전등을 쓴다
 	local fl = Instance.new("Part")

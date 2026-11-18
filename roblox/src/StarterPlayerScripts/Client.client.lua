@@ -775,6 +775,9 @@ local function runLobby()
 	else
 		showSubtitle("차를 놓쳐서 택시 타고 왔다… 경비실이 여기구나.", 4)
 		task.delay(4.5, function()
+			showSubtitle("경비실 옷걸이에 경비복이 걸려 있다. 갈아입었다.", 3.6)
+		end)
+		task.delay(8.5, function()
 			showSubtitle(Config.AFTER_INTRO_LINES[#Config.AFTER_INTRO_LINES][2], 3.6)
 		end)
 	end
