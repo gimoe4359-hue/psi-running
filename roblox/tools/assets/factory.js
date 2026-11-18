@@ -6,6 +6,7 @@ import { buildGirl } from './girl.js';
 import { buildTrees } from './trees.js';
 import { buildDesk, buildChair } from './desk.js';
 import { buildCar } from './car.js';
+import { buildStatue } from './statue.js';
 
 function mulberry(seed) {
   return () => {
@@ -24,6 +25,7 @@ export function buildTemplates(which) {
   if (want('Trees')) T.push(...buildTrees(mulberry(11)));
   if (want('StudentDesk')) T.push({ name: 'StudentDesk', keep: ['DeskTop'], meshes: buildDesk() });
   if (want('StudentChair')) T.push({ name: 'StudentChair', keep: ['Seat'], meshes: buildChair() });
+  if (want('ReadingGirl')) T.push({ name: 'ReadingGirl', keep: ['Body', 'Head'], meshes: buildStatue() });
   if (want('Sedan')) T.push({ name: 'Sedan', keep: ['Body'], show: ["HeadBeam","Plate","CabinFloor","Dash","DashTop","Cluster","Screen","SteeringWheel","Column","SeatBase","SeatBack","Headrest","RearSeat","RearBack","Console","DriverEye"], meshes: buildCar() });
   return T;
 }

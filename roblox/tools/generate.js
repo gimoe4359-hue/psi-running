@@ -3784,16 +3784,13 @@ grp('GirlStatue', () => {
   const x = -46, z = -122, bz = [118, 92, 58];
   B('Pedestal', x - 3, 0, z - 3, x + 3, 3.6, z + 3, [176, 172, 166], 'Granite', { tag: 'StatuePedestal' });
   B('PedestalCap', x - 3.3, 3.6, z - 3.3, x + 3.3, 4.0, z + 3.3, [150, 146, 140], 'Granite');
-  B('Plaque', x - 1.8, 1.0, z + 3, x + 1.8, 2.6, z + 3.08, [150, 120, 60], 'Metal', { text: { face: 'Back', text: '책 읽는 소녀\n1974', color: [40, 30, 14], bgT: 1, font: 'Merriweather' } });
+  B('Plaque', x - 1.8, 1.0, z + 3, x + 1.8, 2.6, z + 3.08, [150, 120, 60], 'Metal', { text: { face: 'Back', text: '책 읽는 소녀', color: [40, 30, 14], bgT: 1, font: 'Merriweather' } });
   grp('Figure', () => {
-    // 받침 위에 선 청동 소녀상 (메시 팩 여학생을 청동색으로 바꿔 씀). 메시가 없으면 단순한 파트 형상
-    const F = yawFrame([x, 4.0, z], 0);
-    swapAnchor(F, 'Ghost', { attr: { Scale: 1.35, Tint: '146,112,70', Show: 'Book,BookPage', Keep: 'Body,Head' } });
-    B('Body', x - 0.75, 4.0, z - 0.5, x + 0.75, 8.6, z + 0.5, bz, 'Metal', { pri: true, refl: 0.1 });
-    ball('Head', x, 9.2, z, 1.4, bz, 'Metal', { tag: 'StatueHead', refl: 0.1 });
-    // 두 손에 펼쳐 든 책
-    P('Book', [1.6, 0.1, 1.1], [x, 7.9, z + 0.75], [110, 84, 52], 'Metal', { r: [-55, 0, 0], refl: 0.15 });
-    P('BookPage', [1.5, 0.05, 1.0], [x, 7.96, z + 0.71], [128, 100, 64], 'Metal', { r: [-55, 0, 0], refl: 0.15, nc: true });
+    // 받침 위 바위에 걸터앉아 책을 읽는 청동 소녀상 (메시 팩 ReadingGirl). 메시가 없으면 단순한 파트 형상
+    const F = yawFrame([x, 4.0, z], 180); // 소녀가 보는 쪽(-Z)을 등하굣길(+Z) 쪽으로
+    swapAnchor(F, 'ReadingGirl', { attr: { Scale: 1.25 } });
+    B('Body', x - 0.75, 4.0, z - 0.6, x + 0.75, 8.2, z + 0.6, bz, 'Metal', { pri: true, refl: 0.1 });
+    ball('Head', x, 8.9, z + 0.2, 1.2, bz, 'Metal', { tag: 'StatueHead', refl: 0.1 });
   }, 'StatueFigure');
 });
 

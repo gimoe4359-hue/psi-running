@@ -62,7 +62,7 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 109476792363980
+Config.MESH_PACK_ID = 119928683061214
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
