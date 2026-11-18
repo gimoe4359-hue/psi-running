@@ -109,7 +109,9 @@ function Builder.Build(parent, yield)
 		for _, r in ipairs(list) do
 			local shape = r[15]
 			local p
-			if shape == 3 then
+			if r[2] == "RideSeat" then
+				p = Instance.new("Seat") -- 출근 차량 좌석: 서버가 Sit 으로 앉힌다
+			elseif shape == 3 then
 				p = Instance.new("WedgePart")
 			else
 				p = Instance.new("Part")
@@ -194,7 +196,8 @@ function Builder.Build(parent, yield)
 		gui.ResetOnSpawn = false
 		if T[7] == "Atlas" then
 			-- 손글씨 그림 글자 (AtlasText)
-			AtlasText.Make(T[3], gui)
+			-- 흰 글씨 그림(간판)은 데이터의 글자색으로 물들인다
+			AtlasText.Make(T[3], gui, nil, T[4] and colors[T[4]] or nil)
 		else
 			local label = Instance.new("TextLabel")
 			label.Name = "Label"

@@ -200,7 +200,7 @@ function atlasText(key, center, R, U, N, width, o = {}) {
   const h = width * e.h / e.w;
   return P(o.name || 'Writing', [width, h, 0.02], vadd(center, vmul(N, 0.02 + (o.lift || 0))), [255, 255, 255], 'SmoothPlastic',
     { t: 1, nc: true, ns: true, min: 0.01, r: eulerFromBasis(R2, U2, vcross(R2, U2)), attr: o.attr,
-      text: { face: 'Back', text: key, font: 'Atlas', bgT: 1, lit: o.lit ?? 1, pps: 60 } });
+      text: { face: 'Back', text: key, font: 'Atlas', color: o.color || [255, 255, 255], bgT: 1, lit: o.lit ?? 1, pps: 60 } });
 }
 
 // ───────────────────────── 손글씨(분필·피) ─────────────────────────
@@ -768,11 +768,19 @@ grp('Street', () => {
 grp('Town', () => {
   // ── 간판·창문 도우미 (건물 정면은 -Z, 도로 쪽) ──
   // 꺼진 간판은 색을 어둡게 (불이 꺼진 아크릴 간판처럼), 글자도 빛을 받지 않으면 안 보이게
+  // 간판 글씨는 가게마다 다른 한글 글꼴로 그린 그림(아틀라스 sign_*)을 판 앞에 붙인다. 그림이 없으면 기본 글꼴
+  const signKey = (t) => 'sign_' + Buffer.from(t).toString('hex').slice(0, 24);
   const fsign = (x0, x1, y0, y1, z, text, bg, fg = [255, 255, 255], lit = true, o = {}) => {
     const dim = lit ? bg : bg.map((v) => Math.round(v * 0.38));
     const fgc = lit ? fg : fg.map((v) => Math.round(v * 0.45));
-    return B('Sign', x0, y0, z - 0.45, x1, y1, z, dim, lit ? 'Neon' : 'SmoothPlastic', { nc: true, t: lit ? 0.08 : 0,
-      text: { face: 'Front', text, color: fgc, bg: dim, bgT: lit ? 1 : 0, lit: lit ? 0 : 1, font: o.font || 'GothamBlack', pps: o.pps || 40 } });
+    const key = signKey(text), e = ATLAS.entries[key];
+    const idx = B('Sign', x0, y0, z - 0.45, x1, y1, z, dim, lit ? 'Neon' : 'SmoothPlastic', { nc: true, t: lit ? 0.08 : 0,
+      text: e ? undefined : { face: 'Front', text, color: fgc, bg: dim, bgT: lit ? 1 : 0, lit: lit ? 0 : 1, font: o.font || 'GothamBlack', pps: o.pps || 40 } });
+    if (e) {
+      const W = x1 - x0, H = y1 - y0, asp = e.w / e.h, w = Math.min(W * 0.86, H * 0.72 * asp);
+      atlasText(key, [(x0 + x1) / 2, (y0 + y1) / 2, z - 0.45], [-1, 0, 0], [0, 1, 0], [0, 0, -1], w, { name: 'SignText', lit: lit ? 0 : 1, color: fgc, lift: 0.01 });
+    }
+    return idx;
   };;
   const vsign = (x, y0, y1, z, text, bg, fg = [255, 255, 255]) => {
     B('SignArm', x - 0.15, y1 - 0.4, z - 2.6, x + 0.15, y1 - 0.2, z, [70, 72, 76], 'Metal', { nc: true });
@@ -3803,8 +3811,59 @@ grp('GirlStatue', () => {
   }, 'StatueFigure');
 });
 
+// ───────────────────────── 출근 차량 SUV (앞 = 로컬 -Z, 좌석 5개) ─────────────────────────
+// 로비(편의점 앞 길가)에 서 있다가, 누가 타면 10초 뒤 학교로 출발한다. 메시 팩의 'SUV' 로 바뀌고, 좌석·실내·불빛은 남는다.
+function suv(name, cx, cz, ry, o = {}) {
+  return grp(name, () => {
+    const c = Math.cos((ry * Math.PI) / 180), s = Math.sin((ry * Math.PI) / 180);
+    const W = (lx, ly, lz) => [cx + lx * c + lz * s, ly + 0.22, cz - lx * s + lz * c];
+    const Q = (n, size, lp, col, mat, op = {}) => { const lr = op.r || [0, 0, 0]; return P(n, size, W(...lp), col, mat, { ...op, r: [lr[0], ry + lr[1], lr[2]] }); };
+    const paint = [24, 26, 30], glass = [26, 30, 36], seat = [46, 44, 42], trim = [30, 30, 32], beige = [196, 188, 172];
+    // 부딪힘 상자 (메시가 오면 투명하게 남는다) + 메시가 없을 때 보이는 단순한 차체
+    Q('Body', [5.7, 4.3, 14.2], [0, 3.1, 0], paint, 'SmoothPlastic', { pri: true, refl: 0.2 });
+    Q('Cabin', [5.0, 1.7, 8.8], [0, 4.4, 1.6], glass, 'Glass', { t: 0.4, nc: true });
+    [-1, 1].forEach((sx) => [-1, 1].forEach((sz) => Q('Tire', [0.8, 2.28, 2.28], [sx * 2.5, 1.14, sz * 4.18 - 0.03], [24, 24, 26], 'Rubber', { sh: 'Cylinder', nc: true })));
+    swapAnchor(yawFrame(W(0, 0, 0), ry), 'SUV');
+    // 불빛: 전조등(보이지 않는 파트의 스포트라이트), 실내등
+    [-1, 1].forEach((sx) => Q('HeadBeam', [0.4, 0.4, 0.2], [sx * 2.1, 2.75, -7.0], [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, ns: true,
+      tag: 'CarHeadlight', light: { type: 'Spot', face: 'Front', range: 60, brightness: 6, angle: 50, color: [255, 246, 226], enabled: true, shadows: true } }));
+    [-1, 1].forEach((sx) => Q('TailGlow', [0.6, 0.5, 0.1], [sx * 2.45, 3.1, 7.2], [200, 20, 24], 'Neon', { t: 0.3, nc: true, ns: true }));
+    Q('Plate', [1.62, 0.36, 0.05], [0, 1.47, -7.3], [240, 240, 236], 'SmoothPlastic', { nc: true, text: { face: 'Front', text: o.plate, color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
+    Q('Plate', [1.62, 0.36, 0.05], [0, 2.5, 7.17], [240, 240, 236], 'SmoothPlastic', { nc: true, text: { face: 'Back', text: o.plate, color: [20, 20, 20], bg: [240, 240, 236], bgT: 0, pps: 80 } });
+    // 실내: 바닥, 대시보드, 운전대, 계기판, 천장, 실내등
+    Q('CabinFloor', [5.0, 0.2, 10.4], [0, 1.6, 0.9], [34, 34, 36], 'Carpet', { nc: true });
+    Q('Dash', [5.1, 0.95, 1.2], [0, 2.95, -1.85], trim, 'Leather', { nc: true });
+    Q('DashTop', [5.1, 0.12, 0.9], [0, 3.46, -2.05], [22, 22, 24], 'Leather', { nc: true });
+    Q('Cluster', [1.3, 0.45, 0.05], [-1.35, 3.25, -1.24], [120, 180, 255], 'Neon', { nc: true, ns: true });
+    Q('Screen', [1.2, 0.62, 0.05], [0, 3.15, -1.24], [40, 70, 110], 'Neon', { nc: true, ns: true });
+    Q('SteeringWheel', [0.12, 1.4, 1.4], [-1.35, 3.0, -0.8], [20, 20, 22], 'Leather', { sh: 'Cylinder', r: [0, 90, -28], nc: true });
+    Q('Column', [0.25, 0.25, 0.7], [-1.35, 2.85, -1.15], trim, 'SmoothPlastic', { nc: true });
+    Q('Console', [0.9, 0.85, 2.4], [0, 2.1, 0.2], trim, 'SmoothPlastic', { nc: true });
+    Q('Headliner', [3.9, 0.08, 6.6], [0, 4.7, 2.6], beige, 'SmoothPlastic', { nc: true, ns: true });
+    Q('DomeLight', [0.8, 0.06, 0.5], [0, 4.64, 0.9], [255, 236, 200], 'Neon', { nc: true, ns: true, light: { type: 'Point', range: 6, brightness: 0.25, color: [255, 226, 180], shadows: false } });
+    Q('CargoFloor', [5.0, 0.2, 2.3], [0, 2.3, 5.75], [30, 30, 32], 'Carpet', { nc: true });
+    // 좌석 5개: 운전석·조수석, 뒷줄 셋 (RideSeat → 로블록스 Seat). 등받이·머리받침은 장식
+    const seats = [[-1.35, 0.35], [1.35, 0.35], [-1.65, 3.25], [0, 3.25], [1.65, 3.25]];
+    seats.forEach(([x, z], i) => {
+      const rear = i >= 2, w = rear ? 1.5 : 1.75;
+      Q('RideSeat', [w, 0.42, 1.65], [x, 1.9, z], seat, 'Leather', { attr: { SeatIndex: i + 1 } });
+      // 등받이: 가운데 쿠션 + 양옆 볼스터 + 뒷면 플라스틱 판, 머리받침은 기둥 두 개 위에
+      Q('SeatBack', [w * 0.7, 1.9, 0.36], [x, 3.0, z + 0.95], seat, 'Leather', { r: [-10, 0, 0], nc: true });
+      [-1, 1].forEach((k) => Q('SeatBack', [w * 0.17, 1.95, 0.5], [x + k * w * 0.42, 3.0, z + 0.98], seat, 'Leather', { r: [-10, k * 8, 0], nc: true }));
+      if (!rear) Q('SeatBack', [w * 0.94, 1.85, 0.08], [x, 3.0, z + 1.2], [24, 24, 26], 'SmoothPlastic', { r: [-10, 0, 0], nc: true, ns: true });
+      Q('Headrest', [w * 0.5, 0.5, 0.32], [x, 4.28, z + 1.2], seat, 'Leather', { r: [-10, 0, 0], nc: true });
+      [-1, 1].forEach((k) => Q('SeatBack', [0.06, 0.3, 0.06], [x + k * w * 0.14, 4.0, z + 1.16], [150, 152, 156], 'Metal', { nc: true, ns: true }));
+      Q('SeatBack', [w, 0.2, 1.6], [x, 1.6 + 0.12, z], [20, 20, 22], 'SmoothPlastic', { nc: true, ns: true }); // 좌석 밑 받침
+    });
+    // 문 (보이지 않는 판). 서버가 여기에 '탑승' 버튼을 단다
+    [-1, 1].forEach((sx) => Q('SUVDoor', [0.3, 3.0, 6.0], [sx * 3.05, 3.0, 1.6], [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, ns: true, tag: 'SUVDoor' }));
+  }, o.tag);
+}
+
 SHIFT = SOUTH;
-car('IntroCar', 40.5, 162, 0, [176, 180, 184], { tag: 'IntroCar', lightsOn: true, plate: '57누 2010', pov: true });
+// 로비: 한빛빌딩 편의점 앞 인도. 처음 들어온 사람은 여기서 출근 차량을 기다린다
+B('LobbySpawn', -230, 0.55, 245, -220, 0.6, 250, [255, 255, 255], 'SmoothPlastic', { t: 1, nc: true, ns: true, tag: 'LobbySpawn' });
+suv('IntroCar', -226, 236, -90, { tag: 'IntroCar', plate: '57누 2010' });
 SHIFT = null;
 
 // ═════════════════════════ 내보내기 ═════════════════════════

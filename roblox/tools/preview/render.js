@@ -217,7 +217,7 @@ if (PACK) {
 }
 
 const MOVABLE = ['School/IntroCar', 'School/Gate/MainGate'];
-const ORIGIN = { 'School/IntroCar': [40.5, 0, 62], 'School/Gate/MainGate': [0, 0, 0] };
+const ORIGIN = { 'School/IntroCar': [-226, 0, 136], 'School/Gate/MainGate': [0, 0, 0] };
 const movableOf = (gi) => MOVABLE.find((m) => groupPath[gi] === m || groupPath[gi].startsWith(m + '/'));
 const movRoots = {};
 MOVABLE.forEach((m) => { const o = new THREE.Group(); scene.add(o); movRoots[m] = o; });
@@ -435,7 +435,14 @@ function drawText(rec) {
   const g = c.getContext('2d');
   const col = (i, a = 1) => `rgba(${data.colors[i].join(',')},${a})`;
   if (bgT < 1) { g.fillStyle = col(bc, 1 - bgT); g.fillRect(0, 0, cw, ch); }
-  if (font === 'Atlas') atlasDraw(g, text, 0, 0, cw, ch);
+  if (font === 'Atlas') {
+    // 그림 글자에 글자색을 곱한다 (간판처럼 흰 글씨를 물들인 것)
+    const t = document.createElement('canvas'); t.width = cw; t.height = ch; const tg = t.getContext('2d');
+    atlasDraw(tg, text, 0, 0, cw, ch);
+    const cc = data.colors[tc];
+    if (cc && !(cc[0] === 255 && cc[1] === 255 && cc[2] === 255)) { tg.globalCompositeOperation = 'multiply'; tg.fillStyle = `rgb(${cc.join(',')})`; tg.fillRect(0, 0, cw, ch); tg.globalCompositeOperation = 'destination-in'; atlasDraw(tg, text, 0, 0, cw, ch); }
+    g.drawImage(t, 0, 0);
+  }
   const fam = FONT[font] || '700 X KR';
   const lines0 = String(text).split('\n');
   let best = null;

@@ -69,7 +69,7 @@ function AtlasText.HasImages()
 end
 
 -- parent 를 가득 채우는 글자 GUI 를 만든다. 반환: ImageLabel 또는 TextLabel
-function AtlasText.Make(key, parent, zIndex)
+function AtlasText.Make(key, parent, zIndex, tint)
 	local e = Atlas.Entries[key]
 	local id = e and imageId(e.atlas)
 	local g
@@ -79,11 +79,14 @@ function AtlasText.Make(key, parent, zIndex)
 		g.ImageRectOffset = Vector2.new(e.x, e.y)
 		g.ImageRectSize = Vector2.new(e.w, e.h)
 		g.ScaleType = Enum.ScaleType.Stretch
+		if tint then
+			g.ImageColor3 = tint
+		end
 	else
 		g = Instance.new("TextLabel")
 		local f = FALLBACK[e and e.style or "ink"] or FALLBACK.ink
 		g.Text = e and e.text or key
-		g.TextColor3 = f[1]
+		g.TextColor3 = tint or f[1]
 		g.Font = f[2]
 		g.TextScaled = true
 		g.TextXAlignment = Enum.TextXAlignment.Left
@@ -95,7 +98,7 @@ function AtlasText.Make(key, parent, zIndex)
 					conn:Disconnect()
 					local p, z = g.Parent, g.ZIndex
 					g:Destroy()
-					AtlasText.Make(key, p, z)
+					AtlasText.Make(key, p, z, tint)
 				end
 			end)
 		end

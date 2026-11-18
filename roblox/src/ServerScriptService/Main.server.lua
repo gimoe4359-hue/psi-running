@@ -658,6 +658,233 @@ if gateLock then
 	end)
 end
 
+-- ───────── 로비 · 출근 차량 (SUV) ─────────
+-- 처음 들어온 사람은 편의점 앞(로비)에서 시작한다. 검은 SUV 문 옆 '탑승' → 빈 자리에 앉는다(최대 5명).
+-- 첫 사람이 앉으면 10초 카운트다운, 0이 되면 출발. 차는 서버 시계(SUVTripStart)에 맞춰 각 화면에서 움직이고,
+-- 도착하면 서버가 모두를 자리에서 내려 경비실로 옮긴 뒤 근무를 시작한다.
+-- 상태는 workspace 속성으로 알린다: SUVState(waiting/countdown/driving/arrived), SUVDepartAt, SUVTripStart, SUVSeat1~5(이름)
+local IntroPath = require(ReplicatedStorage:WaitForChild("IntroPath"))
+local suv = school:FindFirstChild("IntroCar")
+local rideSeats = {}
+local lobbyCF, parkedCF
+local function groundY(pos, ignore)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	params.RespectCanCollide = true
+	local hit = workspace:Raycast(Vector3.new(pos.X, pos.Y + 4, pos.Z), Vector3.new(0, -30, 0), params)
+	return hit and hit.Position.Y or 0.22
+end
+if suv then
+	for _, d in ipairs(suv:GetDescendants()) do
+		if d:IsA("Seat") and d.Name == "RideSeat" then
+			table.insert(rideSeats, d)
+		end
+	end
+	table.sort(rideSeats, function(a, b)
+		return (a:GetAttribute("SeatIndex") or 0) < (b:GetAttribute("SeatIndex") or 0)
+	end)
+	lobbyCF = suv:GetPivot()
+	-- 기준점(차체 가운데)이 바닥에서 얼마나 떠 있는지
+	local rideH = lobbyCF.Position.Y - groundY(lobbyCF.Position - Vector3.new(0, 2, 0), { suv })
+	workspace:SetAttribute("SUVRideHeight", rideH)
+	local endPos = Config.INTRO_PATH[#Config.INTRO_PATH]
+	parkedCF = IntroPath.CFrameAt(Config.INTRO_SECONDS, groundY(Vector3.new(endPos.X, 4, endPos.Z), { suv }) + rideH)
+end
+workspace:SetAttribute("SUVState", "waiting")
+for i = 1, Config.MAX_PLAYERS do
+	workspace:SetAttribute("SUVSeat" .. i, "")
+end
+
+function api.teleportToLobby(player)
+	local sp = first("LobbySpawn")
+	local r = rootOf(player)
+	if sp and r then
+		local off = Vector3.new((math.random() - 0.5) * math.max(0, sp.Size.X - 2), 3.5, (math.random() - 0.5) * math.max(0, sp.Size.Z - 2))
+		local pos = sp.Position + off
+		local look = lobbyCF and Vector3.new(lobbyCF.Position.X, pos.Y, lobbyCF.Position.Z) or pos + Vector3.new(0, 0, -1)
+		player.Character:PivotTo(CFrame.lookAt(pos, look))
+	end
+end
+
+local savedJump = {}
+local function setJumpLocked(hum, locked)
+	if locked then
+		savedJump[hum] = { hum.JumpPower, hum.JumpHeight }
+		hum.JumpPower = 0
+		hum.JumpHeight = 0
+	elseif savedJump[hum] then
+		hum.JumpPower = savedJump[hum][1]
+		hum.JumpHeight = savedJump[hum][2]
+		savedJump[hum] = nil
+	end
+end
+
+local function playerOn(seat)
+	local occ = seat.Occupant
+	return occ and Players:GetPlayerFromCharacter(occ.Parent), occ
+end
+local function refreshSeats()
+	local n = 0
+	for i, seat in ipairs(rideSeats) do
+		local p = playerOn(seat)
+		workspace:SetAttribute("SUVSeat" .. i, p and p.DisplayName or "")
+		if p then
+			n = n + 1
+		end
+	end
+	return n
+end
+
+-- 근무 시작 처리 (차로 왔든, 늦게 왔든)
+local function finishIntro(player)
+	if player:GetAttribute("IntroDone") then
+		return
+	end
+	player:SetAttribute("IntroDone", true)
+	player:SetAttribute("Sanity", Config.START_SANITY)
+	local hrp = rootOf(player)
+	if hrp then
+		hrp.Anchored = false
+	end
+	api.teleportToBooth(player)
+	startShift()
+end
+
+local prompts = {}
+local lastOccupant = {}
+local function exitBeside(hum)
+	-- 출발 전에 내리면 인도 쪽 문 옆에 내려 준다
+	local ch = hum.Parent
+	if ch and ch.Parent and lobbyCF then
+		local pos = lobbyCF.Position + lobbyCF.RightVector * 5.5
+		ch:PivotTo(CFrame.new(Vector3.new(pos.X, groundY(pos, { suv, ch }) + 3.2, pos.Z)))
+	end
+end
+for _, seat in ipairs(rideSeats) do
+	seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+		local prev = lastOccupant[seat]
+		lastOccupant[seat] = seat.Occupant
+		local st = workspace:GetAttribute("SUVState")
+		if prev and not seat.Occupant and prev.Parent and prev.Health > 0 then
+			local p = Players:GetPlayerFromCharacter(prev.Parent)
+			if st == "driving" and p and not p:GetAttribute("IntroDone") then
+				task.defer(function()
+					if not seat.Occupant then
+						seat:Sit(prev) -- 달리는 중엔 못 내린다
+					end
+				end)
+			elseif st == "waiting" or st == "countdown" then
+				task.defer(exitBeside, prev)
+			end
+		end
+		refreshSeats()
+	end)
+end
+for _, door in ipairs(tagged("SUVDoor")) do
+	if suv and door:IsDescendantOf(suv) then
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = "탑승"
+		prompt.ObjectText = "출근 차량"
+		prompt.HoldDuration = 0.4
+		prompt.MaxActivationDistance = 11
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = door
+		table.insert(prompts, prompt)
+		prompt.Triggered:Connect(function(player)
+			local st = workspace:GetAttribute("SUVState")
+			if player:GetAttribute("IntroDone") or (st ~= "waiting" and st ~= "countdown") then
+				return
+			end
+			local ch = player.Character
+			local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+			if not hum or hum.Health <= 0 or hum.SeatPart then
+				return
+			end
+			for _, seat in ipairs(rideSeats) do
+				if not seat.Occupant then
+					seat:Sit(hum)
+					return
+				end
+			end
+			api.say(player, "자리가 다 찼어요 (최대 " .. Config.MAX_PLAYERS .. "명)", 2.5, "yellow")
+		end)
+	end
+end
+
+local function arrive(riders)
+	if suv and parkedCF then
+		suv:PivotTo(parkedCF)
+	end
+	for _, r in ipairs(riders) do
+		local w = r.seat:FindFirstChild("SeatWeld")
+		if w then
+			w:Destroy()
+		end
+		if r.hum.Parent then
+			r.hum.Sit = false
+			setJumpLocked(r.hum, false)
+		end
+		if r.player.Parent then
+			finishIntro(r.player)
+		end
+	end
+	workspace:SetAttribute("SUVState", "arrived")
+	refreshSeats()
+end
+
+local function depart()
+	workspace:SetAttribute("SUVState", "driving")
+	workspace:SetAttribute("SUVTripStart", workspace:GetServerTimeNow() + 0.4)
+	for _, pr in ipairs(prompts) do
+		pr.Enabled = false
+	end
+	local riders = {}
+	for _, seat in ipairs(rideSeats) do
+		local p, hum = playerOn(seat)
+		if p then
+			table.insert(riders, { player = p, hum = hum, seat = seat })
+			setJumpLocked(hum, true)
+		end
+	end
+	task.delay(Config.INTRO_SECONDS + 0.5, arrive, riders)
+end
+
+-- 카운트다운 + 차를 놓친 사람 처리
+local lateSince = {}
+task.spawn(function()
+	while true do
+		task.wait(0.2)
+		local st = workspace:GetAttribute("SUVState")
+		local n = refreshSeats()
+		if st == "waiting" and n > 0 then
+			workspace:SetAttribute("SUVDepartAt", workspace:GetServerTimeNow() + Config.DEPART_DELAY)
+			workspace:SetAttribute("SUVState", "countdown")
+		elseif st == "countdown" then
+			if n == 0 then
+				workspace:SetAttribute("SUVState", "waiting") -- 모두 내리면 처음부터
+			elseif workspace:GetServerTimeNow() >= (workspace:GetAttribute("SUVDepartAt") or 0) then
+				depart()
+			end
+		elseif st == "driving" or st == "arrived" or not suv then
+			for _, p in ipairs(Players:GetPlayers()) do
+				local hum = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
+				local riding = hum and hum.SeatPart and hum.SeatPart.Name == "RideSeat"
+				if not p:GetAttribute("IntroDone") and hum and not riding then
+					lateSince[p] = lateSince[p] or os.clock()
+					if os.clock() - lateSince[p] >= Config.LATE_ARRIVAL_SECONDS then
+						lateSince[p] = nil
+						finishIntro(p)
+					end
+				end
+			end
+		end
+	end
+end)
+Players.PlayerRemoving:Connect(function(p)
+	lateSince[p] = nil
+end)
+
 -- ───────── 플레이어 ─────────
 local GuardOutfit = require(ServerScriptService:WaitForChild("GuardOutfit"))
 
@@ -668,9 +895,10 @@ local function onCharacter(player, character)
 		return
 	end
 	task.wait()
-	api.teleportToBooth(player)
-	if not player:GetAttribute("IntroDone") then
-		hrp.Anchored = true -- 인트로 동안 가만히
+	if player:GetAttribute("IntroDone") then
+		api.teleportToBooth(player)
+	else
+		api.teleportToLobby(player) -- 처음엔 로비(편의점 앞)에서 출근 차량을 기다린다
 	end
 	hum.Died:Connect(function()
 		task.delay(Players.RespawnTime, function()
@@ -704,19 +932,8 @@ for _, player in ipairs(Players:GetPlayers()) do
 	end)
 end
 
-IntroFinished.OnServerEvent:Connect(function(player)
-	if player:GetAttribute("IntroDone") then
-		return
-	end
-	player:SetAttribute("IntroDone", true)
-	player:SetAttribute("Sanity", Config.START_SANITY)
-	local hrp = rootOf(player)
-	if hrp then
-		hrp.Anchored = false
-	end
-	api.teleportToBooth(player)
-	startShift()
-end)
+-- (예전 혼자 보는 인트로용. 이제는 서버가 출근 차량 도착 때 근무를 시작시킨다)
+IntroFinished.OnServerEvent:Connect(function() end)
 
 ChairGaze.OnServerEvent:Connect(function(player)
 	Anomalies.OnChairGaze(player)

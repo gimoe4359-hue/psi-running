@@ -40,10 +40,11 @@ Config.PATROL_MISS_PENALTY = 15
 -- ───────── 손글씨 그림 글자 (분필·피·수첩) ─────────
 -- roblox/text_atlas/atlas_1.png ~ atlas_4.png 를 Studio → Asset Manager → Images → Import 로 올리고,
 -- 각 그림의 이미지 ID 를 순서대로 넣는다. 0 이면 손글씨 대신 기본 글꼴로 보인다.
-Config.TEXT_ATLAS_IDS = { 0, 0, 0, 0 }
+Config.TEXT_ATLAS_IDS = { 0, 0, 0, 0, 0, 0, 0 }
 -- 이미 올려 둔 데칼 ID (aied0 계정). 게임이 시작할 때 서버가 InsertService 로 열어 진짜 이미지 ID 를 찾는다.
 -- 위 TEXT_ATLAS_IDS 에 이미지 ID 를 직접 넣으면 그쪽이 먼저 쓰인다.
-Config.TEXT_ATLAS_DECAL_IDS = { 75904825982096, 116811792359111, 116869249478191, 77362890761808 }
+-- 1~4: 손글씨(분필·피·수첩), 5~7: 동네 간판 글씨 (가게마다 다른 한글 글꼴)
+Config.TEXT_ATLAS_DECAL_IDS = { 75904825982096, 116811792359111, 116869249478191, 77362890761808, 109478106162967, 99908418300107, 104821182031812 }
 -- 벽·바닥·천장 실사 텍스처 (tools/make_textures.js 로 만들어 aied0 계정에 데칼로 올림). 0 이면 기본 재질 그대로
 -- 나뭇잎 뭉치 그림 (tools/make_leaves.js, 투명 배경). 나무의 LeafG/LeafZ/LeafP 판에 붙는다
 -- 나무껍질 그림 (메시 팩 나무 줄기에 입힘)
@@ -59,10 +60,10 @@ Config.SURFACE_TEXTURE_DECALS = {
 	concrete = 138719808625405, -- 바깥 콘크리트
 }
 
--- ───────── 메시 팩 (나무·여학생·책걸상) ─────────
+-- ───────── 메시 팩 (나무·여학생·책걸상·출근 차량 SUV) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 119928683061214
+Config.MESH_PACK_ID = 113453791333922
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
@@ -97,11 +98,16 @@ Config.RULES = {
 -- 가끔 수칙 종이에 몰래 나타나는 9번
 Config.RULE_NINE = "9. 경비원은 한 명입니다. 경비실에 누가 앉아 있다면, 당신은 누구입니까?"
 
--- ───────── 인트로 (차 타고 학교로) ─────────
--- 자동차가 지나갈 길 (X, Z). 마지막 점이 주차 위치(IntroCar가 원래 놓인 자리)입니다.
+-- ───────── 로비 · 출근 차량 (SUV 타고 학교로) ─────────
+-- 처음 들어오면 편의점 앞(로비)에서 시작. 검은 SUV 옆에서 '탑승' 하면, 첫 사람이 탄 뒤 10초 있다가 출발한다.
+-- 한 서버 최대 5명 = SUV 좌석 5개. (최대 인원은 Studio → Game Settings → Places → Server Size 를 5 로 맞춰야 진짜로 5명까지만 들어온다)
+Config.MAX_PLAYERS = 5
+Config.DEPART_DELAY = 10 -- 첫 탑승 후 출발까지 (초)
+Config.LATE_ARRIVAL_SECONDS = 6 -- 차가 이미 떠난 뒤 들어온 사람은 이만큼 뒤에 경비실로 (택시 타고 늦게 온 셈)
+-- 자동차가 지나갈 길 (X, Z). 첫 점 = 로비에 서 있는 자리, 마지막 점 = 학교 주차 자리
 Config.INTRO_PATH = {
-	Vector3.new(-520, 0, 133),
-	Vector3.new(-260, 0, 133),
+	Vector3.new(-226, 0, 136),
+	Vector3.new(-170, 0, 135),
 	Vector3.new(-70, 0, 133),
 	Vector3.new(-22, 0, 130),
 	Vector3.new(-2, 0, 116),
@@ -114,9 +120,10 @@ Config.INTRO_PATH = {
 }
 Config.INTRO_SECONDS = 26
 Config.INTRO_LINES = {
-	{ 1.0, "11월 13일 금요일, 밤 9시 50분." },
-	{ 5.0, "공유: 야간 경비 알바, 시급 3만 원… 이 정도면 꿀알바지." },
-	{ 10.5, "공유: 송천고등학교. 여기구나." },
+	{ 0.5, "11월 13일 금요일, 밤 9시 50분." },
+	{ 4.5, "공유: 다들 탔지? 첫 출근인데 늦으면 안 돼." },
+	{ 8.5, "공유: 야간 경비 알바, 시급 3만 원… 이 정도면 꿀알바지." },
+	{ 12.0, "공유: 송천고등학교. 여기구나." },
 	{ 15.0, "철컥— 정문이 혼자 열렸다." },
 	{ 21.0, "공유: …주차하고, 경비실부터 가 보자." },
 }

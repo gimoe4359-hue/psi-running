@@ -1,5 +1,5 @@
 -- 싸이 뛰어! 나폴리탄 괴담: 송천고 야간 경비 — 클라이언트
--- 인트로(차 타고 학교로), 화면 UI(시계·정신력·순찰), 근무 수칙 종이, 손전등, 효과, 엔딩
+-- 로비·출근 차량(SUV 타고 학교로), 화면 UI(시계·정신력·순찰), 근무 수칙 종이, 손전등, 효과, 엔딩
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -41,8 +41,6 @@ local loading = make("TextLabel", { Size = UDim2.fromScale(1, 0.04), Position = 
 
 local barTop = make("Frame", { Size = UDim2.fromScale(1, 0.11), Position = UDim2.fromScale(0, -0.11), BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, ZIndex = 30 }, gui)
 local barBottom = make("Frame", { Size = UDim2.fromScale(1, 0.11), Position = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, ZIndex = 30 }, gui)
-local skipBtn = make("TextButton", { Size = UDim2.new(0, 150, 0, 40), Position = UDim2.new(1, -170, 0, 20), BackgroundColor3 = Color3.fromRGB(20, 20, 24), BackgroundTransparency = 0.3, Font = Enum.Font.GothamBold, Text = "건너뛰기 ▶", TextColor3 = Color3.new(1, 1, 1), TextSize = 18, Visible = false, ZIndex = 55 }, gui)
-corner(skipBtn, 8)
 
 local subtitle = make("TextLabel", { Size = UDim2.new(0.84, 0, 0, 44), Position = UDim2.new(0.08, 0, 0.82, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "", TextColor3 = Color3.new(1, 1, 1), TextScaled = true, TextWrapped = true, TextStrokeTransparency = 0.35, TextTransparency = 1, ZIndex = 45 }, gui)
 make("UITextSizeConstraint", { MaxTextSize = 28 }, subtitle)
@@ -396,48 +394,16 @@ Ending.OnClientEvent:Connect(function(kind)
 	endPanel.Visible = false
 end)
 
--- ═════════════════════════ 인트로: 차 타고 학교로 ═════════════════════════
+-- ═════════════════════════ 로비 → 출근 차량(SUV) 타고 학교로 ═════════════════════════
+-- 처음엔 편의점 앞(로비)에서 시작한다. 차 옆에서 '탑승'하면 자리에 앉고, 첫 사람이 탄 뒤 10초 있다가 다 같이 출발.
+-- 차는 서버 시계(TripStart)에 맞춰 모든 화면에서 같은 자리로 움직인다 (같이 탄 친구가 옆자리에 보인다).
 while not workspace:GetAttribute("MapReady") do
 	task.wait(0.2)
 end
 local school = workspace:WaitForChild("School")
 loading.Text = ""
-
-local function catmull(p0, p1, p2, p3, t)
-	local t2, t3 = t * t, t * t * t
-	return 0.5 * ((2 * p1) + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (3 * p1 - p0 - 3 * p2 + p3) * t3)
-end
-local samples, pathLength = {}, 0
-do
-	local pts = Config.INTRO_PATH
-	local prev
-	for i = 1, #pts - 1 do
-		local p0, p1, p2, p3 = pts[math.max(i - 1, 1)], pts[i], pts[i + 1], pts[math.min(i + 2, #pts)]
-		for k = 0, 19 do
-			local pos = catmull(p0, p1, p2, p3, k / 20)
-			if prev then
-				pathLength = pathLength + (pos - prev).Magnitude
-			end
-			table.insert(samples, { pos = pos, d = pathLength })
-			prev = pos
-		end
-	end
-	local last = pts[#pts]
-	pathLength = pathLength + (last - prev).Magnitude
-	table.insert(samples, { pos = last, d = pathLength })
-end
-local function pointAt(d)
-	d = math.clamp(d, 0, pathLength)
-	for i = 1, #samples - 1 do
-		local a, b = samples[i], samples[i + 1]
-		if d <= b.d then
-			local span = b.d - a.d
-			local t = span > 0 and (d - a.d) / span or 0
-			return a.pos:Lerp(b.pos, t)
-		end
-	end
-	return samples[#samples].pos
-end
+local IntroPath = require(ReplicatedStorage:WaitForChild("IntroPath"))
+local ContextActionService = game:GetService("ContextActionService")
 
 local function moveGateLocal(gate, closedPivot, open, seconds)
 	local v = Instance.new("CFrameValue")
@@ -451,112 +417,184 @@ local function moveGateLocal(gate, closedPivot, open, seconds)
 	end)
 end
 
-local function runIntro()
-	local car = school:FindFirstChild("IntroCar")
-	local gate = school:FindFirstChild("MainGate", true)
-	if not car or not car.PrimaryPart then
+local suv = school:WaitForChild("IntroCar", 20)
+local gate = school:FindFirstChild("MainGate", true)
+local gateClosed = gate and (gate:GetAttribute("ClosedPivot") or gate:GetPivot())
+
+-- 차를 길 위에 올려놓기: 발밑 바닥을 찾아 바퀴가 닿게 (서버가 정한 차체 높이 SUVRideHeight)
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Exclude
+groundParams.RespectCanCollide = true
+local carY
+local function tripTime()
+	local start = workspace:GetAttribute("SUVTripStart")
+	return start and (workspace:GetServerTimeNow() - start) or -1
+end
+RunService.RenderStepped:Connect(function(dt)
+	if not suv or not suv.Parent or workspace:GetAttribute("SUVState") ~= "driving" then
+		carY = nil
 		return
 	end
-	local parked = car:GetPivot()
-	-- 차 기준점(차체 가운데)에서 바퀴 밑까지의 높이. 바퀴 밑이 바닥보다 살짝 위에 오게 한다
-	local rideHeight = 1.98
-	local carY = parked.Position.Y + 0.3
-	local groundParams = RaycastParams.new()
-	groundParams.FilterType = Enum.RaycastFilterType.Exclude
-	groundParams.FilterDescendantsInstances = { car, player.Character }
-	groundParams.RespectCanCollide = true -- 낙엽·판정 영역 같은 통과되는 것은 바닥으로 치지 않는다
-	local gateClosed = gate and gate:GetPivot()
-	local skipped = false
-	skipBtn.Visible = true
-	local skipConn = skipBtn.MouseButton1Click:Connect(function()
-		skipped = true
-	end)
-
-	camera.CameraType = Enum.CameraType.Scriptable
-	tween(barTop, 1, { Position = UDim2.fromScale(0, 0) })
-	tween(barBottom, 1, { Position = UDim2.fromScale(0, 0.89) })
-	tween(title, 1.2, { TextTransparency = 0 })
-	tween(subTitle, 1.2, { TextTransparency = 0 })
-
-	local T = Config.INTRO_SECONDS
-	local lineIndex = 1
-	local gateOpened = false
-	local t = 0
-	local fadedIn = false
-	local camPos = Vector3.new(-470, 30, 160)
-	-- 운전석 눈 위치 (차 안에 DriverEye 파트가 있음)
-	local eyePart
-	for _, p in ipairs(car:GetDescendants()) do
-		if p.Name == "DriverEye" then
-			eyePart = p
+	local t = tripTime()
+	if t < 0 or t > Config.INTRO_SECONDS then
+		return
+	end
+	local ignore = { suv }
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Character then
+			table.insert(ignore, p.Character)
 		end
 	end
-	local eyeOffset = eyePart and parked:ToObjectSpace(eyePart.CFrame) or CFrame.new(-1.35, 3.0, 1.0)
-	local dof = Instance.new("DepthOfFieldEffect")
-	dof.FarIntensity = 0.35
-	dof.NearIntensity = 0
-	dof.Parent = Lighting
-	while t < T and not skipped do
-		local dt = RunService.RenderStepped:Wait()
-		t = t + dt
-		if camera.CameraType ~= Enum.CameraType.Scriptable then
-			camera.CameraType = Enum.CameraType.Scriptable
+	groundParams.FilterDescendantsInstances = ignore
+	local p = IntroPath.PointAt(IntroPath.DistanceAt(t))
+	local rideH = workspace:GetAttribute("SUVRideHeight") or 3.3
+	carY = carY or suv:GetPivot().Position.Y
+	local hit = workspace:Raycast(Vector3.new(p.X, carY + 2, p.Z), Vector3.new(0, -16, 0), groundParams)
+	local want = (hit and hit.Position.Y or 0.22) + rideH
+	carY = carY + (want - carY) * math.min(1, dt * 10)
+	suv:PivotTo(IntroPath.CFrameAt(t, carY))
+end)
+
+-- ───── 로비 화면: 출근 차량 좌석 5칸 ─────
+local lobby = make("Frame", { Name = "Lobby", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -24, 0, 24), Size = UDim2.new(0, 300, 0, 372), BackgroundColor3 = Color3.fromRGB(12, 14, 20), BackgroundTransparency = 0.18, Visible = false, ZIndex = 40 }, gui)
+corner(lobby, 14)
+make("UIStroke", { Color = Color3.fromRGB(90, 96, 120), Transparency = 0.5, Thickness = 1 }, lobby)
+make("TextLabel", { Position = UDim2.new(0, 20, 0, 14), Size = UDim2.new(1, -40, 0, 30), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 24, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Left, Text = "출근 차량", ZIndex = 41 }, lobby)
+make("TextLabel", { Position = UDim2.new(0, 20, 0, 44), Size = UDim2.new(1, -40, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 15, TextColor3 = Color3.fromRGB(160, 166, 186), TextXAlignment = Enum.TextXAlignment.Left, Text = "송천고등학교 야간 경비 · 최대 " .. Config.MAX_PLAYERS .. "명", ZIndex = 41 }, lobby)
+local countLabel = make("TextLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -20, 0, 16), Size = UDim2.new(0, 90, 0, 28), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 22, TextColor3 = Color3.fromRGB(255, 220, 110), TextXAlignment = Enum.TextXAlignment.Right, Text = "0 / 5", ZIndex = 41 }, lobby)
+local SEAT_NAMES = { "운전석", "조수석", "뒷자리 왼쪽", "뒷자리 가운데", "뒷자리 오른쪽" }
+local slots = {}
+for i = 1, Config.MAX_PLAYERS do
+	local row = make("Frame", { Position = UDim2.new(0, 16, 0, 74 + (i - 1) * 46), Size = UDim2.new(1, -32, 0, 40), BackgroundColor3 = Color3.fromRGB(30, 34, 46), BackgroundTransparency = 0.2, ZIndex = 41 }, lobby)
+	corner(row, 8)
+	local stroke = make("UIStroke", { Color = Color3.fromRGB(255, 220, 110), Transparency = 1, Thickness = 2 }, row)
+	make("TextLabel", { Position = UDim2.new(0, 10, 0, 0), Size = UDim2.new(0, 28, 1, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 18, TextColor3 = Color3.fromRGB(120, 126, 150), Text = tostring(i), ZIndex = 42 }, row)
+	local name = make("TextLabel", { Position = UDim2.new(0, 44, 0, 3), Size = UDim2.new(1, -54, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 17, TextColor3 = Color3.fromRGB(120, 126, 150), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Text = "빈 자리", ZIndex = 42 }, row)
+	make("TextLabel", { Position = UDim2.new(0, 44, 0, 22), Size = UDim2.new(1, -54, 0, 14), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = Color3.fromRGB(110, 116, 136), TextXAlignment = Enum.TextXAlignment.Left, Text = SEAT_NAMES[i] or "", ZIndex = 42 }, row)
+	slots[i] = { row = row, name = name, stroke = stroke }
+end
+local statusLabel = make("TextLabel", { Position = UDim2.new(0, 16, 1, -64), Size = UDim2.new(1, -32, 0, 50), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 17, TextColor3 = Color3.new(1, 1, 1), TextWrapped = true, Text = "", ZIndex = 41 }, lobby)
+
+local function mySeatIndex()
+	local hum = humanoid()
+	local seat = hum and hum.SeatPart
+	if seat and seat.Name == "RideSeat" and suv and seat:IsDescendantOf(suv) then
+		return seat:GetAttribute("SeatIndex")
+	end
+	return nil
+end
+local function refreshLobby()
+	local n = 0
+	local mine = mySeatIndex()
+	for i, s in ipairs(slots) do
+		local who = workspace:GetAttribute("SUVSeat" .. i) or ""
+		if who ~= "" then
+			n = n + 1
+			s.name.Text = who .. (i == mine and "  (나)" or "")
+			s.name.TextColor3 = Color3.new(1, 1, 1)
+			s.row.BackgroundColor3 = Color3.fromRGB(40, 58, 52)
+		else
+			s.name.Text = "빈 자리"
+			s.name.TextColor3 = Color3.fromRGB(120, 126, 150)
+			s.row.BackgroundColor3 = Color3.fromRGB(30, 34, 46)
 		end
-		if not fadedIn and t > 2.2 then
-			fadedIn = true
+		s.stroke.Transparency = i == mine and 0.1 or 1
+	end
+	countLabel.Text = n .. " / " .. Config.MAX_PLAYERS
+	local st = workspace:GetAttribute("SUVState")
+	if st == "countdown" then
+		local left = math.max(0, math.ceil((workspace:GetAttribute("SUVDepartAt") or 0) - workspace:GetServerTimeNow()))
+		statusLabel.Text = string.format("출발까지 %d초", left)
+		statusLabel.TextColor3 = Color3.fromRGB(255, 220, 110)
+		statusLabel.TextSize = 24
+	elseif st == "driving" then
+		statusLabel.Text = mine and "출발!" or "출근 차량이 이미 떠났어요.\n잠시 뒤 학교로 갑니다…"
+		statusLabel.TextColor3 = Color3.fromRGB(140, 235, 150)
+		statusLabel.TextSize = mine and 24 or 15
+	elseif st == "arrived" then
+		statusLabel.Text = "출근 차량이 이미 떠났어요.\n잠시 뒤 학교로 갑니다…"
+		statusLabel.TextColor3 = Color3.fromRGB(200, 204, 220)
+		statusLabel.TextSize = 15
+	else
+		statusLabel.Text = mine and "다른 사람을 기다리는 중…" or (UserInputService.TouchEnabled and "검은 SUV 옆에서 '탑승'을 누르세요" or "검은 SUV 옆에서 [E] 를 길게 눌러 탑승")
+		statusLabel.TextColor3 = Color3.fromRGB(220, 224, 236)
+		statusLabel.TextSize = 16
+	end
+end
+
+-- 달리는 동안 자리에서 못 내리게 (점프 막기)
+local function lockJump(on)
+	local hum = humanoid()
+	if on then
+		ContextActionService:BindActionAtPriority("SUVNoJump", function()
+			return Enum.ContextActionResult.Sink
+		end, false, Enum.ContextActionPriority.High.Value + 1, Enum.PlayerActions.CharacterJump)
+		if hum then
+			hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+		end
+	else
+		ContextActionService:UnbindAction("SUVNoJump")
+		if hum then
+			hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+		end
+	end
+end
+
+-- 차 안에서 보는 출근길: 1인칭(내 자리) → 뒤따라가는 화면 → 정문 안쪽에서 보는 화면 → 다시 1인칭
+local function rideCinematic()
+	local T = Config.INTRO_SECONDS
+	tween(barTop, 1, { Position = UDim2.fromScale(0, 0) })
+	tween(barBottom, 1, { Position = UDim2.fromScale(0, 0.89) })
+	tween(title, 1, { TextTransparency = 0 })
+	tween(subTitle, 1, { TextTransparency = 0 })
+	lockJump(true)
+	local lineIndex, gateOpened, titleGone, camPos = 1, false, false, nil
+	local scripted = false
+	local dof = Instance.new("DepthOfFieldEffect")
+	dof.FarIntensity = 0.3
+	dof.NearIntensity = 0
+	dof.Enabled = false
+	dof.Parent = Lighting
+	while workspace:GetAttribute("SUVState") == "driving" and not player:GetAttribute("IntroDone") do
+		local dt = RunService.RenderStepped:Wait()
+		local t = tripTime()
+		if t > T - 0.8 then
+			break
+		end
+		if not titleGone and t > 2.5 then
+			titleGone = true
 			tween(title, 1, { TextTransparency = 1 })
 			tween(subTitle, 1, { TextTransparency = 1 })
-			tween(fade, 1.6, { BackgroundTransparency = 1 })
 		end
-		-- 차: 처음엔 빠르고 주차할 땐 천천히
-		local u = math.clamp(t / T, 0, 1)
-		local d = pathLength * (1 - (1 - u) * (1 - u))
-		local p = pointAt(d)
-		local ahead = pointAt(d + 3)
-		-- 차 높이: 발밑 바닥(도로·경사로·과속방지턱)을 찾아 바퀴가 그 위에 닿게 한다
-		local hit = workspace:Raycast(Vector3.new(p.X, carY + 2, p.Z), Vector3.new(0, -14, 0), groundParams)
-		local wantY = (hit and hit.Position.Y or 0) + rideHeight
-		carY = carY + (wantY - carY) * math.min(1, dt * 10)
-		local pos = Vector3.new(p.X, carY, p.Z)
-		local look = Vector3.new(ahead.X, carY, ahead.Z)
-		if (look - pos).Magnitude < 0.05 then
-			look = pos + parked.LookVector
-		end
-		local carCF = CFrame.lookAt(pos, look)
-		car:PivotTo(carCF)
-		-- 대사
 		local line = Config.INTRO_LINES[lineIndex]
 		if line and t >= line[1] then
-			showSubtitle(line[2], 3.8)
+			showSubtitle(line[2], 3.6)
 			lineIndex = lineIndex + 1
 		end
-		-- 정문이 저절로 열린다
 		if gate and not gateOpened and t >= 14.6 then
 			gateOpened = true
 			moveGateLocal(gate, gateClosed, true, 2)
 		end
-		-- 카메라 연출: 운전석 시점 → 뒤따라가기 → 길 건너편 → 정문 안쪽 → 운전석 시점(주차)
-		local povShot = (t < 8) or (t >= 21.5)
-		if povShot then
-			local sway = CFrame.Angles(math.sin(t * 1.3) * 0.01, math.sin(t * 0.7) * 0.012, 0)
-			camera.FieldOfView = 64
-			camera.CFrame = carCF * eyeOffset * sway * CFrame.Angles(math.rad(-3), 0, 0)
-			camPos = camera.CFrame.Position
-			dof.FocusDistance = 40
-			dof.InFocusRadius = 40
-		else
+		local carCF = suv:GetPivot()
+		local outside = t >= 11 and t < 19.5
+		if outside then
+			if not scripted then
+				scripted = true
+				inFirstPerson = false
+				player.CameraMode = Enum.CameraMode.Classic
+				camera.CameraType = Enum.CameraType.Scriptable
+				dof.Enabled = true
+				camPos = nil
+			end
 			local wantPos, target
-			if t < 12.5 then
-				wantPos = (carCF * CFrame.new(5, 3.2, 20)).Position
-				target = pos + carCF.LookVector * 30 + Vector3.new(0, 2, 0)
-			elseif t < 16 then
-				wantPos = Vector3.new(-46, 4.5, 154)
-				target = pos + Vector3.new(0, 2.5, 0)
+			if t < 15 then
+				wantPos = (carCF * CFrame.new(5, 4.5, 22)).Position
+				target = carCF.Position + carCF.LookVector * 30 + Vector3.new(0, 1, 0)
 			else
 				wantPos = Vector3.new(-24, 6, 66)
-				target = pos + Vector3.new(0, 2.5, 0)
+				target = carCF.Position + Vector3.new(0, 1, 0)
 			end
-			if (wantPos - camPos).Magnitude > 40 then
+			if not camPos or (wantPos - camPos).Magnitude > 40 then
 				camPos = wantPos -- 컷 전환
 			else
 				camPos = camPos:Lerp(wantPos, math.min(1, dt * 4))
@@ -564,47 +602,84 @@ local function runIntro()
 			camera.FieldOfView = 50
 			camera.CFrame = CFrame.lookAt(camPos, target)
 			dof.FocusDistance = (target - camPos).Magnitude
-			dof.InFocusRadius = 12
+			dof.InFocusRadius = 14
+		elseif scripted then
+			scripted = false
+			dof.Enabled = false
+			camera.CameraType = Enum.CameraType.Custom
+			local hum = humanoid()
+			if hum then
+				camera.CameraSubject = hum
+			end
+			camera.FieldOfView = Config.FIELD_OF_VIEW
+			player.CameraMode = Enum.CameraMode.LockFirstPerson
+			inFirstPerson = true
 		end
 	end
-	skipConn:Disconnect()
-	skipBtn.Visible = false
-	car:PivotTo(parked)
 	dof:Destroy()
-	camera.FieldOfView = Config.FIELD_OF_VIEW
-
 	tween(fade, 0.6, { BackgroundTransparency = 0 })
-	task.wait(0.7)
-	IntroFinished:FireServer()
-	if gate and not gateOpened then
-		moveGateLocal(gate, gateClosed, true, 0.01)
+	return gateOpened
+end
+
+local function runLobby()
+	player.CameraMode = Enum.CameraMode.LockFirstPerson
+	inFirstPerson = true
+	tween(fade, 1.4, { BackgroundTransparency = 1 })
+	lobby.Visible = true
+	local conn = RunService.Heartbeat:Connect(refreshLobby)
+	local rode, gateOpened = false, false
+	while not player:GetAttribute("IntroDone") do
+		if workspace:GetAttribute("SUVState") == "driving" and mySeatIndex() and not rode then
+			rode = true
+			lobby.Visible = false
+			gateOpened = rideCinematic()
+		end
+		task.wait(0.05)
 	end
-	task.wait(0.9)
+	conn:Disconnect()
+	lobby.Visible = false
+	if not rode then
+		tween(fade, 0.5, { BackgroundTransparency = 0 }).Completed:Wait()
+	end
+	-- 경비실 도착: 서버가 자리에서 내려 경비실로 옮겨 준다
+	lockJump(false)
+	task.wait(0.6)
 	camera.CameraType = Enum.CameraType.Custom
 	local hum = humanoid()
 	if hum then
 		camera.CameraSubject = hum
 	end
+	camera.FieldOfView = Config.FIELD_OF_VIEW
 	tween(barTop, 0.8, { Position = UDim2.fromScale(0, -0.11) })
 	tween(barBottom, 0.8, { Position = UDim2.fromScale(0, 1) })
+	tween(title, 0.3, { TextTransparency = 1 })
+	tween(subTitle, 0.3, { TextTransparency = 1 })
 	tween(fade, 1.4, { BackgroundTransparency = 1 })
-	if gate then
+	if gate and gateOpened then
 		task.delay(0.3, function()
 			moveGateLocal(gate, gateClosed, false, 1.4)
 		end)
 	end
-	for _, line in ipairs(Config.AFTER_INTRO_LINES) do
-		task.delay(line[1], function()
-			showSubtitle(line[2], 3.6)
+	if rode then
+		for _, line in ipairs(Config.AFTER_INTRO_LINES) do
+			task.delay(line[1], function()
+				showSubtitle(line[2], 3.6)
+			end)
+		end
+	else
+		showSubtitle("공유: 차를 놓쳐서 택시 타고 왔다… 경비실이 여기구나.", 4)
+		task.delay(4.5, function()
+			showSubtitle(Config.AFTER_INTRO_LINES[#Config.AFTER_INTRO_LINES][2], 3.6)
 		end)
 	end
 end
 
 if not player:GetAttribute("IntroDone") then
-	runIntro()
+	runLobby()
 else
 	tween(fade, 1, { BackgroundTransparency = 1 })
 end
+
 
 -- 로블록스 기본 UI 숨기기 (채팅만 남김) + 1인칭 고정
 pcall(function()

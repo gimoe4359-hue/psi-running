@@ -65,23 +65,48 @@ NOTEBOOK.forEach((pg, pi) => pg.forEach(([t, kind], li) => {
   PHRASES.push([`rule_${pi + 1}_${li + 1}`, t.trim(), font, style, kind === 'title' ? 76 : 62]);
 }));
 
+// ── 동네 간판 글씨: 가게마다 다른 한글 글꼴 (Google Fonts, OFL — node_modules/@fontsource) ──
+// 흰 글씨로 그리고 게임에서 색을 입힌다(꺼진 간판은 어둡게). 손글씨 아틀라스 뒤에 따로 쌓아서 기존 그림은 그대로 둔다.
+const SIGN_FONTS = {
+  BHS: ['black-han-sans', 'Black Han Sans'], DOH: ['do-hyeon', 'Do Hyeon'], JUA: ['jua', 'Jua'], MYJ: ['nanum-myeongjo', 'Nanum Myeongjo'],
+  GUGI: ['gugi', 'Gugi'], SUN: ['sunflower', 'Sunflower'], SONG: ['song-myung', 'Song Myung'], YEON: ['yeon-sung', 'Yeon Sung'],
+  NGO: ['nanum-gothic', 'Nanum Gothic'], GAEGU: ['gaegu', 'Gaegu'], BRUSH: ['nanum-brush-script', 'Nanum Brush Script'], PEN: ['nanum-pen-script', 'Nanum Pen Script'],
+};
+const SIGNS = [
+  ['편의점 24', 'BHS'], ['한빛 부동산', 'MYJ'], ['송천분식', 'JUA'], ['송천약국', 'NGO'], ['꽃집', 'YEON'], ['세탁소', 'DOH'],
+  ['송천 철물', 'BHS'], ['헤어 살롱', 'SONG'], ['송천치킨', 'JUA'], ['24시 코인빨래', 'DOH'], ['송천 베이커리', 'YEON'], ['생활용품', 'SUN'],
+  ['송천 수학학원', 'BHS'], ['리더스 영어', 'GUGI'], ['한빛 독서실', 'MYJ'], ['송천 한빛교회', 'SONG'], ['스타 PC방', 'GUGI'], ['대한 태권도', 'BHS'],
+  ['송천 연합의원', 'NGO'], ['도레미 음악학원', 'GAEGU'], ['스터디카페 숲', 'SUN'], ['코인 노래방', 'JUA'], ['1등 수학', 'DOH'], ['송천 미술학원', 'BRUSH'],
+  ['미소 치과', 'SUN'], ['잉글리시 하우스', 'GUGI'],
+];
+const signKey = (t) => 'sign_' + Buffer.from(t).toString('hex').slice(0, 24);
+SIGNS.forEach(([t, f]) => PHRASES.push([signKey(t), t, f, 'sign', f === 'BRUSH' || f === 'PEN' || f === 'GAEGU' ? 130 : 110]));
+
 const SIZE = 1024, PAD = 6;
 
 (async () => {
   for (const f of Object.values(FONTS)) if (!fs.existsSync(path.join(FONT_DIR, f))) { console.error('글꼴이 없습니다:', path.join(FONT_DIR, f)); process.exit(1); }
   const css = Object.entries(FONTS).map(([k, f]) => `@font-face{font-family:${k};src:url(data:font/ttf;base64,${fs.readFileSync(path.join(FONT_DIR, f)).toString('base64')})}`).join('');
+  // 간판 글꼴: fontsource 의 CSS 를 그대로 쓰되 글꼴 파일 경로를 절대 경로로 (한글은 여러 조각 파일로 나뉘어 있음)
+  const NM = path.join(ROOT, 'node_modules', '@fontsource');
+  const signCss = Object.values(SIGN_FONTS).map(([pkg]) => fs.readFileSync(path.join(NM, pkg, fs.existsSync(path.join(NM, pkg, '400.css')) ? '400.css' : (fs.readdirSync(path.join(NM, pkg)).find((f) => /^\d+\.css$/.test(f)) || 'index.css')), 'utf8').replace(/url\(\.\/files\//g, `url(file://${path.join(NM, pkg, 'files')}/`)).join('\n');
+  const htmlPath = path.join(ROOT, 'build', '_atlas_fonts.html');
+  fs.writeFileSync(htmlPath, `<html><head><meta charset="utf-8"><style>${css}\n${signCss}</style></head><body>${Object.keys(FONTS).map((k) => `<span style="font-family:${k}">가나다 abc 123</span>`).join('')}</body></html>`);
   const browser = await chromium.launch();
   const page = await browser.newPage();
-  await page.setContent(`<html><head><style>${css}</style></head><body>${Object.keys(FONTS).map((k) => `<span style="font-family:${k}">가나다 abc 123</span>`).join('')}</body></html>`);
-  await page.evaluate(async () => { await document.fonts.ready; });
-  const res = await page.evaluate(({ PHRASES, SIZE, PAD }) => {
+  await page.goto('file://' + htmlPath);
+  await page.evaluate(async ({ list }) => { for (const [fam, text] of list) await document.fonts.load(`80px "${fam}"`, text); await document.fonts.ready; },
+    { list: SIGNS.map(([t, f]) => [SIGN_FONTS[f][1], t]) });
+  const FAM = Object.fromEntries(Object.entries(SIGN_FONTS).map(([k, v]) => [k, `"${v[1]}"`]));
+  const res = await page.evaluate(({ PHRASES, SIZE, PAD, FAM }) => {
     let seed = 1234567;
     const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
     // 1) 글마다 그림 그리기
     const items = PHRASES.map(([key, text, font, style, px]) => {
       const c = document.createElement('canvas');
       const g = c.getContext('2d');
-      g.font = `${px}px ${font}`;
+      const fam = FAM[font] || font;
+      g.font = `${px}px ${fam}`;
       const m = g.measureText(text);
       const asc = Math.ceil(m.actualBoundingBoxAscent), desc = Math.ceil(m.actualBoundingBoxDescent);
       const extraBelow = style === 'blood' ? Math.round(px * 0.75) : 0;
@@ -89,7 +114,7 @@ const SIZE = 1024, PAD = 6;
       const h = asc + desc + Math.round(px * 0.16) + extraBelow;
       c.width = Math.min(SIZE - PAD * 2, w); c.height = h;
       const ox = Math.round(m.actualBoundingBoxLeft + px * 0.08), oy = asc + Math.round(px * 0.08);
-      g.font = `${px}px ${font}`;
+      g.font = `${px}px ${fam}`;
       g.textBaseline = 'alphabetic';
       const sx = Math.min(1, c.width / w);
       g.setTransform(sx, 0, 0, 1, 0, 0);
@@ -122,6 +147,10 @@ const SIZE = 1024, PAD = 6;
           g.fillStyle = 'rgb(80,4,4)'; g.beginPath(); g.ellipse(xi, b + len, wd * 0.9, wd * 1.3, 0, 0, 7); g.fill();
         }
         for (let i = 0; i < 26; i++) { g.fillStyle = `rgba(${96 + rnd() * 30},6,6,${0.6 + rnd() * 0.4})`; g.beginPath(); g.arc(rnd() * c.width, rnd() * (oy + desc), 1 + rnd() * rnd() * px * 0.05, 0, 7); g.fill(); }
+      } else if (style === 'sign') {
+        // 간판: 흰 글씨 + 아주 옅은 그림자 (색은 게임에서 입힘)
+        g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillText(text, ox + px * 0.025, oy + px * 0.025);
+        g.fillStyle = 'rgb(255,255,255)'; g.fillText(text, ox, oy);
       } else {
         g.fillStyle = style === 'ink' ? 'rgb(28,34,74)' : style === 'redink' ? 'rgb(170,14,14)' : 'rgb(20,18,16)';
         g.fillText(text, ox, oy);
@@ -131,13 +160,17 @@ const SIZE = 1024, PAD = 6;
       return { key, text, font, style, c };
     });
     // 2) 아틀라스에 차곡차곡 (높은 것부터)
-    const order = items.map((it, i) => i).sort((a, b) => items[b].c.height - items[a].c.height);
+    const isSign = (i) => items[i].style === 'sign';
+    const byH = (a, b) => items[b].c.height - items[a].c.height;
+    const base = items.map((it, i) => i).filter((i) => !isSign(i)).sort(byH), signs = items.map((it, i) => i).filter(isSign).sort(byH);
+    const order = [...base, -1, ...signs];
     const atlases = [];
     let A = null, x = 0, y = 0, rowH = 0;
     const newAtlas = () => { const c = document.createElement('canvas'); c.width = SIZE; c.height = SIZE; A = { c, g: c.getContext('2d') }; atlases.push(A); x = PAD; y = PAD; rowH = 0; };
     newAtlas();
     const out = {};
     order.forEach((i) => {
+      if (i < 0) { newAtlas(); return; } // 간판은 새 그림부터 (기존 손글씨 그림은 그대로)
       const it = items[i], w = it.c.width, h = it.c.height;
       if (x + w + PAD > SIZE) { x = PAD; y += rowH + PAD; rowH = 0; }
       if (y + h + PAD > SIZE) newAtlas();
@@ -146,7 +179,7 @@ const SIZE = 1024, PAD = 6;
       x += w + PAD; rowH = Math.max(rowH, h);
     });
     return { entries: out, pngs: atlases.map((a) => a.c.toDataURL('image/png')) };
-  }, { PHRASES, SIZE, PAD });
+  }, { PHRASES, SIZE, PAD, FAM });
   await browser.close();
 
   const outDir = path.join(ROOT, 'text_atlas');
