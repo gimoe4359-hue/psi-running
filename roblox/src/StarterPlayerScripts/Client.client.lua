@@ -60,7 +60,8 @@ for i, spec in ipairs({ { UDim2.fromScale(1, 0.4), UDim2.fromScale(0, 0), 90 }, 
 	make("UIGradient", { Rotation = spec[3], Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.02), NumberSequenceKeypoint.new(0.55, 0.7), NumberSequenceKeypoint.new(1, 1) }) }, f)
 	f.Name = "Edge" .. i
 end
-local hud = make("Frame", { Size = UDim2.new(0, 270, 0, 108), Position = UDim2.new(0, 22, 1, -130), BackgroundTransparency = 1, Visible = false, ZIndex = 20 }, gui)
+-- 시계·정신력은 왼쪽 위 (폰의 이동 조이스틱과 안 겹치게)
+local hud = make("Frame", { Size = UDim2.new(0, 270, 0, 108), Position = UDim2.new(0, 22, 0, 58), BackgroundTransparency = 1, Visible = false, ZIndex = 20 }, gui)
 corner(hud, 12)
 local clockLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 34), Position = UDim2.new(0, 12, 0, 8), BackgroundTransparency = 1, Font = Enum.Font.Code, Text = "PM 10:00", TextColor3 = Color3.fromRGB(230, 236, 240), TextTransparency = 0.25, TextStrokeTransparency = 0.6, TextSize = 26, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
 make("TextLabel", { Size = UDim2.new(0, 60, 0, 16), Position = UDim2.new(0, 12, 0, 48), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, Text = "정신력", TextColor3 = Color3.fromRGB(200, 200, 210), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
@@ -69,7 +70,7 @@ corner(barBg, 6)
 local barFill = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(110, 220, 130), BorderSizePixel = 0, ZIndex = 22 }, barBg)
 corner(barFill, 6)
 local patrolLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 74), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, Text = "", TextColor3 = Color3.fromRGB(220, 220, 230), TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
-local hint = make("TextLabel", { Size = UDim2.new(0, 460, 0, 22), Position = UDim2.new(0, 24, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, Text = "[R] 근무 수칙   [F] 손전등   [Shift] 달리기", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
+local hint = make("TextLabel", { Size = UDim2.new(0, 460, 0, 22), Position = UDim2.new(0, 24, 1, -40), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, Text = "[R] 근무 수칙   [F] 손전등   [Shift] 달리기", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
 
 -- 근무 수칙 수첩 (손글씨 그림 글자: TextAtlas 의 한 줄짜리 그림을 줄마다 붙인다)
 local AtlasText = require(ReplicatedStorage:WaitForChild("AtlasText"))
@@ -125,11 +126,14 @@ local endBody = make("TextLabel", { Size = UDim2.new(0.7, 0, 0.3, 0), Position =
 make("UITextSizeConstraint", { MaxTextSize = 26 }, endBody)
 
 -- 모바일 버튼
-local mobile = make("Frame", { Size = UDim2.new(0, 96, 0, 112), Position = UDim2.new(1, -112, 0.38, 0), BackgroundTransparency = 1, Visible = false, ZIndex = 20 }, gui)
+local mobile = make("Frame", { Size = UDim2.new(0, 96, 0, 172), Position = UDim2.new(1, -112, 0.32, 0), BackgroundTransparency = 1, Visible = false, ZIndex = 20 }, gui)
 local rulesBtn = make("TextButton", { Size = UDim2.new(1, 0, 0, 50), BackgroundColor3 = Color3.fromRGB(242, 234, 208), Font = Enum.Font.BuilderSansBold, Text = "수칙", TextColor3 = Color3.fromRGB(40, 30, 24), TextSize = 18, ZIndex = 21 }, mobile)
 corner(rulesBtn, 10)
 local flashBtn = make("TextButton", { Size = UDim2.new(1, 0, 0, 50), Position = UDim2.new(0, 0, 0, 60), BackgroundColor3 = Color3.fromRGB(30, 34, 46), Font = Enum.Font.BuilderSansBold, Text = "손전등", TextColor3 = Color3.new(1, 1, 1), TextSize = 18, ZIndex = 21 }, mobile)
 corner(flashBtn, 10)
+-- 폰 달리기: 한 번 누르면 달리기, 다시 누르거나 체력이 다 떨어지면 걷기
+local runBtn = make("TextButton", { Size = UDim2.new(1, 0, 0, 50), Position = UDim2.new(0, 0, 0, 120), BackgroundColor3 = Color3.fromRGB(30, 34, 46), Font = Enum.Font.BuilderSansBold, Text = "달리기", TextColor3 = Color3.new(1, 1, 1), TextSize = 18, ZIndex = 21 }, mobile)
+corner(runBtn, 10)
 
 -- ═════════════════════════ 도구 함수 ═════════════════════════
 local function tween(obj, t, props, style)
@@ -828,8 +832,21 @@ UserInputService.InputEnded:Connect(function(input)
 		sprinting = false
 	end
 end)
+-- 폰 달리기 버튼
+local function setRun(on)
+	sprinting = on
+	runBtn.BackgroundColor3 = on and Color3.fromRGB(200, 170, 80) or Color3.fromRGB(30, 34, 46)
+end
+runBtn.MouseButton1Click:Connect(function()
+	setRun(not sprinting)
+end)
+RunService.Heartbeat:Connect(function()
+	if sprinting and stamina <= 0 and UserInputService.TouchEnabled then
+		setRun(false) -- 숨이 차면 저절로 걷기로
+	end
+end)
 hud.Visible = true
-hint.Visible = true
+hint.Visible = not UserInputService.TouchEnabled -- 키보드 안내는 컴퓨터에서만
 task.delay(25, function()
 	tween(hint, 2, { TextTransparency = 1 })
 end)
