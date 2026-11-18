@@ -1,6 +1,6 @@
 -- 경비원 공유 스킨 (무료)
--- 게임에 들어온 플레이어(= 주인공 공유)를 남색 경비복 + 경비 모자 + 이름표 + 손전등 차림의 "경비원 공유"로 바꿉니다.
--- 따로 서 있는 공유 NPC는 없습니다. 플레이어 자신이 공유입니다.
+-- 게임에 들어온 플레이어(= 공유가 당근에서 구한 대타 경비원)를 남색 경비복 + 경비 모자 + 이름표 차림으로 바꿉니다.
+-- 이름표에는 각자 자기 이름이 들어갑니다.
 -- 옷 이미지는 roblox/clothes/*.png 를 Studio에서 무료 업로드한 뒤 Config에 ID를 넣으면 적용됩니다.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -126,7 +126,7 @@ function GuardOutfit.Apply(player, character)
 		p.Parent = character
 	end
 
-	humanoid.DisplayName = "경비원 " .. Config.HERO_NAME
+	humanoid.DisplayName = "경비원 " .. player.DisplayName -- 공유가 구한 대타: 이름표는 각자 자기 이름
 	humanoid.NameDisplayDistance = 30
 
 	local outfit = character:FindFirstChild("GuardOutfit")
@@ -150,7 +150,7 @@ function GuardOutfit.Apply(player, character)
 	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.95, 0.08, hs.Z * 0.5), CFrame.new(0, hs.Y * 0.4, -hs.Z * 0.66) * CFrame.Angles(math.rad(-12), 0, 0), BLACK, Enum.Material.SmoothPlastic)
 	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.24, hs.Y * 0.24, 0.06), CFrame.new(0, hs.Y * 0.66, -crownD * 0.5), GOLD, Enum.Material.Metal)
 
-	-- 가슴 이름표 "공유" + 왼팔 경비 표지
+	-- 가슴 이름표(플레이어 이름) + 왼팔 경비 표지
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
 	if torso then
 		local ts = torso.Size
@@ -162,9 +162,9 @@ function GuardOutfit.Apply(player, character)
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
 		label.BackgroundTransparency = 1
-		label.Text = Config.HERO_NAME
+		label.Text = player.DisplayName
 		label.TextScaled = true
-		label.Font = Enum.Font.GothamBold
+		label.Font = Enum.Font.BuilderSansBold
 		label.TextColor3 = Color3.fromRGB(20, 24, 40)
 		label.Parent = gui
 		gui.Parent = tag

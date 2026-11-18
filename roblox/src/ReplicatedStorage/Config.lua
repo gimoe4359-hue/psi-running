@@ -13,9 +13,9 @@ Config.HAIR_ACCESSORY_ID = 0
 Config.FACE_ID = 0
 Config.SKIN_COLOR = Color3.fromRGB(234, 196, 160)
 Config.HERO_NAME = "공유"
--- 플레이어는 공유가 아니다: 공유가 당근에서 구한 대타 알바 5명. 각자 자기 아바타 그대로 들어온다.
--- true 로 바꾸면 예전처럼 모두 남색 경비복(이름표 '공유')을 입는다
-Config.GUARD_OUTFIT = false
+-- 플레이어는 공유가 아니다: 공유가 당근에서 구한 대타 경비원 5명. 모두 남색 경비복을 입고, 이름표에는 각자 자기 이름.
+-- false 로 바꾸면 각자 자기 아바타 그대로 들어온다
+Config.GUARD_OUTFIT = true
 
 -- ───────── 움직임 (1인칭) ─────────
 Config.WALK_SPEED = 9
