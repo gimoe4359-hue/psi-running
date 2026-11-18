@@ -56,11 +56,11 @@ function grid(nu, nv, P, axisY = 2.4) {
 
 // ── 차체 모양 ──
 // 옆에서 본 어깨(창 아래) 높이: 앞으로 낮아지는 쐐기형
-const beltY = curve([[ZF, 1.72], [ZF + 0.45, 2.22], [ZF + 1.5, 2.6], [-2.45, 3.0], [1.0, 3.06], [3.4, 3.14], [5.2, 3.22], [ZR - 0.55, 3.26], [ZR - 0.1, 3.05], [ZR, 2.8]]);
+const beltY = curve([[ZF, 2.2], [ZF + 0.4, 2.52], [ZF + 1.5, 2.76], [-2.45, 3.0], [1.0, 3.06], [3.4, 3.14], [5.2, 3.22], [ZR - 0.55, 3.26], [ZR - 0.1, 3.05], [ZR, 2.8]]);
 const sillY = curve([[ZF, 0.82], [ZF + 0.6, 0.6], [ZR - 0.7, 0.64], [ZR, 0.95]]);
 // 위에서 본 반폭 (앞뒤가 둥글다)
 const planW = (z) => {
-  const e = Math.max(0, (Math.abs(z) - (LEN / 2 - 0.9)) / 0.9);
+  const e = Math.max(0, (Math.abs(z) - (LEN / 2 - 0.75)) / 0.75);
   return HW * Math.sqrt(Math.max(0.02, 1 - e * e * e * 0.92));
 };
 // 바퀴집: 바닥선을 바퀴 둘레로 올린다
@@ -74,10 +74,10 @@ function bodyPt(z, v) {
   const w = planW(z), yt = beltY(z), yb = bottomY(z), h = yt - yb;
   const a = v * Math.PI * 2 - Math.PI / 2;
   const c = Math.cos(a), s = Math.sin(a);
-  let x = w * Math.sign(c) * Math.abs(c) ** (s > 0 ? 0.16 : 0.3); // 위쪽 어깨는 넓게 (지붕을 받치는 넓은 어깨)
-  const y = yb + h * (0.5 + 0.5 * Math.sign(s) * Math.abs(s) ** (s > 0 ? 0.6 : 0.25));
+  let x = w * Math.sign(c) * Math.abs(c) ** (s > 0 ? 0.14 : 0.26); // 위쪽 어깨는 넓게, 옆면은 곧게
+  const y = yb + h * (0.5 + 0.5 * Math.sign(s) * Math.abs(s) ** (s > 0 ? 0.5 : 0.24));
   const t = (y - yb) / Math.max(0.01, h);
-  x *= 1 - 0.07 * (1 - t) * (1 - t) - 0.06 * Math.max(0, t - 0.8) / 0.2; // 아래는 안으로, 어깨 위도 안으로
+  x *= 1 - 0.05 * (1 - t) * (1 - t) - 0.05 * Math.max(0, t - 0.82) / 0.18; // 아래는 안으로, 어깨 위도 안으로
   return [x, y, z];
 }
 
@@ -103,8 +103,8 @@ function ghPt(z, u) {
 export function buildCar() {
   const paint = [178, 182, 186];
   // ── 차체 ──
-  const NV = 48;
-  const body = grid(76, NV, (i, j) => bodyPt(lerp(ZF, ZR, i), j));
+  const NV = 56;
+  const body = grid(130, NV, (i, j) => bodyPt(lerp(ZF, ZR, i), j));
   const cap = (z) => grid(1, NV, (i, j) => (i ? [0, (beltY(z) + bottomY(z)) / 2, z] : bodyPt(z, j)), (beltY(z) + bottomY(z)) / 2);
   const both = (g) => { const h = clean(g), f = h.clone(); const p = f.attributes.position;
     for (let k = 0; k < p.count; k += 3) { const x = p.getX(k + 1), y = p.getY(k + 1), z = p.getZ(k + 1); p.setXYZ(k + 1, p.getX(k + 2), p.getY(k + 2), p.getZ(k + 2)); p.setXYZ(k + 2, x, y, z); }
@@ -139,11 +139,11 @@ export function buildCar() {
 
   // ── 앞·뒤 디테일 ──
   // 앞·뒤 표면 위의 z (위에서 본 둥근 윤곽을 따라감): x 에서 차체 반폭이 x 가 되는 z 를 이분법으로
+  // 앞·뒤 끝에서 안쪽으로 조금씩 들어가며 처음 차체 안이 되는 z (바퀴집에 걸려 엉뚱한 곳으로 가지 않게)
   const endZ = (x, front, y = 1.5) => {
-    let lo = front ? ZF : 0, hi = front ? 0 : ZR;
-    const ok = (m) => planW(m) * 0.995 >= Math.abs(x) && beltY(m) - 0.05 >= y;
-    for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; const inside = ok(m); if (front ? inside : !inside) hi = m; else lo = m; }
-    return front ? hi : lo;
+    const ok = (m) => planW(m) * 0.995 >= Math.abs(x) && beltY(m) - 0.05 >= y && bottomY(m) <= y + 0.05;
+    if (front) { for (let z = ZF; z < ZF + 3; z += 0.01) if (ok(z)) return z; return ZF + 3; }
+    for (let z = ZR; z > ZR - 3; z -= 0.01) if (ok(z)) return z; return ZR - 3;
   };
   // 앞·뒤 면에 붙이는 얇은 판: s ∈ [0,1] 가로, t ∈ [0,1] 세로. X(s), Ytop(s), Ybot(s) 로 모양을 정한다
   const facePatch = (front, X, Yt, Yb, d = 0.02, ns = 20, nt = 4) => grid(ns, nt, (si, ti) => {
@@ -174,7 +174,6 @@ export function buildCar() {
     const hX = (s) => lerp(hx0, hx1, s);
     lights.push(faceGrid(true, hX, (s) => 2.2 + 0.28 * s, (s) => 1.88 + 0.36 * s * s, 0.03, 16, 3));
     dark.push(faceGrid(true, hX, (s) => 2.23 + 0.28 * s, (s) => 2.2 + 0.28 * s, 0.035, 16, 1));          // 위쪽 검은 눈썹
-    [0.18, 0.5].forEach((t) => { const x = hX(t); const r = new THREE.TorusGeometry(0.1, 0.03, 6, 16); r.translate(x, 2.04 + 0.12 * t, endZ(x, true, 2.04 + 0.12 * t) - 0.05); dark.push(r); });
     // 범퍼 양쪽: 검은 공기 구멍 + 안개등 + LED 줄
     const vX = (s) => lerp(sx * 1.75, sx * 2.55, s);
     dark.push(faceGrid(true, vX, (s) => 1.38 + 0.08 * s, (s) => 0.98 + 0.06 * s, 0.025, 10, 3));
@@ -218,8 +217,8 @@ export function buildCar() {
 
   return [
     { name: 'Paint', geo: ni(paintGeo), color: paint, material: 'SmoothPlastic', reflectance: 0.18 },
-    { name: 'RoofPillars', geo: ni(roofPaint), color: paint, material: 'SmoothPlastic', reflectance: 0.18 },
-    { name: 'Glass', geo: glass, color: [40, 46, 54], material: 'Glass', reflectance: 0.4, transparency: 0.3 },
+    { name: 'RoofPillars', geo: ni(roofPaint.flatMap(both)), color: paint, material: 'SmoothPlastic', reflectance: 0.18 },
+    { name: 'Glass', geo: ni(both(glass)), color: [24, 28, 34], material: 'Glass', reflectance: 0.45, transparency: 0.2 },
     { name: 'Black', geo: ni([...black, ...dark]), color: [20, 20, 22], material: 'SmoothPlastic' },
     { name: 'Chrome', geo: ni(chrome), color: [212, 216, 220], material: 'Metal', reflectance: 0.35 },
     { name: 'Lamps', geo: ni(lights), color: [232, 236, 240], material: 'Glass', reflectance: 0.4, transparency: 0.05 },

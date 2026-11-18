@@ -16,6 +16,7 @@ local IntroFinished = remotes:WaitForChild("IntroFinished")
 local ChairGaze = remotes:WaitForChild("ChairGaze")
 local Effect = remotes:WaitForChild("Effect")
 local Ending = remotes:WaitForChild("Ending")
+local FlashToggle = remotes:WaitForChild("Flashlight")
 
 local camera = workspace.CurrentCamera
 
@@ -35,40 +36,40 @@ end
 local gui = make("ScreenGui", { Name = "NightShiftUI", IgnoreGuiInset = true, ResetOnSpawn = false, DisplayOrder = 10, ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, player:WaitForChild("PlayerGui"))
 
 local fade = make("Frame", { Name = "Fade", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0, BorderSizePixel = 0, ZIndex = 50 }, gui)
-local title = make("TextLabel", { Size = UDim2.fromScale(1, 0.16), Position = UDim2.fromScale(0, 0.36), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "싸이 뛰어!", TextColor3 = Color3.fromRGB(235, 235, 240), TextScaled = true, TextTransparency = 1, ZIndex = 51 }, gui)
-local subTitle = make("TextLabel", { Size = UDim2.fromScale(1, 0.06), Position = UDim2.fromScale(0, 0.53), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "나폴리탄 괴담 · 송천고등학교 야간 경비", TextColor3 = Color3.fromRGB(200, 60, 60), TextScaled = true, TextTransparency = 1, ZIndex = 51 }, gui)
-local loading = make("TextLabel", { Size = UDim2.fromScale(1, 0.04), Position = UDim2.fromScale(0, 0.9), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "학교를 불러오는 중…", TextColor3 = Color3.fromRGB(150, 150, 160), TextScaled = true, ZIndex = 51 }, gui)
+local title = make("TextLabel", { Size = UDim2.fromScale(1, 0.16), Position = UDim2.fromScale(0, 0.36), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansExtraBold, Text = "싸이 뛰어!", TextColor3 = Color3.fromRGB(235, 235, 240), TextScaled = true, TextTransparency = 1, ZIndex = 51 }, gui)
+local subTitle = make("TextLabel", { Size = UDim2.fromScale(1, 0.06), Position = UDim2.fromScale(0, 0.53), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, Text = "나폴리탄 괴담 · 송천고등학교 야간 경비", TextColor3 = Color3.fromRGB(200, 60, 60), TextScaled = true, TextTransparency = 1, ZIndex = 51 }, gui)
+local loading = make("TextLabel", { Size = UDim2.fromScale(1, 0.04), Position = UDim2.fromScale(0, 0.9), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, Text = "학교를 불러오는 중…", TextColor3 = Color3.fromRGB(150, 150, 160), TextScaled = true, ZIndex = 51 }, gui)
 
 local barTop = make("Frame", { Size = UDim2.fromScale(1, 0.11), Position = UDim2.fromScale(0, -0.11), BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, ZIndex = 30 }, gui)
 local barBottom = make("Frame", { Size = UDim2.fromScale(1, 0.11), Position = UDim2.fromScale(0, 1), BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, ZIndex = 30 }, gui)
 
-local subtitle = make("TextLabel", { Size = UDim2.new(0.84, 0, 0, 44), Position = UDim2.new(0.08, 0, 0.82, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "", TextColor3 = Color3.new(1, 1, 1), TextScaled = true, TextWrapped = true, TextStrokeTransparency = 0.35, TextTransparency = 1, ZIndex = 45 }, gui)
+local subtitle = make("TextLabel", { Size = UDim2.new(0.84, 0, 0, 44), Position = UDim2.new(0.08, 0, 0.82, 0), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, Text = "", TextColor3 = Color3.new(1, 1, 1), TextScaled = true, TextWrapped = true, TextStrokeTransparency = 0.35, TextTransparency = 1, ZIndex = 45 }, gui)
 make("UITextSizeConstraint", { MaxTextSize = 28 }, subtitle)
 
 local hurt = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(160, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 40 }, gui)
 local static = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(120, 120, 130), BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 41 }, gui)
 local scare = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 42, Visible = false }, gui)
-make("TextLabel", { Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.25), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "봤 지 ?", TextColor3 = Color3.fromRGB(200, 0, 0), TextScaled = true, ZIndex = 43 }, scare)
+make("TextLabel", { Size = UDim2.fromScale(1, 0.5), Position = UDim2.fromScale(0, 0.25), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansExtraBold, Text = "봤 지 ?", TextColor3 = Color3.fromRGB(200, 0, 0), TextScaled = true, ZIndex = 43 }, scare)
 
 -- HUD
 -- 화면 가장자리 어둡게 (비네트)
 local vignette = make("Frame", { Name = "Vignette", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 5 }, gui)
-for i, spec in ipairs({ { UDim2.fromScale(1, 0.32), UDim2.fromScale(0, 0), 90 }, { UDim2.fromScale(1, 0.32), UDim2.fromScale(0, 0.68), -90 },
-	{ UDim2.fromScale(0.26, 1), UDim2.fromScale(0, 0), 0 }, { UDim2.fromScale(0.26, 1), UDim2.fromScale(0.74, 0), 180 } }) do
+for i, spec in ipairs({ { UDim2.fromScale(1, 0.4), UDim2.fromScale(0, 0), 90 }, { UDim2.fromScale(1, 0.4), UDim2.fromScale(0, 0.6), -90 },
+	{ UDim2.fromScale(0.34, 1), UDim2.fromScale(0, 0), 0 }, { UDim2.fromScale(0.34, 1), UDim2.fromScale(0.66, 0), 180 } }) do
 	local f = make("Frame", { Size = spec[1], Position = spec[2], BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, ZIndex = 5 }, vignette)
-	make("UIGradient", { Rotation = spec[3], Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 1) }) }, f)
+	make("UIGradient", { Rotation = spec[3], Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.02), NumberSequenceKeypoint.new(0.55, 0.7), NumberSequenceKeypoint.new(1, 1) }) }, f)
 	f.Name = "Edge" .. i
 end
 local hud = make("Frame", { Size = UDim2.new(0, 270, 0, 108), Position = UDim2.new(0, 22, 1, -130), BackgroundTransparency = 1, Visible = false, ZIndex = 20 }, gui)
 corner(hud, 12)
 local clockLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 34), Position = UDim2.new(0, 12, 0, 8), BackgroundTransparency = 1, Font = Enum.Font.Code, Text = "PM 10:00", TextColor3 = Color3.fromRGB(230, 236, 240), TextTransparency = 0.25, TextStrokeTransparency = 0.6, TextSize = 26, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
-make("TextLabel", { Size = UDim2.new(0, 60, 0, 16), Position = UDim2.new(0, 12, 0, 48), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "정신력", TextColor3 = Color3.fromRGB(200, 200, 210), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
+make("TextLabel", { Size = UDim2.new(0, 60, 0, 16), Position = UDim2.new(0, 12, 0, 48), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, Text = "정신력", TextColor3 = Color3.fromRGB(200, 200, 210), TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
 local barBg = make("Frame", { Size = UDim2.new(1, -86, 0, 12), Position = UDim2.new(0, 72, 0, 50), BackgroundColor3 = Color3.fromRGB(40, 40, 48), BorderSizePixel = 0, ZIndex = 21 }, hud)
 corner(barBg, 6)
 local barFill = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(110, 220, 130), BorderSizePixel = 0, ZIndex = 22 }, barBg)
 corner(barFill, 6)
-local patrolLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 74), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, Text = "", TextColor3 = Color3.fromRGB(220, 220, 230), TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
-local hint = make("TextLabel", { Size = UDim2.new(0, 460, 0, 22), Position = UDim2.new(0, 24, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "[R] 근무 수칙   [F] 손전등   [Shift] 달리기", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
+local patrolLabel = make("TextLabel", { Size = UDim2.new(1, -24, 0, 20), Position = UDim2.new(0, 12, 0, 74), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, Text = "", TextColor3 = Color3.fromRGB(220, 220, 230), TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 21 }, hud)
+local hint = make("TextLabel", { Size = UDim2.new(0, 460, 0, 22), Position = UDim2.new(0, 24, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, Text = "[R] 근무 수칙   [F] 손전등   [Shift] 달리기", TextColor3 = Color3.fromRGB(170, 170, 185), TextSize = 15, TextXAlignment = Enum.TextXAlignment.Left, Visible = false, ZIndex = 20 }, gui)
 
 -- 근무 수칙 수첩 (손글씨 그림 글자: TextAtlas 의 한 줄짜리 그림을 줄마다 붙인다)
 local AtlasText = require(ReplicatedStorage:WaitForChild("AtlasText"))
@@ -113,21 +114,21 @@ for i = 0, 11 do
 end
 drawRulePage(pageL, 1, 44, 26, 25, 32, 62)
 local nine = drawRulePage(pageR, 2, 44, 26, 25, 32, 62)
-local closeBtn = make("TextButton", { Size = UDim2.new(0, 160, 0, 36), Position = UDim2.new(0.5, -80, 1, -50), BackgroundColor3 = Color3.fromRGB(226, 216, 190), Font = Enum.Font.GothamBold, Text = "수첩 덮기 (R)", TextColor3 = Color3.fromRGB(40, 34, 28), TextSize = 16, ZIndex = 62 }, paper)
+local closeBtn = make("TextButton", { Size = UDim2.new(0, 160, 0, 36), Position = UDim2.new(0.5, -80, 1, -50), BackgroundColor3 = Color3.fromRGB(226, 216, 190), Font = Enum.Font.BuilderSansBold, Text = "수첩 덮기 (R)", TextColor3 = Color3.fromRGB(40, 34, 28), TextSize = 16, ZIndex = 62 }, paper)
 corner(closeBtn, 6)
 closeBtn.Modal = true -- 1인칭에서도 마우스로 누를 수 있게
 
 -- 엔딩
 local endPanel = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Visible = false, ZIndex = 70 }, gui)
-local endTitle = make("TextLabel", { Size = UDim2.new(0.8, 0, 0.1, 0), Position = UDim2.fromScale(0.1, 0.26), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, Text = "", TextColor3 = Color3.fromRGB(220, 50, 50), TextScaled = true, ZIndex = 71 }, endPanel)
-local endBody = make("TextLabel", { Size = UDim2.new(0.7, 0, 0.3, 0), Position = UDim2.fromScale(0.15, 0.42), BackgroundTransparency = 1, Font = Enum.Font.Gotham, Text = "", TextColor3 = Color3.fromRGB(225, 225, 230), TextScaled = true, TextWrapped = true, ZIndex = 71 }, endPanel)
+local endTitle = make("TextLabel", { Size = UDim2.new(0.8, 0, 0.1, 0), Position = UDim2.fromScale(0.1, 0.26), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansExtraBold, Text = "", TextColor3 = Color3.fromRGB(220, 50, 50), TextScaled = true, ZIndex = 71 }, endPanel)
+local endBody = make("TextLabel", { Size = UDim2.new(0.7, 0, 0.3, 0), Position = UDim2.fromScale(0.15, 0.42), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, Text = "", TextColor3 = Color3.fromRGB(225, 225, 230), TextScaled = true, TextWrapped = true, ZIndex = 71 }, endPanel)
 make("UITextSizeConstraint", { MaxTextSize = 26 }, endBody)
 
 -- 모바일 버튼
 local mobile = make("Frame", { Size = UDim2.new(0, 96, 0, 112), Position = UDim2.new(1, -112, 0.38, 0), BackgroundTransparency = 1, Visible = false, ZIndex = 20 }, gui)
-local rulesBtn = make("TextButton", { Size = UDim2.new(1, 0, 0, 50), BackgroundColor3 = Color3.fromRGB(242, 234, 208), Font = Enum.Font.GothamBold, Text = "수칙", TextColor3 = Color3.fromRGB(40, 30, 24), TextSize = 18, ZIndex = 21 }, mobile)
+local rulesBtn = make("TextButton", { Size = UDim2.new(1, 0, 0, 50), BackgroundColor3 = Color3.fromRGB(242, 234, 208), Font = Enum.Font.BuilderSansBold, Text = "수칙", TextColor3 = Color3.fromRGB(40, 30, 24), TextSize = 18, ZIndex = 21 }, mobile)
 corner(rulesBtn, 10)
-local flashBtn = make("TextButton", { Size = UDim2.new(1, 0, 0, 50), Position = UDim2.new(0, 0, 0, 60), BackgroundColor3 = Color3.fromRGB(30, 34, 46), Font = Enum.Font.GothamBold, Text = "손전등", TextColor3 = Color3.new(1, 1, 1), TextSize = 18, ZIndex = 21 }, mobile)
+local flashBtn = make("TextButton", { Size = UDim2.new(1, 0, 0, 50), Position = UDim2.new(0, 0, 0, 60), BackgroundColor3 = Color3.fromRGB(30, 34, 46), Font = Enum.Font.BuilderSansBold, Text = "손전등", TextColor3 = Color3.new(1, 1, 1), TextSize = 18, ZIndex = 21 }, mobile)
 corner(flashBtn, 10)
 
 -- ═════════════════════════ 도구 함수 ═════════════════════════
@@ -270,22 +271,61 @@ end
 
 -- ═════════════════════════ 손전등 ═════════════════════════
 local flashPart = make("Part", { Name = "MyFlashlight", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, Transparency = 1, Size = Vector3.new(0.2, 0.2, 0.2), CastShadow = false }, workspace)
-local flash = make("SpotLight", { Face = Enum.NormalId.Front, Range = 60, Angle = 50, Brightness = 3.2, Color = Color3.fromRGB(255, 240, 215), Shadows = true, Enabled = false }, flashPart)
+-- 내 화면 손전등: 카메라를 따라가는 좁고 밝은 빛 + 손 떨림. 정신력이 낮으면 가끔 깜빡인다
+local flash = make("SpotLight", { Face = Enum.NormalId.Front, Range = 58, Angle = 40, Brightness = 2.8, Color = Color3.fromRGB(255, 238, 210), Shadows = true, Enabled = false }, flashPart)
+local flashSpill = make("SpotLight", { Face = Enum.NormalId.Front, Range = 22, Angle = 95, Brightness = 0.35, Color = Color3.fromRGB(255, 232, 200), Shadows = false, Enabled = false }, flashPart)
 local flashWanted = true
+local flickerOff = false
+local function applyFlash()
+	local on = flashWanted and player:GetAttribute("IntroDone") == true and not flickerOff
+	flash.Enabled = on
+	flashSpill.Enabled = on
+end
 local function setFlash(on)
 	flashWanted = on
-	flash.Enabled = on and player:GetAttribute("IntroDone") == true
+	applyFlash()
+	FlashToggle:FireServer(on)
 	flashBtn.BackgroundColor3 = on and Color3.fromRGB(200, 170, 80) or Color3.fromRGB(30, 34, 46)
 end
 flashBtn.MouseButton1Click:Connect(function()
 	setFlash(not flashWanted)
 end)
-player:GetAttributeChangedSignal("IntroDone"):Connect(function()
-	setFlash(flashWanted)
-end)
+player:GetAttributeChangedSignal("IntroDone"):Connect(applyFlash)
+-- 내 캐릭터의 '든 손전등' 불빛은 내 화면에선 끈다 (카메라 손전등과 겹치지 않게)
+local function hideOwnHeld(ch)
+	local fl = ch:WaitForChild("HeldFlashlight", 10)
+	local b = fl and fl:FindFirstChild("Beam")
+	if b then
+		b.Brightness = 0
+	end
+end
+if player.Character then
+	task.spawn(hideOwnHeld, player.Character)
+end
+player.CharacterAdded:Connect(hideOwnHeld)
 player.CameraMaxZoomDistance = 16
-RunService.RenderStepped:Connect(function()
-	flashPart.CFrame = camera.CFrame * CFrame.new(0.9, -0.8, 0)
+local swayT = 0
+RunService.RenderStepped:Connect(function(dt)
+	swayT = swayT + dt
+	local sway = CFrame.Angles(math.sin(swayT * 1.1) * 0.012, math.sin(swayT * 0.8) * 0.016, 0)
+	flashPart.CFrame = camera.CFrame * CFrame.new(0.9, -0.8, 0) * sway
+end)
+-- 정신력이 낮을수록 손전등이 자주 깜빡인다
+task.spawn(function()
+	while true do
+		task.wait(2 + math.random() * 4)
+		local s = player:GetAttribute("Sanity") or 100
+		if flash.Enabled and math.random() < (100 - s) / 140 then
+			for _ = 1, math.random(2, 5) do
+				flickerOff = true
+				applyFlash()
+				task.wait(0.04 + math.random() * 0.1)
+				flickerOff = false
+				applyFlash()
+				task.wait(0.03 + math.random() * 0.12)
+			end
+		end
+	end
 end)
 
 UserInputService.InputBegan:Connect(function(input, processed)
@@ -455,25 +495,23 @@ RunService.RenderStepped:Connect(function(dt)
 	suv:PivotTo(IntroPath.CFrameAt(t, carY))
 end)
 
--- ───── 로비 화면: 출근 차량 좌석 5칸 ─────
-local lobby = make("Frame", { Name = "Lobby", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -24, 0, 24), Size = UDim2.new(0, 300, 0, 372), BackgroundColor3 = Color3.fromRGB(12, 14, 20), BackgroundTransparency = 0.18, Visible = false, ZIndex = 40 }, gui)
-corner(lobby, 14)
-make("UIStroke", { Color = Color3.fromRGB(90, 96, 120), Transparency = 0.5, Thickness = 1 }, lobby)
-make("TextLabel", { Position = UDim2.new(0, 20, 0, 14), Size = UDim2.new(1, -40, 0, 30), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 24, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Left, Text = "출근 차량", ZIndex = 41 }, lobby)
-make("TextLabel", { Position = UDim2.new(0, 20, 0, 44), Size = UDim2.new(1, -40, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 15, TextColor3 = Color3.fromRGB(160, 166, 186), TextXAlignment = Enum.TextXAlignment.Left, Text = "송천고등학교 야간 경비 · 최대 " .. Config.MAX_PLAYERS .. "명", ZIndex = 41 }, lobby)
-local countLabel = make("TextLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -20, 0, 16), Size = UDim2.new(0, 90, 0, 28), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 22, TextColor3 = Color3.fromRGB(255, 220, 110), TextXAlignment = Enum.TextXAlignment.Right, Text = "0 / 5", ZIndex = 41 }, lobby)
-local SEAT_NAMES = { "운전석", "조수석", "뒷자리 왼쪽", "뒷자리 가운데", "뒷자리 오른쪽" }
+-- ───── 로비 화면: 위 가운데 좌석 5칸(로블록스 아바타 얼굴) + 아래 가운데 출발 카운트다운 ─────
+-- 꾸밈 없는 게임 화면처럼: 둥근 카드·설명 문구 없이, 로블록스 기본 글꼴(Builder Sans / Oswald)만 쓴다
+local lobby = make("Frame", { Name = "Lobby", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, ZIndex = 40 }, gui)
+local top = make("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 26), Size = UDim2.new(0, 5 * 76 + 4 * 10, 0, 140), BackgroundTransparency = 1, ZIndex = 40 }, lobby)
+local countLabel = make("TextLabel", { Size = UDim2.new(1, 0, 0, 36), BackgroundTransparency = 1, Font = Enum.Font.Oswald, TextSize = 34, TextColor3 = Color3.new(1, 1, 1), TextStrokeTransparency = 0.4, Text = "0 / 5", ZIndex = 41 }, top)
 local slots = {}
 for i = 1, Config.MAX_PLAYERS do
-	local row = make("Frame", { Position = UDim2.new(0, 16, 0, 74 + (i - 1) * 46), Size = UDim2.new(1, -32, 0, 40), BackgroundColor3 = Color3.fromRGB(30, 34, 46), BackgroundTransparency = 0.2, ZIndex = 41 }, lobby)
-	corner(row, 8)
-	local stroke = make("UIStroke", { Color = Color3.fromRGB(255, 220, 110), Transparency = 1, Thickness = 2 }, row)
-	make("TextLabel", { Position = UDim2.new(0, 10, 0, 0), Size = UDim2.new(0, 28, 1, 0), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextSize = 18, TextColor3 = Color3.fromRGB(120, 126, 150), Text = tostring(i), ZIndex = 42 }, row)
-	local name = make("TextLabel", { Position = UDim2.new(0, 44, 0, 3), Size = UDim2.new(1, -54, 0, 20), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 17, TextColor3 = Color3.fromRGB(120, 126, 150), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, Text = "빈 자리", ZIndex = 42 }, row)
-	make("TextLabel", { Position = UDim2.new(0, 44, 0, 22), Size = UDim2.new(1, -54, 0, 14), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = Color3.fromRGB(110, 116, 136), TextXAlignment = Enum.TextXAlignment.Left, Text = SEAT_NAMES[i] or "", ZIndex = 42 }, row)
-	slots[i] = { row = row, name = name, stroke = stroke }
+	local box = make("Frame", { Position = UDim2.new(0, (i - 1) * 86, 0, 44), Size = UDim2.new(0, 76, 0, 76), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.45, BorderSizePixel = 0, ZIndex = 41 }, top)
+	local stroke = make("UIStroke", { Color = Color3.new(1, 1, 1), Transparency = 0.75, Thickness = 1 }, box)
+	local face = make("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = "", ZIndex = 42 }, box)
+	local name = make("TextLabel", { Position = UDim2.new(0, -6, 1, 4), Size = UDim2.new(1, 12, 0, 16), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansMedium, TextSize = 14, TextColor3 = Color3.new(1, 1, 1), TextStrokeTransparency = 0.5, TextTruncate = Enum.TextTruncate.AtEnd, Text = "", ZIndex = 42 }, box)
+	slots[i] = { box = box, stroke = stroke, face = face, name = name, user = 0 }
 end
-local statusLabel = make("TextLabel", { Position = UDim2.new(0, 16, 1, -64), Size = UDim2.new(1, -32, 0, 50), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 17, TextColor3 = Color3.new(1, 1, 1), TextWrapped = true, Text = "", ZIndex = 41 }, lobby)
+local bottom = make("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -40), Size = UDim2.new(0, 420, 0, 110), BackgroundTransparency = 1, ZIndex = 40 }, lobby)
+local statusLabel = make("TextLabel", { Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 20, TextColor3 = Color3.fromRGB(230, 230, 230), TextStrokeTransparency = 0.4, Text = "", ZIndex = 41 }, bottom)
+local bigNumber = make("TextLabel", { Position = UDim2.new(0, 0, 0, 22), Size = UDim2.new(1, 0, 0, 84), BackgroundTransparency = 1, Font = Enum.Font.Oswald, TextSize = 80, TextColor3 = Color3.new(1, 1, 1), TextStrokeTransparency = 0.3, Text = "", ZIndex = 41 }, bottom)
+local bigScale = make("UIScale", { Scale = 1 }, bigNumber)
 
 local function mySeatIndex()
 	local hum = humanoid()
@@ -483,42 +521,56 @@ local function mySeatIndex()
 	end
 	return nil
 end
+local lastSecond
 local function refreshLobby()
 	local n = 0
 	local mine = mySeatIndex()
 	for i, s in ipairs(slots) do
 		local who = workspace:GetAttribute("SUVSeat" .. i) or ""
+		local uid = workspace:GetAttribute("SUVSeatUser" .. i) or 0
 		if who ~= "" then
 			n = n + 1
-			s.name.Text = who .. (i == mine and "  (나)" or "")
-			s.name.TextColor3 = Color3.new(1, 1, 1)
-			s.row.BackgroundColor3 = Color3.fromRGB(40, 58, 52)
+			s.name.Text = who
+			s.box.BackgroundTransparency = 0.2
+			s.stroke.Transparency = i == mine and 0 or 0.4
+			s.stroke.Thickness = i == mine and 2 or 1
 		else
-			s.name.Text = "빈 자리"
-			s.name.TextColor3 = Color3.fromRGB(120, 126, 150)
-			s.row.BackgroundColor3 = Color3.fromRGB(30, 34, 46)
+			s.name.Text = ""
+			s.box.BackgroundTransparency = 0.55
+			s.stroke.Transparency = 0.75
+			s.stroke.Thickness = 1
 		end
-		s.stroke.Transparency = i == mine and 0.1 or 1
+		if uid ~= s.user then
+			s.user = uid
+			s.face.Image = ""
+			if uid > 0 then
+				task.spawn(function()
+					local ok, img = pcall(Players.GetUserThumbnailAsync, Players, uid, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+					if ok and s.user == uid then
+						s.face.Image = img
+					end
+				end)
+			end
+		end
 	end
 	countLabel.Text = n .. " / " .. Config.MAX_PLAYERS
 	local st = workspace:GetAttribute("SUVState")
 	if st == "countdown" then
 		local left = math.max(0, math.ceil((workspace:GetAttribute("SUVDepartAt") or 0) - workspace:GetServerTimeNow()))
-		statusLabel.Text = string.format("출발까지 %d초", left)
-		statusLabel.TextColor3 = Color3.fromRGB(255, 220, 110)
-		statusLabel.TextSize = 24
-	elseif st == "driving" then
-		statusLabel.Text = mine and "출발!" or "출근 차량이 이미 떠났어요.\n잠시 뒤 학교로 갑니다…"
-		statusLabel.TextColor3 = Color3.fromRGB(140, 235, 150)
-		statusLabel.TextSize = mine and 24 or 15
-	elseif st == "arrived" then
-		statusLabel.Text = "출근 차량이 이미 떠났어요.\n잠시 뒤 학교로 갑니다…"
-		statusLabel.TextColor3 = Color3.fromRGB(200, 204, 220)
-		statusLabel.TextSize = 15
+		statusLabel.Text = "출발까지"
+		bigNumber.Text = tostring(left)
+		if left ~= lastSecond then
+			lastSecond = left
+			bigScale.Scale = 1.25
+			tween(bigScale, 0.35, { Scale = 1 })
+		end
+	elseif st == "driving" or st == "arrived" then
+		statusLabel.Text = mine and "" or "차가 이미 떠났다…"
+		bigNumber.Text = ""
 	else
-		statusLabel.Text = mine and "다른 사람을 기다리는 중…" or (UserInputService.TouchEnabled and "검은 SUV 옆에서 '탑승'을 누르세요" or "검은 SUV 옆에서 [E] 를 길게 눌러 탑승")
-		statusLabel.TextColor3 = Color3.fromRGB(220, 224, 236)
-		statusLabel.TextSize = 16
+		lastSecond = nil
+		statusLabel.Text = mine and "다른 사람을 기다리는 중" or "SUV에 타면 10초 뒤 출발"
+		bigNumber.Text = ""
 	end
 end
 
@@ -545,8 +597,6 @@ local function rideCinematic()
 	local T = Config.INTRO_SECONDS
 	tween(barTop, 1, { Position = UDim2.fromScale(0, 0) })
 	tween(barBottom, 1, { Position = UDim2.fromScale(0, 0.89) })
-	tween(title, 1, { TextTransparency = 0 })
-	tween(subTitle, 1, { TextTransparency = 0 })
 	lockJump(true)
 	local lineIndex, gateOpened, titleGone, camPos = 1, false, false, nil
 	local scripted = false
@@ -763,12 +813,12 @@ local cctvNoise = make("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3
 local cctvLabel = make("TextLabel", { Position = UDim2.new(0, 40, 0, 30), Size = UDim2.new(0, 520, 0, 40), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 30, TextColor3 = Color3.fromRGB(235, 242, 235), TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.5, Text = "", ZIndex = 37 }, cctvGui)
 local cctvRec = make("TextLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -40, 0, 30), Size = UDim2.new(0, 200, 0, 40), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 30, TextColor3 = Color3.fromRGB(255, 50, 50), TextXAlignment = Enum.TextXAlignment.Right, Text = "● REC", ZIndex = 37 }, cctvGui)
 local cctvTime = make("TextLabel", { Position = UDim2.new(0, 40, 1, -72), Size = UDim2.new(0, 620, 0, 36), BackgroundTransparency = 1, Font = Enum.Font.Code, TextSize = 26, TextColor3 = Color3.fromRGB(235, 242, 235), TextXAlignment = Enum.TextXAlignment.Left, TextStrokeTransparency = 0.5, Text = "", ZIndex = 37 }, cctvGui)
-make("TextLabel", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -40, 1, -36), Size = UDim2.new(0, 600, 0, 30), BackgroundTransparency = 1, Font = Enum.Font.Gotham, TextSize = 18, TextColor3 = Color3.fromRGB(200, 212, 200), TextXAlignment = Enum.TextXAlignment.Right, Text = "◀ A    D ▶   카메라 바꾸기        E  나가기", ZIndex = 37 }, cctvGui)
-local cctvExit = make("TextButton", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -40, 0, 80), Size = UDim2.new(0, 110, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.3, Font = Enum.Font.GothamBold, TextSize = 18, TextColor3 = Color3.new(1, 1, 1), Text = "나가기", Modal = true, ZIndex = 38 }, cctvGui)
+make("TextLabel", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -40, 1, -36), Size = UDim2.new(0, 600, 0, 30), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, TextSize = 18, TextColor3 = Color3.fromRGB(200, 212, 200), TextXAlignment = Enum.TextXAlignment.Right, Text = "◀ A    D ▶   카메라 바꾸기        E  나가기", ZIndex = 37 }, cctvGui)
+local cctvExit = make("TextButton", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -40, 0, 80), Size = UDim2.new(0, 110, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.3, Font = Enum.Font.BuilderSansBold, TextSize = 18, TextColor3 = Color3.new(1, 1, 1), Text = "나가기", Modal = true, ZIndex = 38 }, cctvGui)
 corner(cctvExit, 8)
-local cctvPrev = make("TextButton", { Position = UDim2.new(0, 36, 0.5, -32), Size = UDim2.new(0, 64, 0, 64), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.4, Font = Enum.Font.GothamBold, TextSize = 28, TextColor3 = Color3.new(1, 1, 1), Text = "◀", ZIndex = 38 }, cctvGui)
+local cctvPrev = make("TextButton", { Position = UDim2.new(0, 36, 0.5, -32), Size = UDim2.new(0, 64, 0, 64), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.4, Font = Enum.Font.BuilderSansBold, TextSize = 28, TextColor3 = Color3.new(1, 1, 1), Text = "◀", ZIndex = 38 }, cctvGui)
 corner(cctvPrev, 32)
-local cctvNext = make("TextButton", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -36, 0.5, -32), Size = UDim2.new(0, 64, 0, 64), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.4, Font = Enum.Font.GothamBold, TextSize = 28, TextColor3 = Color3.new(1, 1, 1), Text = "▶", ZIndex = 38 }, cctvGui)
+local cctvNext = make("TextButton", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -36, 0.5, -32), Size = UDim2.new(0, 64, 0, 64), BackgroundColor3 = Color3.fromRGB(20, 24, 22), BackgroundTransparency = 0.4, Font = Enum.Font.BuilderSansBold, TextSize = 28, TextColor3 = Color3.new(1, 1, 1), Text = "▶", ZIndex = 38 }, cctvGui)
 corner(cctvNext, 32)
 local cctvCC = make("ColorCorrectionEffect", { Name = "CCTVCC", Enabled = false, Saturation = -0.9, Contrast = 0.32, Brightness = 0.05, TintColor = Color3.fromRGB(214, 236, 218) }, Lighting)
 local cctvBlur = make("BlurEffect", { Name = "CCTVBlur", Enabled = false, Size = 2 }, Lighting)
@@ -800,6 +850,7 @@ local function setCCTV(on)
 			hum.WalkSpeed = 0
 		end
 		flash.Enabled = false
+		flashSpill.Enabled = false
 		camera.CameraType = Enum.CameraType.Scriptable
 		cctvSwitch(0)
 		if cctvPrompt then

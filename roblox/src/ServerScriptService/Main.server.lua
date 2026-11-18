@@ -28,6 +28,7 @@ local IntroFinished = remote("IntroFinished")
 local ChairGaze = remote("ChairGaze")
 local Effect = remote("Effect") -- (종류)
 local Ending = remote("Ending") -- (종류)
+local FlashToggle = remote("Flashlight") -- (켜짐 여부) 다른 사람도 내 손전등 불빛을 본다
 remotes.Parent = ReplicatedStorage
 
 -- ───────── 맵 ─────────
@@ -57,15 +58,16 @@ local function first(tag)
 end
 
 -- ───────── 밤 분위기 ─────────
+-- 정전된 듯 불 꺼진 학교: 손전등 없이는 거의 안 보일 만큼 어둡게
 Lighting.ClockTime = 22
-Lighting.Brightness = 1.2
-Lighting.Ambient = Color3.fromRGB(10, 12, 18)
-Lighting.OutdoorAmbient = Color3.fromRGB(38, 44, 64)
+Lighting.Brightness = 0.55
+Lighting.Ambient = Color3.fromRGB(3, 4, 6)
+Lighting.OutdoorAmbient = Color3.fromRGB(16, 18, 28)
 Lighting.EnvironmentDiffuseScale = 1
 Lighting.EnvironmentSpecularScale = 1
 Lighting.GlobalShadows = true
 Lighting.ShadowSoftness = 0.25
-Lighting.ExposureCompensation = 0.15
+Lighting.ExposureCompensation = -0.25
 Lighting.GeographicLatitude = 37.5 -- 서울
 pcall(function()
 	Lighting.Technology = Enum.Technology.Future -- Studio에서만 바뀌는 경우가 있음. 안 되면 직접 Future로
@@ -78,13 +80,13 @@ local function effect(class, props)
 	e.Parent = Lighting
 	return e
 end
-effect("Atmosphere", { Density = 0.32, Offset = 0.05, Color = Color3.fromRGB(86, 96, 124), Decay = Color3.fromRGB(26, 28, 44), Glare = 0.2, Haze = 1.4 })
-effect("ColorCorrectionEffect", { Brightness = 0, Contrast = 0.14, Saturation = -0.12, TintColor = Color3.fromRGB(226, 232, 255) })
-effect("BloomEffect", { Intensity = 0.55, Size = 30, Threshold = 1.25 })
-effect("SunRaysEffect", { Intensity = 0.015, Spread = 0.5 })
+effect("Atmosphere", { Density = 0.45, Offset = 0.02, Color = Color3.fromRGB(44, 50, 66), Decay = Color3.fromRGB(10, 11, 18), Glare = 0, Haze = 2.2 })
+effect("ColorCorrectionEffect", { Brightness = -0.02, Contrast = 0.24, Saturation = -0.38, TintColor = Color3.fromRGB(206, 218, 236) })
+effect("BloomEffect", { Intensity = 0.45, Size = 26, Threshold = 1.3 })
+effect("SunRaysEffect", { Intensity = 0, Spread = 0.5 })
 local sky = Lighting:FindFirstChildOfClass("Sky") or Instance.new("Sky")
-sky.StarCount = 2500
-sky.MoonAngularSize = 13
+sky.StarCount = 900
+sky.MoonAngularSize = 9
 sky.CelestialBodiesShown = true
 sky.Parent = Lighting
 
@@ -555,20 +557,21 @@ end
 for _, plate in ipairs(tagged("RoomSwitch")) do
 	local room = plate.Parent
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "불 켜기"
+	prompt.ActionText = "스위치 누르기"
 	prompt.ObjectText = "전등 스위치"
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 6
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = plate
-	prompt.Triggered:Connect(function()
-		local on = not room:GetAttribute("LightsOn")
-		api.setRoomLights(room, on)
-		prompt.ActionText = on and "불 끄기" or "불 켜기"
+	-- 정전: 스위치를 눌러도 불이 안 들어온다 (이상현상이 켠 불만 끌 수 있다)
+	prompt.Triggered:Connect(function(player)
 		playSound("Switch", plate)
-	end)
-	room:GetAttributeChangedSignal("LightsOn"):Connect(function()
-		prompt.ActionText = room:GetAttribute("LightsOn") and "불 끄기" or "불 켜기"
+		if room:GetAttribute("LightsOn") then
+			api.setRoomLights(room, false)
+			api.say(player, "딸깍. …누가 켜 놓은 거지?", 3)
+		else
+			api.say(player, "딸깍, 딸깍. …불이 안 들어온다. 손전등에 의지하자.", 3)
+		end
 	end)
 end
 
@@ -694,6 +697,7 @@ end
 workspace:SetAttribute("SUVState", "waiting")
 for i = 1, Config.MAX_PLAYERS do
 	workspace:SetAttribute("SUVSeat" .. i, "")
+	workspace:SetAttribute("SUVSeatUser" .. i, 0)
 end
 
 function api.teleportToLobby(player)
@@ -729,6 +733,7 @@ local function refreshSeats()
 	for i, seat in ipairs(rideSeats) do
 		local p = playerOn(seat)
 		workspace:SetAttribute("SUVSeat" .. i, p and p.DisplayName or "")
+		workspace:SetAttribute("SUVSeatUser" .. i, p and p.UserId or 0)
 		if p then
 			n = n + 1
 		end
@@ -908,6 +913,53 @@ local function onCharacter(player, character)
 		end)
 	end)
 	GuardOutfit.Apply(player, character)
+	-- 가슴 앞에 든 손전등 (다른 플레이어에게 보이는 불빛). 내 화면에선 카메라에 붙은 손전등을 쓴다
+	local fl = Instance.new("Part")
+	fl.Name = "HeldFlashlight"
+	fl.Size = Vector3.new(0.32, 0.32, 1.2)
+	fl.Color = Color3.fromRGB(28, 28, 30)
+	fl.Material = Enum.Material.Metal
+	fl.CanCollide = false
+	fl.CanQuery = false
+	fl.CanTouch = false
+	fl.Massless = true
+	local lens = Instance.new("Part")
+	lens.Name = "Lens"
+	lens.Shape = Enum.PartType.Cylinder
+	lens.Size = Vector3.new(0.06, 0.4, 0.4)
+	lens.Material = Enum.Material.Neon
+	lens.Color = Color3.fromRGB(255, 244, 220)
+	lens.CanCollide = false
+	lens.CanQuery = false
+	lens.CanTouch = false
+	lens.Massless = true
+	lens.CFrame = fl.CFrame * CFrame.new(0, 0, -0.62) * CFrame.Angles(0, math.rad(90), 0)
+	local lw = Instance.new("WeldConstraint")
+	lw.Part0, lw.Part1 = fl, lens
+	lw.Parent = fl
+	lens.Parent = fl
+	local beam = Instance.new("SpotLight")
+	beam.Name = "Beam"
+	beam.Face = Enum.NormalId.Front
+	beam.Range = 50
+	beam.Angle = 42
+	beam.Brightness = 2.4
+	beam.Color = Color3.fromRGB(255, 238, 210)
+	beam.Shadows = true
+	beam.Enabled = player:GetAttribute("FlashOn") ~= false
+	beam.Parent = fl
+	fl.CFrame = hrp.CFrame * CFrame.new(0.85, 0.9, -0.9)
+	local w = Instance.new("WeldConstraint")
+	w.Part0, w.Part1 = hrp, fl
+	w.Parent = fl
+	fl.Parent = character
+	local function syncBeam()
+		local on = player:GetAttribute("FlashOn") ~= false
+		beam.Enabled = on
+		lens.Material = on and Enum.Material.Neon or Enum.Material.Glass
+	end
+	syncBeam()
+	player:GetAttributeChangedSignal("FlashOn"):Connect(syncBeam)
 end
 
 Players.PlayerAdded:Connect(function(player)
@@ -934,6 +986,10 @@ end
 
 -- (예전 혼자 보는 인트로용. 이제는 서버가 출근 차량 도착 때 근무를 시작시킨다)
 IntroFinished.OnServerEvent:Connect(function() end)
+
+FlashToggle.OnServerEvent:Connect(function(player, on)
+	player:SetAttribute("FlashOn", on == true)
+end)
 
 ChairGaze.OnServerEvent:Connect(function(player)
 	Anomalies.OnChairGaze(player)

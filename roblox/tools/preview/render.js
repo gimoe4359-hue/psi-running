@@ -576,6 +576,11 @@ window.setMood = (mood) => {
     hemi.color.set(0x6070a0); hemi.groundColor.set(0x101218); hemi.intensity = 0.55;
     moon.color.set(0xa8bcf0); moon.intensity = 0.9;
     renderer.toneMappingExposure = 1.35; bloom.strength = 0.75;
+    if (mood === 'blackout') { // 정전된 새벽 학교 (게임의 Lighting 값과 비슷하게 아주 어둡게)
+      scene.fog = new THREE.FogExp2(0x05070c, 0.004);
+      hemi.color.set(0x3a4460); hemi.intensity = 0.12; moon.intensity = 0.3;
+      renderer.toneMappingExposure = 1.1;
+    }
   }
 };
 
