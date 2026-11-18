@@ -653,7 +653,7 @@ if gateLock then
 			end)
 		else
 			moveGate(true)
-			api.say(player, "아침 공기가 들어온다. 수고했어, " .. Config.HERO_NAME .. ".", 4, "green")
+			api.say(player, "아침 공기가 들어온다. …살았다.", 4, "green")
 			task.delay(12, function()
 				moveGate(false)
 			end)
@@ -912,7 +912,9 @@ local function onCharacter(player, character)
 			end
 		end)
 	end)
-	GuardOutfit.Apply(player, character)
+	if Config.GUARD_OUTFIT then
+		GuardOutfit.Apply(player, character)
+	end
 	-- 가슴 앞에 든 손전등 (다른 플레이어에게 보이는 불빛). 내 화면에선 카메라에 붙은 손전등을 쓴다
 	local fl = Instance.new("Part")
 	fl.Name = "HeldFlashlight"

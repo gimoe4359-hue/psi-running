@@ -408,8 +408,8 @@ end)
 
 -- ═════════════════════════ 엔딩 ═════════════════════════
 local ENDINGS = {
-	CLEAR = { "생존 엔딩", "06:00. 창밖이 밝아 온다.\n근무 수칙을 끝까지 지켰다.\n…그런데 교대하러 온 경비원이, 나와 똑같은 얼굴이었다.", Color3.fromRGB(140, 220, 160) },
-	GATE = { "배드 엔딩 · 정문", "06시 전에 정문을 열었다.\n문 밖에 서 있던 '학생'이 웃으며 들어왔다.\n\"고마워요, " .. Config.HERO_NAME .. " 씨. 이제 교대해요.\"", Color3.fromRGB(220, 50, 50) },
+	CLEAR = { "생존 엔딩", "06:00. 창밖이 밝아 온다. 수칙을 끝까지 지켰다.\n날이 밝자 정문 옆 녹슨 표지판이 보였다. '송천고등학교 — 1998년 폐교'.\n진짜 송천고는 길 건너, 새로 지은 학교였다.\n…그럼 공유는, 어느 학교로 출근한 거지?", Color3.fromRGB(140, 220, 160) },
+	GATE = { "배드 엔딩 · 정문", "06시 전에 정문을 열었다.\n문 밖에 서 있던 '학생'이 웃으며 들어왔다.\n\"고마워요. 공유 씨는 아까 나갔어요. 이제 당신 차례예요.\"", Color3.fromRGB(220, 50, 50) },
 	SANITY = { "배드 엔딩 · 의자", "정신을 차려 보니 운동장 한가운데 의자에 앉아 있었다.\n경비실 쪽에서 누군가 나를 쳐다보고 있다.\n…새로 온 경비원인가 보다.", Color3.fromRGB(220, 50, 50) },
 }
 Ending.OnClientEvent:Connect(function(kind)
@@ -671,11 +671,67 @@ local function rideCinematic()
 	return gateOpened
 end
 
+-- 처음 들어올 때: 검은 화면에 이야기 (공유가 오래된 학교로 출근 → 수칙 → 당근에 대타 5명 구함 → 도망)
+local function runPrologue()
+	local lines = Config.PROLOGUE or {}
+	if #lines == 0 then
+		return
+	end
+	local story = make("TextLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.47), Size = UDim2.new(0.8, 0, 0.3, 0), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 30, TextColor3 = Color3.fromRGB(232, 232, 232), TextWrapped = true, Text = "", ZIndex = 53 }, gui)
+	local tag = make("TextLabel", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0.47, -70), Size = UDim2.new(0.8, 0, 0, 22), BackgroundTransparency = 1, Font = Enum.Font.BuilderSans, TextSize = 17, TextColor3 = Color3.fromRGB(130, 130, 130), Text = "", ZIndex = 53 }, gui)
+	local skip = make("TextButton", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -28, 1, -24), Size = UDim2.new(0, 130, 0, 34), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 18, TextColor3 = Color3.fromRGB(150, 150, 150), Text = "건너뛰기  ▶", ZIndex = 55 }, gui)
+	local skipped = false
+	skip.MouseButton1Click:Connect(function()
+		skipped = true
+	end)
+	local STYLE = {
+		text = { Color3.fromRGB(232, 232, 232), "" },
+		msg = { Color3.fromRGB(196, 214, 236), "문자 메시지" },
+		post = { Color3.fromRGB(255, 186, 120), "당근 · 알바 구인" },
+		red = { Color3.fromRGB(200, 34, 34), "" },
+	}
+	for _, L in ipairs(lines) do
+		if skipped then
+			break
+		end
+		local st = STYLE[L[3] or "text"] or STYLE.text
+		story.TextColor3 = st[1]
+		story.Text = L[1]
+		tag.Text = st[2]
+		story.TextTransparency = 0
+		tag.TextTransparency = 0
+		-- 한 글자씩 찍히듯
+		local n = utf8.len(L[1]) or #L[1]
+		story.MaxVisibleGraphemes = 0
+		local t0, dur = os.clock(), math.min(1.4, n * 0.045)
+		while os.clock() - t0 < dur and not skipped do
+			story.MaxVisibleGraphemes = math.floor(n * (os.clock() - t0) / dur)
+			RunService.RenderStepped:Wait()
+		end
+		story.MaxVisibleGraphemes = -1
+		local hold = os.clock()
+		while os.clock() - hold < (L[2] or 3) and not skipped do
+			task.wait(0.05)
+		end
+		tween(story, 0.45, { TextTransparency = 1 })
+		tween(tag, 0.45, { TextTransparency = 1 })
+		task.wait(0.5)
+	end
+	story:Destroy()
+	tag:Destroy()
+	skip:Destroy()
+end
+
 local function runLobby()
 	player.CameraMode = Enum.CameraMode.LockFirstPerson
 	inFirstPerson = true
 	tween(fade, 1.4, { BackgroundTransparency = 1 })
 	lobby.Visible = true
+	task.delay(1.2, function()
+		if workspace:GetAttribute("SUVState") == "waiting" or workspace:GetAttribute("SUVState") == "countdown" then
+			showSubtitle("송천고 앞 편의점. 글을 보고 온 사람들이 모였다. 검은 SUV에 타자.", 5)
+		end
+	end)
 	local conn = RunService.Heartbeat:Connect(refreshLobby)
 	local rode, gateOpened = false, false
 	while not player:GetAttribute("IntroDone") do
@@ -717,7 +773,7 @@ local function runLobby()
 			end)
 		end
 	else
-		showSubtitle("공유: 차를 놓쳐서 택시 타고 왔다… 경비실이 여기구나.", 4)
+		showSubtitle("차를 놓쳐서 택시 타고 왔다… 경비실이 여기구나.", 4)
 		task.delay(4.5, function()
 			showSubtitle(Config.AFTER_INTRO_LINES[#Config.AFTER_INTRO_LINES][2], 3.6)
 		end)
@@ -725,6 +781,7 @@ local function runLobby()
 end
 
 if not player:GetAttribute("IntroDone") then
+	runPrologue()
 	runLobby()
 else
 	tween(fade, 1, { BackgroundTransparency = 1 })
