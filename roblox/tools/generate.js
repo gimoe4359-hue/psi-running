@@ -767,14 +767,18 @@ grp('Street', () => {
 
 grp('Town', () => {
   // ── 간판·창문 도우미 (건물 정면은 -Z, 도로 쪽) ──
-  const fsign = (x0, x1, y0, y1, z, text, bg, fg = [255, 255, 255], lit = true, o = {}) =>
-    B('Sign', x0, y0, z - 0.45, x1, y1, z, bg, lit ? 'Neon' : 'SmoothPlastic', { nc: true, t: lit ? 0.08 : 0,
-      text: { face: 'Front', text, color: fg, bg, bgT: lit ? 1 : 0, lit: lit ? 0 : 0.7, font: o.font || 'GothamBlack', pps: o.pps || 40 } });
+  // 꺼진 간판은 색을 어둡게 (불이 꺼진 아크릴 간판처럼), 글자도 빛을 받지 않으면 안 보이게
+  const fsign = (x0, x1, y0, y1, z, text, bg, fg = [255, 255, 255], lit = true, o = {}) => {
+    const dim = lit ? bg : bg.map((v) => Math.round(v * 0.38));
+    const fgc = lit ? fg : fg.map((v) => Math.round(v * 0.45));
+    return B('Sign', x0, y0, z - 0.45, x1, y1, z, dim, lit ? 'Neon' : 'SmoothPlastic', { nc: true, t: lit ? 0.08 : 0,
+      text: { face: 'Front', text, color: fgc, bg: dim, bgT: lit ? 1 : 0, lit: lit ? 0 : 1, font: o.font || 'GothamBlack', pps: o.pps || 40 } });
+  };;
   const vsign = (x, y0, y1, z, text, bg, fg = [255, 255, 255]) => {
     B('SignArm', x - 0.15, y1 - 0.4, z - 2.6, x + 0.15, y1 - 0.2, z, [70, 72, 76], 'Metal', { nc: true });
-    B('VSign', x - 0.35, y0, z - 2.6, x + 0.35, y1, z - 0.4, bg, 'Neon', { nc: true, t: 0.05,
+    B('VSign', x - 0.35, y0, z - 2.6, x + 0.35, y1, z - 0.4, bg, 'SmoothPlastic', { nc: true,
       text: { face: 'Left', text, color: fg, bgT: 1, lit: 0, font: 'GothamBlack', pps: 30 } });
-    B('VSignBack', x - 0.36, y0, z - 2.6, x + 0.36, y1, z - 0.4, bg, 'Neon', { nc: true, t: 0.05,
+    B('VSignBack', x - 0.36, y0, z - 2.6, x + 0.36, y1, z - 0.4, bg, 'SmoothPlastic', { nc: true,
       text: { face: 'Right', text, color: fg, bgT: 1, lit: 0, font: 'GothamBlack', pps: 30 } });
   };
   // 유리창 (불 켜짐 / 꺼짐) + 창에 붙인 글씨
@@ -784,7 +788,7 @@ grp('Town', () => {
     B('Mullion', x0, y1 - 0.2, z - 0.25, x1, y1, z + 0.05, [150, 154, 160], 'Metal', { nc: true });
     B(lit ? 'GlassLit' : 'Glass', x0 + 0.2, y0 + 0.2, z - 0.1, x1, y1 - 0.2, z, lit ? glow : [34, 40, 48], lit ? 'Neon' : 'Glass',
       { nc: true, ns: true, t: lit ? 0.45 : 0.1, refl: lit ? 0 : 0.3,
-        text: letter ? { face: 'Front', text: letter[0], color: letter[1], bgT: 1, lit: 0, font: 'GothamBlack', pps: 30 } : undefined });
+        text: letter ? { face: 'Front', text: letter[0], color: lit ? letter[1] : letter[1].map((v) => Math.round(v * 0.4)), bgT: 1, lit: lit ? 0 : 1, font: 'GothamBlack', pps: 30 } : undefined });
   };
   // 층마다 창문 띠
   const windowBand = (x0, x1, y0, h, z, n, litP, glow, letter) => {
@@ -792,8 +796,11 @@ grp('Town', () => {
     for (let i = 0; i < n; i++) pane(x0 + i * w, x0 + (i + 1) * w, y0, y0 + h, z, rnd() < litP, glow, i === Math.floor(n / 2) ? letter : null);
     B('MullionEnd', x1 - 0.2, y0, z - 0.25, x1, y0 + h, z + 0.05, [150, 154, 160], 'Metal', { nc: true });
   };
+  // 밤 10시가 넘은 동네: 24시간 여는 곳(편의점·코인빨래·PC방)만 불이 켜져 있고 나머지는 셔터·간판 모두 꺼짐
+  const OPEN_ALL_NIGHT = ['편의점', '코인빨래', 'PC방'];
   // 1층 가게
   const shop = (x0, x1, z, name, bg, glow, open, o = {}) => {
+    open = open && OPEN_ALL_NIGHT.some((k) => name.includes(k)); // 밤 10시: 24시간 가게만 불이 켜져 있다
     if (open) {
       B('ShopBack', x0 + 0.5, 0.6, z + 9, x1 - 0.5, 9.4, z + 9.5, jit([224, 220, 210], 10), 'SmoothPlastic');
       B('ShopCeiling', x0 + 0.5, 9.0, z + 0.5, x1 - 0.5, 9.4, z + 9.5, glow, 'Neon', { nc: true, ns: true });
@@ -828,7 +835,9 @@ grp('Town', () => {
     for (let f = 1; f < floors; f++) {
       const y = 1 + f * fh;
       B('FloorBand', x0 - 0.2, y - 0.7, Z - 0.35, x1 + 0.2, y + 0.3, Z, jit(wall, -24), wallMat);
-      const fl = o.floors[f - 1] || { lit: 0.3, glow: [240, 236, 220] };
+      const fl0 = o.floors[f - 1] || { lit: 0.3, glow: [240, 236, 220] };
+      const on = !!(fl0.sign && OPEN_ALL_NIGHT.some((k) => fl0.sign[0].includes(k) || (fl0.letter && fl0.letter[0].includes(k))));
+      const fl = { ...fl0, lit: on ? fl0.lit : 0, sign: fl0.sign ? [fl0.sign[0], fl0.sign[1], on] : undefined };
       windowBand(x0 + 1, x1 - 1, y + 1.2, 7.6, Z, Math.max(2, Math.round((x1 - x0) / 9)), fl.lit, fl.glow, fl.letter);
       if (fl.sign) fsign(x0 + (x1 - x0) * 0.18, x1 - (x1 - x0) * 0.18, y + 8.9, y + 10.3, Z - 0.35, fl.sign[0], fl.sign[1], [255, 255, 255], fl.sign[2] !== false, { pps: 30 });
     }
@@ -893,7 +902,7 @@ grp('Town', () => {
     ],
     extra: (H) => { for (let x = -122; x < -52; x += 6) B('Fin', x, 1, Z - 0.9, x + 0.35, H, Z - 0.2, [150, 156, 162], 'Metal'); },
   });
-  P('PharmacyCross', [0.4, 4, 4], [-100.5, 14, Z - 3], [40, 220, 90], 'Neon', { nc: true, text: { face: 'Left', text: '약', color: [255, 255, 255], bgT: 1, lit: 0, font: 'GothamBlack' } });
+  P('PharmacyCross', [0.4, 4, 4], [-100.5, 14, Z - 3], [30, 120, 60], 'SmoothPlastic', { nc: true, text: { face: 'Left', text: '약', color: [255, 255, 255], bgT: 1, lit: 0, font: 'GothamBlack' } });
   // D: 오래된 2층 — 철물점, 미용실, 노래방
   building(-44, 18, 2, 28, [200, 192, 176], 'Plaster', {
     ground: () => {
@@ -902,9 +911,9 @@ grp('Town', () => {
     },
     floors: [{ lit: 1, glow: [200, 80, 255], letter: ['노래연습장', [255, 230, 255]], sign: ['코인 노래방', [150, 40, 200]] }],
   });
-  cylV('BarberPole', -21.5, 1.5, Z - 0.6, 3.4, 0.7, [230, 230, 230], 'Neon', { nc: true });
-  cylV('BarberStripe', -21.5, 2.2, Z - 0.6, 0.5, 0.75, [220, 30, 40], 'Neon', { nc: true });
-  cylV('BarberStripe', -21.5, 3.6, Z - 0.6, 0.5, 0.75, [40, 60, 200], 'Neon', { nc: true });
+  cylV('BarberPole', -21.5, 1.5, Z - 0.6, 3.4, 0.7, [200, 200, 200], 'SmoothPlastic', { nc: true });
+  cylV('BarberStripe', -21.5, 2.2, Z - 0.6, 0.5, 0.75, [160, 30, 40], 'SmoothPlastic', { nc: true });
+  cylV('BarberStripe', -21.5, 3.6, Z - 0.6, 0.5, 0.75, [40, 60, 160], 'SmoothPlastic', { nc: true });
   // E: 4층 — 치킨집, 수학학원, 미술학원, 주택
   building(26, 96, 4, 34, [222, 214, 196], 'Plaster', {
     ground: () => {
@@ -958,7 +967,7 @@ grp('Town', () => {
           const y = 2 + f * fh;
           if (kind === 'c') {
             // 계단실: 반층씩 어긋난 작은 창
-            const lit = rnd() < 0.55;
+            const lit = rnd() < 0.08;
             B('StairWin', ux + 1.5, y + fh * 0.5, z0 - 0.15, ux + w - 1.5, y + fh * 0.5 + 3.4, z0, lit ? [235, 240, 220] : [40, 46, 54], lit ? 'Neon' : 'Glass', { nc: true, ns: true, t: lit ? 0.4 : 0.1 });
             continue;
           }
@@ -966,7 +975,7 @@ grp('Town', () => {
           B('BalconySlab', ux + 0.3, y - 0.25, z0 - 3.4, ux + w - 0.3, y + 0.35, z0, [222, 220, 214], 'Plaster');
           B('BalconyRail', ux + 0.6, y + 0.35, z0 - 3.3, ux + w - 0.6, y + 3.2, z0 - 3.15, [176, 190, 196], 'Glass', { t: 0.45, nc: true, ns: true });
           B('RailTop', ux + 0.5, y + 3.2, z0 - 3.35, ux + w - 0.5, y + 3.4, z0 - 3.1, [200, 202, 206], 'Metal', { nc: true, ns: true });
-          const lit = rnd() < 0.32;
+          const lit = rnd() < 0.1;
           const glow = pick([[255, 214, 160], [255, 228, 186], [242, 238, 226], [160, 190, 255]]);
           B(lit ? 'WindowLit' : 'Window', ux + 1, y + 0.4, z0 - 0.12, ux + w - 6.5, y + fh - 1.4, z0, lit ? glow : [30, 36, 44], lit ? 'Neon' : 'Glass', { nc: true, ns: true, t: lit ? 0.35 : 0.05, refl: lit ? 0 : 0.35 });
           for (let k = 1; k < 4; k++) B('Mullion', ux + 1 + k * (w - 7.5) / 4 - 0.1, y + 0.4, z0 - 0.2, ux + 1 + k * (w - 7.5) / 4 + 0.1, y + fh - 1.4, z0 - 0.1, [214, 216, 218], 'Metal', { nc: true, ns: true });
