@@ -293,8 +293,9 @@ Config.AFTER_INTRO_LINES = {
 
 -- ───────── 처음 들어올 때 나오는 오프닝 (공유가 직접 나오는 짧은 장면) ─────────
 -- 공유가 차에서 내려 경비실로 → 근무 수칙을 읽고 → 놀라고 → 당근에 대타 5명 글을 올리고 → 정문 밖으로 도망친다
--- 오프닝 공유 얼굴 (걱정하는 표정, textures/actor_face_worried.png 를 aied0 계정 데칼로 올림). 0 이면 기본 얼굴
-Config.ACTOR_FACE_DECAL = 102269339078988
+-- 오프닝의 공유 (사용자 설정화 기준): 가운데 가르마 갈색 머리, 얇은 사각 안경, 호박색 눈, 무표정 + 식은땀,
+-- 밝은 회색 정장 + 흰 셔츠 + 보라 넥타이. 얼굴 = textures/gongyoo_face.png (aied0 계정 데칼). 0 이면 기본 얼굴
+Config.ACTOR_FACE_DECAL = 130335685905188
 Config.OPENING_TEXT = {
 	arrive = "[싸이 경비용역] 공유 씨, 오늘 밤부터 송천고등학교 야간 경비입니다.",
 	arrive2 = "송천고는 작년에 새로 지은 최신식 학교… 라고 들었는데.",
@@ -3834,19 +3835,97 @@ local function onCharacter(player, character)
 	player:GetAttributeChangedSignal("FlashOn"):Connect(syncBeam)
 end
 
--- 오프닝에 나오는 공유 (경비복 차림 R15 인형). 각 클라이언트가 복제해서 혼자 보는 오프닝에서 움직인다
+-- 오프닝의 공유 차림: 가운데 가르마 갈색 머리, 밝은 회색 정장(라펠), 흰 셔츠, 보라 넥타이, 검은 구두, 손에 손전등
+local function dressGongYoo(actor)
+	local function weld(parent, attach, name, size, offset, color, mat, shape)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.Color = color
+		p.Material = mat or Enum.Material.SmoothPlastic
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Massless = true
+		p.CastShadow = false
+		if shape then
+			p.Shape = shape
+		end
+		p.CFrame = attach.CFrame * offset
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = attach, p
+		w.Parent = p
+		p.Parent = parent
+		return p
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "Look"
+	folder.Parent = actor
+	local head = actor:FindFirstChild("Head")
+	for _, h in ipairs({ "LeftHand", "RightHand" }) do
+		local part = actor:FindFirstChild(h)
+		if part then
+			part.Color = Config.SKIN_COLOR
+		end
+	end
+	for _, f in ipairs({ "LeftFoot", "RightFoot" }) do
+		local part = actor:FindFirstChild(f)
+		if part then
+			part.Color = Color3.fromRGB(28, 24, 22)
+		end
+	end
+	if head then
+		local hs, brown = head.Size, Color3.fromRGB(122, 76, 42)
+		local A = CFrame.Angles
+		weld(folder, head, "HairTop", Vector3.new(hs.X * 1.08, hs.Y * 0.3, hs.Z * 1.1), CFrame.new(0, hs.Y * 0.4, hs.Z * 0.02), brown)
+		weld(folder, head, "HairBack", Vector3.new(hs.X * 1.08, hs.Y * 0.62, hs.Z * 0.2), CFrame.new(0, hs.Y * 0.14, hs.Z * 0.48), brown)
+		for _, sx in ipairs({ -1, 1 }) do
+			weld(folder, head, "HairSide", Vector3.new(hs.X * 0.1, hs.Y * 0.5, hs.Z * 0.95), CFrame.new(sx * hs.X * 0.52, hs.Y * 0.2, hs.Z * 0.04), brown)
+			-- 가운데 가르마 앞머리: 양쪽으로 갈라져 이마 위로 비스듬히 내려옴
+			weld(folder, head, "Bangs", Vector3.new(hs.X * 0.5, hs.Y * 0.3, hs.Z * 0.1), CFrame.new(sx * hs.X * 0.27, hs.Y * 0.3, -hs.Z * 0.52) * A(0, 0, math.rad(sx * 16)), brown)
+		end
+	end
+	local torso = actor:FindFirstChild("UpperTorso")
+	if torso then
+		local ts = torso.Size
+		local f = -ts.Z / 2 - 0.02
+		weld(folder, torso, "Shirt", Vector3.new(ts.X * 0.26, ts.Y * 0.62, 0.04), CFrame.new(0, ts.Y * 0.18, f), Color3.fromRGB(244, 244, 242))
+		weld(folder, torso, "Tie", Vector3.new(ts.X * 0.09, ts.Y * 0.6, 0.05), CFrame.new(0, ts.Y * 0.14, f - 0.02), Color3.fromRGB(150, 100, 200))
+		weld(folder, torso, "TieKnot", Vector3.new(ts.X * 0.12, ts.Y * 0.09, 0.07), CFrame.new(0, ts.Y * 0.43, f - 0.03), Color3.fromRGB(130, 84, 180))
+		for _, sx in ipairs({ -1, 1 }) do
+			weld(folder, torso, "Lapel", Vector3.new(ts.X * 0.14, ts.Y * 0.62, 0.05), CFrame.new(sx * ts.X * 0.17, ts.Y * 0.16, f - 0.01) * CFrame.Angles(0, 0, math.rad(-sx * 14)), Color3.fromRGB(180, 182, 186))
+		end
+		weld(folder, torso, "Button", Vector3.new(0.12, 0.12, 0.05), CFrame.new(0, -ts.Y * 0.28, f - 0.01), Color3.fromRGB(60, 60, 64), nil, Enum.PartType.Ball)
+	end
+	-- 손전등 (오른손): 오프닝 스크립트가 "Flashlight" / "Lens" 를 찾는다
+	local hand = actor:FindFirstChild("RightHand")
+	if hand then
+		local body = weld(folder, hand, "Flashlight", Vector3.new(1.1, 0.34, 0.34), CFrame.new(0, -hand.Size.Y * 0.2, -0.45) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
+		weld(folder, body, "Lens", Vector3.new(0.08, 0.36, 0.36), CFrame.new(0.56, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon, Enum.PartType.Cylinder)
+	end
+	local hum = actor:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.DisplayName = Config.HERO_NAME
+	end
+end
+
+-- 오프닝에 나오는 공유 (정장 차림 R15 인형). 각 클라이언트가 복제해서 혼자 보는 오프닝에서 움직인다
 task.spawn(function()
 	local ok, err = pcall(function()
+		local SUIT = Color3.fromRGB(196, 198, 200)
 		local desc = Instance.new("HumanoidDescription")
-		for _, k in ipairs({ "HeadColor", "LeftArmColor", "RightArmColor", "LeftLegColor", "RightLegColor", "TorsoColor" }) do
-			desc[k] = Config.SKIN_COLOR
-		end
+		desc.HeadColor = Config.SKIN_COLOR
+		desc.TorsoColor = SUIT
+		desc.LeftArmColor = SUIT
+		desc.RightArmColor = SUIT
+		desc.LeftLegColor = Color3.fromRGB(176, 178, 182)
+		desc.RightLegColor = Color3.fromRGB(176, 178, 182)
 		local actor = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
 		actor.Name = "GongYooActor"
 		actor:PivotTo(CFrame.new(0, -400, 0))
 		actor.HumanoidRootPart.Anchored = true
 		actor.Parent = workspace
-		GuardOutfit.Dress(actor, Config.HERO_NAME)
+		dressGongYoo(actor)
 		-- 걱정하는 얼굴 (올려 둔 데칼 → 이미지)
 		if (Config.ACTOR_FACE_DECAL or 0) ~= 0 then
 			local okF, m = pcall(function()
