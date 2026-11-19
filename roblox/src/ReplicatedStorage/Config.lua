@@ -142,23 +142,21 @@ Config.AFTER_INTRO_LINES = {
 	{ 14.0, "쪽지 옆에 '근무 수칙'이 붙어 있다. 꼭 읽어 보자. [R]" },
 }
 
--- ───────── 처음 들어올 때 나오는 오프닝 (실제 학교를 카메라로 비추며 자막) ─────────
--- text: 자막, sec: 보여 줄 초, color: 자막 색(white/static/red), from→to: 카메라가 천천히 움직이는 길, look: 바라보는 곳
--- flashlight: 그 장면에서 카메라에 손전등을 켠다. from 이 없으면 검은 화면에 자막만
-Config.PROLOGUE = {
-	{ text = "[싸이 경비용역] 공유 씨, 오늘 밤부터 송천고등학교 야간 경비입니다.", sec = 5.2, color = "static",
-		from = Vector3.new(0, 7, 126), to = Vector3.new(0, 7, 113), look = Vector3.new(0, 13, -130) },
-	{ text = "송천고등학교. 작년에 새로 지은 최신식 학교… 라고 들었다.", sec = 4.6,
-		from = Vector3.new(12, 6, 62), to = Vector3.new(7, 6, 24), look = Vector3.new(0, 16, -130) },
-	{ text = "그날 밤 공유가 찾아간 곳은, 낡고 오래된 학교였다. 공유는 눈치채지 못했다.", sec = 5.6,
-		from = Vector3.new(-42, 3.5, -96), to = Vector3.new(-27, 3.5, -104), look = Vector3.new(-10, 22, -136) },
-	{ text = "경비실 벽에는 이상한 '근무 수칙'이 붙어 있었다.", sec = 4.6, flashlight = true,
-		from = Vector3.new(29.4, 6.4, 84.4), to = Vector3.new(31.0, 6.2, 83.3), look = Vector3.new(37.5, 5.9, 81.3) },
-	{ text = "4. 4층은 없습니다.", sec = 3.8, color = "red", flashlight = true,
-		from = Vector3.new(-2, 31.6, -167.1), to = Vector3.new(-16, 31.6, -167.2), look = Vector3.new(-120, 30.8, -167.6) },
-	{ text = "겁에 질린 공유는 당근에 대타 5명을 구하는 글을 올리고… 차도 버려 둔 채 도망쳤다.", sec = 5.8,
-		from = Vector3.new(65, 4.6, 51), to = Vector3.new(60, 4.2, 46.5), look = Vector3.new(49.65, 2.6, 62) },
-	{ text = "지원자 5명. 오늘 밤 10시, 송천고 앞 편의점.", sec = 3.6 },
+-- ───────── 처음 들어올 때 나오는 오프닝 (공유가 직접 나오는 짧은 장면) ─────────
+-- 공유가 차에서 내려 경비실로 → 근무 수칙을 읽고 → 놀라고 → 당근에 대타 5명 글을 올리고 → 정문 밖으로 도망친다
+-- 오프닝 공유 얼굴 (걱정하는 표정, textures/actor_face_worried.png 를 aied0 계정 데칼로 올림). 0 이면 기본 얼굴
+Config.ACTOR_FACE_DECAL = 102269339078988
+Config.OPENING_TEXT = {
+	arrive = "[싸이 경비용역] 공유 씨, 오늘 밤부터 송천고등학교 야간 경비입니다.",
+	arrive2 = "송천고는 작년에 새로 지은 최신식 학교… 라고 들었는데.",
+	read = "경비실 책상 위에 '근무 수칙' 수첩이 펼쳐져 있다.",
+	rule = "4. 4층은 없습니다.",
+	shock = "공유: …뭐야, 이거.",
+	post = "[당근 알바] 학교 야간 경비 대타 5명 구해요. 오늘 밤 10시, 시급 3만 원. 송천고 앞 편의점.",
+	sorry = "공유: …죄송합니다.",
+	run = "그리고 공유는, 차도 버려 둔 채 도망쳤다.",
+	slam = "쾅.",
+	finish = "지원자 5명. 오늘 밤 10시, 송천고 앞 편의점.",
 }
 
 return Config

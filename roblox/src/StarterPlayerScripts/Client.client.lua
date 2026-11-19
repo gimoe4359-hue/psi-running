@@ -675,50 +675,339 @@ local function rideCinematic()
 	return gateOpened
 end
 
--- 처음 들어올 때: 오프닝. 실제 학교 곳곳을 카메라가 천천히 비추고, 게임 자막으로 이야기를 들려준다 (건너뛰기 가능)
+-- 처음 들어올 때: 오프닝. 공유(경비복 차림 인형)가 직접 나온다 (건너뛰기 가능)
+--   1) 주차장: K5 옆에서 문자 확인 → 경비실로 걸어감  2) 경비실: 손전등으로 근무 수칙 읽기  3) 수칙 가까이
+--   4) 흠칫 뒤로 물러남  5) 휴대폰으로 당근에 대타 5명 글  6) 정문 밖으로 뛰어 도망 → 정문 쾅  7) 검은 화면 "지원자 5명"
 local function runPrologue()
-	local shots = Config.PROLOGUE or {}
-	if #shots == 0 then
+	local T = Config.OPENING_TEXT
+	local tpl = ReplicatedStorage:WaitForChild("GongYooActor", 12)
+	if not T or not tpl then
 		return
 	end
-	local skip = make("TextButton", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -28, 1, -24), Size = UDim2.new(0, 130, 0, 34), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 18, TextColor3 = Color3.fromRGB(170, 170, 170), TextStrokeTransparency = 0.6, Text = "건너뛰기  ▶", ZIndex = 55 }, gui)
+	local actor = tpl:Clone()
+	local hum = actor:FindFirstChildOfClass("Humanoid")
+	local hrp = actor:FindFirstChild("HumanoidRootPart")
+	if not hum or not hrp then
+		actor:Destroy()
+		return
+	end
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	hrp.Anchored = true
+	actor.Parent = workspace
+	local animator = hum:FindFirstChildOfClass("Animator") or make("Animator", {}, hum)
+	-- 로블록스 기본 R15 움직임 (가만히 / 걷기 / 뛰기)
+	local function loadTrack(id)
+		local a = Instance.new("Animation")
+		a.AnimationId = "rbxassetid://" .. id
+		local ok, t = pcall(function()
+			return animator:LoadAnimation(a)
+		end)
+		return ok and t or nil
+	end
+	local idleT, walkT, runT = loadTrack(507766388), loadTrack(507777826), loadTrack(507767714)
+	local playing
+	local function play(t, speed)
+		if playing ~= t then
+			if playing then
+				playing:Stop(0.25)
+			end
+			playing = t
+			if t then
+				t:Play(0.25)
+			end
+		end
+		if t and speed then
+			t:AdjustSpeed(speed)
+		end
+	end
+	-- 발밑 바닥 높이에 맞춰 세우기
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.RespectCanCollide = true
+	local ignore = { actor }
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p.Character then
+			table.insert(ignore, p.Character)
+		end
+	end
+	params.FilterDescendantsInstances = ignore
+	local hipOff = hum.HipHeight + hrp.Size.Y / 2
+	local function place(pos, look)
+		local hit = workspace:Raycast(Vector3.new(pos.X, pos.Y + 6, pos.Z), Vector3.new(0, -20, 0), params)
+		local y = (hit and hit.Position.Y or 0.2) + hipOff
+		local p = Vector3.new(pos.X, y, pos.Z)
+		local l = Vector3.new(look.X, y, look.Z)
+		if (l - p).Magnitude < 0.01 then
+			l = p + hrp.CFrame.LookVector
+		end
+		hrp.CFrame = CFrame.lookAt(p, l)
+	end
+	local function head()
+		local h = actor:FindFirstChild("Head")
+		return h and h.Position or hrp.Position + Vector3.new(0, 1.5, 0)
+	end
+	-- 자세: 관절(Motor6D)의 C0 를 원하는 각도로 천천히 돌린다 (걷기·가만히 움직임 위에 겹쳐짐)
+	local joints = {}
+	for _, m in ipairs(actor:GetDescendants()) do
+		if m:IsA("Motor6D") then
+			joints[m.Name] = { m = m, c0 = m.C0, cur = CFrame.new(), want = CFrame.new() }
+		end
+	end
+	local function pose(map)
+		for _, j in pairs(joints) do
+			j.want = CFrame.new()
+		end
+		for name, cf in pairs(map or {}) do
+			if joints[name] then
+				joints[name].want = cf
+			end
+		end
+	end
+	local poseConn = RunService.RenderStepped:Connect(function(dt)
+		for _, j in pairs(joints) do
+			j.cur = j.cur:Lerp(j.want, math.min(1, dt * 7))
+			j.m.C0 = j.c0 * j.cur
+		end
+	end)
+	local R = math.rad
+	-- 소품: 손전등 불빛 (인형의 손전등 렌즈), 휴대폰
+	-- 손전등 불빛: 머리 앞에 숨긴 작은 판에서 아래로 40° (들고 있는 손전등이 비추는 방향처럼)
+	local beam
+	do
+		local headPart = actor:FindFirstChild("Head")
+		if headPart then
+			local lamp = make("Part", { Name = "HeadLamp", Size = Vector3.new(0.2, 0.2, 0.2), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true }, actor)
+			lamp.CFrame = headPart.CFrame * CFrame.new(0.5, -0.9, -0.5) * CFrame.Angles(math.rad(-38), 0, 0)
+			make("WeldConstraint", { Part0 = headPart, Part1 = lamp }, lamp)
+			beam = make("SpotLight", { Face = Enum.NormalId.Front, Range = 24, Angle = 50, Brightness = 2.0, Color = Color3.fromRGB(255, 238, 210), Shadows = true, Enabled = false }, lamp)
+		end
+	end
+	local hand = actor:FindFirstChild("RightHand")
+	local phone = make("Part", { Name = "Phone", Size = Vector3.new(0.4, 0.78, 0.06), Color = Color3.fromRGB(20, 20, 22), Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
+	local screenGlow = make("PointLight", { Range = 5, Brightness = 1.4, Color = Color3.fromRGB(190, 210, 255), Enabled = false }, phone)
+	local screen = make("Part", { Name = "PhoneScreen", Size = Vector3.new(0.34, 0.66, 0.02), Color = Color3.fromRGB(170, 196, 240), Material = Enum.Material.Neon, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
+	if hand then
+		phone.CFrame = hand.CFrame * CFrame.new(0, -0.15, -0.3) * CFrame.Angles(R(-70), 0, 0)
+		screen.CFrame = phone.CFrame * CFrame.new(0, 0, -0.04)
+		make("WeldConstraint", { Part0 = hand, Part1 = phone }, phone)
+		make("WeldConstraint", { Part0 = phone, Part1 = screen }, screen)
+	end
+	do
+		local sg = make("SurfaceGui", { Face = Enum.NormalId.Front, SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud, PixelsPerStud = 400, LightInfluence = 0, Brightness = 1.2 }, screen)
+		make("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(246, 246, 244), Font = Enum.Font.BuilderSansBold, TextColor3 = Color3.fromRGB(30, 30, 30), TextScaled = true, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top,
+			Text = "알바 구인\n\n[급구] 학교 야간 경비 대타 5명\n\n오늘 22:00~06:00\n시급 30,000원\n송천고 앞 편의점" }, sg)
+	end
+	local function showPhone(on)
+		phone.Transparency = on and 0 or 1
+		screen.Transparency = on and 0 or 1
+		screenGlow.Enabled = on
+	end
+	local function showFlashlight(on)
+		for _, n in ipairs({ "Flashlight", "Lens" }) do
+			local p = actor:FindFirstChild(n, true)
+			if p and p:IsA("BasePart") then
+				p.Transparency = on and 0 or 1
+			end
+		end
+	end
+	-- 진행 도구
 	local skipped = false
+	local skip = make("TextButton", { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -28, 1, -24), Size = UDim2.new(0, 130, 0, 34), BackgroundTransparency = 1, Font = Enum.Font.BuilderSansBold, TextSize = 18, TextColor3 = Color3.fromRGB(170, 170, 170), TextStrokeTransparency = 0.6, Text = "건너뛰기  ▶", ZIndex = 55 }, gui)
 	skip.MouseButton1Click:Connect(function()
 		skipped = true
 	end)
+	local function hold(sec, fn)
+		local t0 = os.clock()
+		while not skipped do
+			local t = os.clock() - t0
+			if t >= sec then
+				break
+			end
+			if fn then
+				fn(t / sec, t)
+			end
+			RunService.RenderStepped:Wait()
+		end
+	end
+	local function cutIn()
+		fade.BackgroundTransparency = 0
+		tween(fade, 0.7, { BackgroundTransparency = 1 })
+	end
+	local function cutOut()
+		if not skipped then
+			tween(fade, 0.45, { BackgroundTransparency = 0 }).Completed:Wait()
+		end
+	end
+	-- 길(점 목록)을 일정한 속도로 따라 걷기/뛰기. camFn(진행률, 위치)
+	local function travel(pts, speed, trackT, animSpeed, camFn)
+		local segs, total = {}, 0
+		for i = 1, #pts - 1 do
+			local l = (pts[i + 1] - pts[i]).Magnitude
+			table.insert(segs, l)
+			total = total + l
+		end
+		play(trackT, animSpeed)
+		local d = 0
+		while d < total and not skipped do
+			local dt = RunService.RenderStepped:Wait()
+			d = math.min(total, d + speed * dt)
+			local acc, p, dir = 0, pts[#pts], pts[#pts] - pts[#pts - 1]
+			for i, l in ipairs(segs) do
+				if d <= acc + l then
+					local u = (d - acc) / l
+					p = pts[i]:Lerp(pts[i + 1], u)
+					dir = pts[i + 1] - pts[i]
+					break
+				end
+				acc = acc + l
+			end
+			place(p, p + dir)
+			if camFn then
+				camFn(d / total, p)
+			end
+		end
+		play(idleT)
+	end
+
 	camera.CameraType = Enum.CameraType.Scriptable
-	-- 오프닝 동안만 화면을 조금 밝게 (이야기 장면이 보이도록)
+	camera.FieldOfView = 50
 	local savedExposure = Lighting.ExposureCompensation
 	Lighting.ExposureCompensation = savedExposure + 0.9
 	tween(barTop, 0.8, { Position = UDim2.fromScale(0, 0) })
 	tween(barBottom, 0.8, { Position = UDim2.fromScale(0, 0.89) })
-	for _, sh in ipairs(shots) do
-		if skipped then
-			break
+	local gateOpened = false
+	local V = Vector3.new
+
+	-- 1) 주차장: 차 옆에서 문자를 보고, 경비실로 걸어간다
+	if not skipped then
+		place(V(46.2, 1, 63), V(40, 1, 70))
+		play(idleT)
+		showFlashlight(false)
+		showPhone(true)
+		pose({ RightShoulder = CFrame.Angles(R(62), 0, 0), RightElbow = CFrame.Angles(R(55), 0, 0), Neck = CFrame.Angles(R(-22), 0, 0) })
+		camera.CFrame = CFrame.lookAt(V(38, 5.0, 58), head())
+		cutIn()
+		showSubtitle(T.arrive, 3.6, "static")
+		hold(3.4, function(u)
+			camera.CFrame = CFrame.lookAt(V(38, 5.0, 58):Lerp(V(39.5, 4.8, 59.5), u), head())
+		end)
+		pose({})
+		showPhone(false)
+		showFlashlight(true)
+		showSubtitle(T.arrive2, 3.6)
+		local cam = camera.CFrame.Position
+		travel({ V(46.2, 1, 63), V(42, 1, 68), V(36, 1, 72.2), V(32.7, 1, 73.8) }, 6, walkT, 0.75, function(_, p)
+			local want = p + V(9, 4.2, -8)
+			cam = cam:Lerp(want, 0.04)
+			camera.CFrame = CFrame.lookAt(cam, head())
+		end)
+		hold(0.4)
+		cutOut()
+	end
+	-- 2) 경비실 안: 책상 위 펼쳐진 근무 수칙 수첩을 손전등으로 비춘다 (어깨 너머)
+	if not skipped then
+		place(V(24.3, 1.5, 85.4), V(26.6, 1.5, 87.6))
+		play(idleT)
+		if beam then
+			beam.Enabled = true
 		end
-		if sh.from then
-			camera.CFrame = CFrame.lookAt(sh.from, sh.look)
-			camera.FieldOfView = 55
-			flash.Enabled = sh.flashlight == true
-			fade.BackgroundTransparency = 0 -- 장면마다 검은 화면에서 밝아진다
-			tween(fade, 0.9, { BackgroundTransparency = 1 })
-		end
-		showSubtitle(sh.text, sh.sec - 0.4, sh.color)
-		local t0 = os.clock()
-		while os.clock() - t0 < sh.sec and not skipped do
-			RunService.RenderStepped:Wait()
-			if sh.from then
-				local u = math.clamp((os.clock() - t0) / sh.sec, 0, 1)
-				local e = u * u * (3 - 2 * u)
-				camera.CFrame = CFrame.lookAt(sh.from:Lerp(sh.to, e), sh.look)
+		pose({ RightShoulder = CFrame.Angles(R(34), 0, 0), Neck = CFrame.Angles(R(-30), 0, 0), Waist = CFrame.Angles(R(-8), 0, 0) })
+		camera.CFrame = CFrame.lookAt(V(28.6, 6.9, 83.4), V(25.8, 3.6, 87.4))
+		cutIn()
+		showSubtitle(T.read, 3.8)
+		hold(4.0, function(u)
+			camera.CFrame = CFrame.lookAt(V(28.6, 6.9, 83.4):Lerp(V(28.0, 6.6, 84.2), u), V(25.8, 3.6, 87.4))
+		end)
+	end
+	-- 3) 수첩 가까이 (손글씨 수칙)
+	if not skipped then
+		camera.CFrame = CFrame.lookAt(V(26.6, 5.9, 85.9), V(26.6, 3.45, 87.7))
+		showSubtitle(T.rule, 2.8, "red")
+		hold(3.0, function(u)
+			camera.CFrame = CFrame.lookAt(V(26.6, 5.9, 85.9):Lerp(V(26.6, 5.5, 86.4), u), V(26.6, 3.45, 87.7))
+			if beam and u > 0.75 then
+				beam.Enabled = math.random() < 0.6 -- 손전등이 지직거린다
 			end
-		end
-		if sh.from and not skipped then
-			tween(fade, 0.5, { BackgroundTransparency = 0 }).Completed:Wait()
+		end)
+		if beam then
+			beam.Enabled = true
 		end
 	end
+	-- 4) 흠칫: 뒤로 물러서며 몸을 젖힌다 (옆에서)
+	if not skipped then
+		camera.CFrame = CFrame.lookAt(V(29.6, 5.8, 83.2), head())
+		pose({ RightShoulder = CFrame.Angles(R(20), 0, 0), Waist = CFrame.Angles(R(12), 0, 0), Neck = CFrame.Angles(R(8), 0, 0), LeftShoulder = CFrame.Angles(R(25), 0, R(-10)) })
+		showSubtitle(T.shock, 2.6)
+		hold(2.6, function(u)
+			local back = math.min(1, u * 4) * 1.3
+			place(V(24.3, 1.5, 85.4 - back), V(26.6, 1.5, 87.6))
+			camera.CFrame = CFrame.lookAt(V(29.6, 5.8, 83.2), head())
+		end)
+		cutOut()
+	end
+	-- 5) 휴대폰: 돌아서서 고개를 숙이고 당근에 대타 5명 글을 올린다 (등 뒤 어깨 너머로 화면이 보임)
+	if not skipped then
+		if beam then
+			beam.Enabled = false
+		end
+		showFlashlight(false)
+		showPhone(true)
+		place(V(24.3, 1.5, 83.4), V(24.3, 1.5, 78))
+		play(idleT)
+		pose({ RightShoulder = CFrame.Angles(R(62), 0, 0), RightElbow = CFrame.Angles(R(60), 0, 0), LeftShoulder = CFrame.Angles(R(40), 0, R(15)), LeftElbow = CFrame.Angles(R(50), 0, 0), Neck = CFrame.Angles(R(-26), 0, 0) })
+		camera.CFrame = CFrame.lookAt(V(26.0, 7.0, 85.8), phone.Position)
+		cutIn()
+		showSubtitle(T.post, 4.0, "static")
+		hold(4.2, function(u)
+			camera.CFrame = CFrame.lookAt(V(26.0, 7.0, 85.8):Lerp(V(25.6, 6.6, 85.1), u), phone.Position)
+		end)
+		showSubtitle(T.sorry, 2.2)
+		hold(2.2)
+		cutOut()
+	end
+	-- 6) 도망: 정문이 열려 있고, 공유가 정문 밖으로 뛰어나간다 → 정문이 쾅 닫힌다 (길 건너에서)
+	if not skipped then
+		showPhone(false)
+		showFlashlight(true)
+		pose({})
+		if gate then
+			moveGateLocal(gate, gateClosed, true, 0.01)
+			gateOpened = true
+		end
+		place(V(32.7, 1, 74.5), V(24, 1, 78))
+		camera.CFrame = CFrame.lookAt(V(9, 5.5, 124), V(24, 4, 80))
+		cutIn()
+		showSubtitle(T.run, 3.6)
+		local cam = V(9, 5.5, 124)
+		local closed = false
+		travel({ V(32.7, 1, 74.5), V(24, 1, 79), V(12, 1, 90), V(3, 1, 97), V(0, 1, 104), V(0, 1, 116), V(-6, 1, 124), V(-46, 1, 129) }, 17, runT, 1.0, function(u, p)
+			cam = cam:Lerp(V(9, 5.5, 124), 0.05)
+			camera.CFrame = CFrame.lookAt(cam, p + V(0, 2, 0))
+			if not closed and p.Z > 110 and gate then
+				closed = true
+				moveGateLocal(gate, gateClosed, false, 0.45)
+				task.delay(0.45, function()
+					showSubtitle(T.slam, 1.6)
+				end)
+			end
+		end)
+		hold(1.2, function()
+			camera.CFrame = CFrame.lookAt(V(9, 5.5, 124), V(0, 4, 100))
+		end)
+		cutOut()
+	end
+	-- 7) 검은 화면
 	fade.BackgroundTransparency = 0
-	flash.Enabled = false
+	if not skipped then
+		showSubtitle(T.finish, 3.0)
+		hold(3.2)
+	end
+	-- 정리
+	poseConn:Disconnect()
+	actor:Destroy()
+	if gate and (gateOpened or skipped) then
+		moveGateLocal(gate, gateClosed, false, 0.01)
+	end
 	Lighting.ExposureCompensation = savedExposure
 	subtitle.TextTransparency = 1
 	subtitle.TextStrokeTransparency = 1
@@ -726,9 +1015,9 @@ local function runPrologue()
 	tween(barTop, 0.6, { Position = UDim2.fromScale(0, -0.11) })
 	tween(barBottom, 0.6, { Position = UDim2.fromScale(0, 1) })
 	camera.CameraType = Enum.CameraType.Custom
-	local hum = humanoid()
-	if hum then
-		camera.CameraSubject = hum
+	local myHum = humanoid()
+	if myHum then
+		camera.CameraSubject = myHum
 	end
 	camera.FieldOfView = Config.FIELD_OF_VIEW
 	task.wait(0.3)

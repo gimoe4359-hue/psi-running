@@ -996,6 +996,44 @@ local function onCharacter(player, character)
 	player:GetAttributeChangedSignal("FlashOn"):Connect(syncBeam)
 end
 
+-- 오프닝에 나오는 공유 (경비복 차림 R15 인형). 각 클라이언트가 복제해서 혼자 보는 오프닝에서 움직인다
+task.spawn(function()
+	local ok, err = pcall(function()
+		local desc = Instance.new("HumanoidDescription")
+		for _, k in ipairs({ "HeadColor", "LeftArmColor", "RightArmColor", "LeftLegColor", "RightLegColor", "TorsoColor" }) do
+			desc[k] = Config.SKIN_COLOR
+		end
+		local actor = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
+		actor.Name = "GongYooActor"
+		actor:PivotTo(CFrame.new(0, -400, 0))
+		actor.HumanoidRootPart.Anchored = true
+		actor.Parent = workspace
+		GuardOutfit.Dress(actor, Config.HERO_NAME)
+		-- 걱정하는 얼굴 (올려 둔 데칼 → 이미지)
+		if (Config.ACTOR_FACE_DECAL or 0) ~= 0 then
+			local okF, m = pcall(function()
+				return game:GetService("InsertService"):LoadAsset(Config.ACTOR_FACE_DECAL)
+			end)
+			local dec = okF and m and m:FindFirstChildWhichIsA("Decal", true)
+			local face = actor.Head:FindFirstChildWhichIsA("Decal")
+			if dec and face then
+				face.Texture = dec.Texture
+			end
+			if okF and m then
+				m:Destroy()
+			end
+		end
+		local anim = actor:FindFirstChild("Animate")
+		if anim then
+			anim:Destroy()
+		end
+		actor.Parent = ReplicatedStorage
+	end)
+	if not ok then
+		warn("[Opening] 공유 인형을 못 만들었다: " .. tostring(err))
+	end
+end)
+
 Players.PlayerAdded:Connect(function(player)
 	player:SetAttribute("Sanity", Config.START_SANITY)
 	player:SetAttribute("IntroDone", false)

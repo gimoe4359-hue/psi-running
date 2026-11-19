@@ -106,6 +106,16 @@ function GuardOutfit.Apply(player, character)
 	if character.Parent == nil then
 		return
 	end
+	GuardOutfit.Dress(character, player.DisplayName)
+end
+
+--- 플레이어가 아닌 모델(오프닝의 공유 등)에도 경비복을 입힌다. name = 이름표 글자
+function GuardOutfit.Dress(character, name)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local head = character:FindFirstChild("Head")
+	if not humanoid or not head then
+		return
+	end
 	applyDescription(humanoid)
 	head = character:FindFirstChild("Head") or head
 
@@ -126,7 +136,7 @@ function GuardOutfit.Apply(player, character)
 		p.Parent = character
 	end
 
-	humanoid.DisplayName = "경비원 " .. player.DisplayName -- 공유가 구한 대타: 이름표는 각자 자기 이름
+	humanoid.DisplayName = "경비원 " .. name -- 이름표는 각자 자기 이름 (오프닝의 공유는 "공유")
 	humanoid.NameDisplayDistance = 30
 
 	local outfit = character:FindFirstChild("GuardOutfit")
@@ -162,7 +172,7 @@ function GuardOutfit.Apply(player, character)
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
 		label.BackgroundTransparency = 1
-		label.Text = player.DisplayName
+		label.Text = name
 		label.TextScaled = true
 		label.Font = Enum.Font.BuilderSansBold
 		label.TextColor3 = Color3.fromRGB(20, 24, 40)
