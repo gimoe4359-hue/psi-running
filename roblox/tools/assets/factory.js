@@ -28,7 +28,7 @@ export function buildTemplates(which) {
   if (want('StudentChair')) T.push({ name: 'StudentChair', keep: ['Seat'], meshes: buildChair() });
   if (want('ReadingGirl')) T.push({ name: 'ReadingGirl', keep: ['Body', 'Head'], meshes: buildStatue() });
   if (want('Sedan')) T.push({ name: 'Sedan', keep: ['Body'], show: ["HeadBeam","Plate","CabinFloor","Dash","DashTop","Cluster","Screen","SteeringWheel","Column","SeatBase","SeatBack","Headrest","RearSeat","RearBack","Console","DriverEye"], meshes: buildCar() });
-  if (want('SUV')) T.push({ name: 'SUV', keep: ['Body'], show: ['HeadBeam', 'TailGlow', 'Plate', 'Cluster', 'Screen', 'Headliner', 'DomeLight', 'CargoFloor', 'RideSeat', 'SUVDoor'], meshes: buildSUV() });
+  if (want('SUV')) T.push({ name: 'SUV', keep: ['Body'], show: ['HeadBeam', 'TailGlow', 'Plate', 'Cluster', 'Screen', 'DomeLight', 'CargoFloor', 'RideSeat', 'SUVDoor'], meshes: buildSUV() });
   return T;
 }
 

@@ -4,7 +4,7 @@
 // 기준점 = 차 가운데 바닥(타이어 밑), 앞 = -Z. 색마다 메시를 나눈다. 좌석·불빛·번호판은 generate.js 파트.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { buildSuvInterior } from './suv_interior.js';
 
 const M = 3.1;
 const LEN = 14.52, HW = 5.84 / 2, ROOF = 5.3;
@@ -96,8 +96,30 @@ function ghPt(z, u) {
 
 export function buildSUV() {
   const paint = [24, 26, 30]; // 검은 펄
-  const NV = 48;
-  const body = grid(76, NV, (i, j) => bodyPt(lerp(ZF, ZR, i), j), 2.4);
+  // 차체: 실내(앞유리 밑 ~ 뒷문) 구간은 위를 막지 않고 속을 파낸 '욕조' 모양 (문 두께 → 안쪽 벽 → 바닥, 뒷바퀴 자리는 옆에 볼록한 휠하우스)
+  // 이렇게 해야 차 안에 앉았을 때 좌석·대시보드가 보이고, 차체 윗면 위에 서 있는 느낌이 안 난다
+  const NV = 96, FLOOR = 1.22, ZC0 = ZW + 0.05, ZC1 = ZT - 0.05;
+  const cabinPt = (z, v) => {
+    const vs = 0.3;
+    if (z < ZC0 || z > ZC1 || v <= vs || v >= 1 - vs) return bodyPt(z, v);
+    const R = bodyPt(z, vs), yt = R[1], xo = R[0];
+    const xr = xo - 0.2, hump = bottomY(z) + 0.14, xh = Math.min(xr, 1.98);
+    const ledge = hump > FLOOR + 0.05;
+    // 오른쪽 → 왼쪽으로 가는 길 (구간마다 정해진 몫)
+    const pts = ledge
+      ? [[xo, yt], [xr, yt], [xr, hump], [xh, hump], [xh, FLOOR], [-xh, FLOOR], [-xh, hump], [-xr, hump], [-xr, yt], [-xo, yt]]
+      : [[xo, yt], [xr, yt], [xr, (yt + FLOOR) / 2], [xr, FLOOR - 0.0001], [xr - 0.0002, FLOOR], [-xr + 0.0002, FLOOR], [-xr, FLOOR - 0.0001], [-xr, (yt + FLOOR) / 2], [-xr, yt], [-xo, yt]];
+    const share = [0.05, 0.12, 0.06, 0.08, 0.18, 0.08, 0.06, 0.12, 0.05];
+    const tot = share.reduce((a, b) => a + b, 0);
+    let q = (v - vs) / (1 - 2 * vs) * tot;
+    for (let k = 0; k < share.length; k++) {
+      if (q <= share[k] || k === share.length - 1) { const t = Math.min(1, q / share[k]); const A = pts[k], B = pts[k + 1]; return [lerp(A[0], B[0], t), lerp(A[1], B[1], t), z]; }
+      q -= share[k];
+    }
+    return bodyPt(z, v);
+  };
+  // 방향 판정 기준점을 아주 아래(-100)로 두어 가운데 바닥(위를 보는 면)이 바깥면으로 잡히게 한다
+  const body = grid(90, NV, (i, j) => cabinPt(lerp(ZF, ZR, i), j), -100);
   const cap = (z) => grid(1, NV, (i, j) => (i ? [0, (beltY(z) + bottomY(z)) / 2, z] : bodyPt(z, j)), (beltY(z) + bottomY(z)) / 2);
   const both = (g) => { const h = clean(g), f = h.clone(); const p = f.attributes.position;
     for (let k = 0; k < p.count; k += 3) { const x = p.getX(k + 1), y = p.getY(k + 1), z = p.getZ(k + 1); p.setXYZ(k + 1, p.getX(k + 2), p.getY(k + 2), p.getZ(k + 2)); p.setXYZ(k + 2, x, y, z); }
@@ -214,52 +236,6 @@ export function buildSUV() {
     const flare = new THREE.TorusGeometry(ARCH + 0.04, 0.09, 6, 24, Math.PI); flare.rotateY(Math.PI / 2); flare.translate(sx * (HW - 0.12), WR, wz); dark.push(flare);
   }));
 
-  // ── 실내: 문 안쪽 판, 대시보드, 계기판 덮개, 센터 콘솔, 운전대, 좌석 (차 안에 앉았을 때 보이는 것) ──
-  const trim = [], trimLight = [], seatGeo = [], wheelGeo = [];
-  const rbox = (w, h, d, x, y, z, r = 0.12, rx = 0) => { const g = new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - 0.01, h / 2 - 0.01, d / 2 - 0.01)); if (rx) g.rotateX(rx); g.translate(x, y, z); return g; };
-  [-1, 1].forEach((sx) => {
-    const xi = sx * 2.62;
-    // 문 안쪽 판 (앞문·뒷문) + 팔걸이 + 손잡이 홈 + 스피커
-    [[-2.4, 0.7], [0.8, 3.85]].forEach(([za, zb]) => {
-      trim.push(rbox(0.16, 2.05, zb - za - 0.06, xi, 2.45, (za + zb) / 2, 0.05));
-      trimLight.push(rbox(0.14, 0.75, zb - za - 0.3, xi - sx * 0.05, 3.1, (za + zb) / 2, 0.05));
-      trim.push(rbox(0.36, 0.14, (zb - za) * 0.55, xi - sx * 0.18, 2.62, (za + zb) / 2 + 0.2, 0.05));
-      const sp = new THREE.CylinderGeometry(0.28, 0.28, 0.04, 16); sp.rotateZ(Math.PI / 2); sp.translate(xi - sx * 0.09, 1.85, za + 0.6); trimLight.push(sp);
-    });
-    trim.push(rbox(0.16, 2.0, 3.0, xi, 2.5, 5.4, 0.05));                       // 뒤 옆판 (트렁크)
-    trim.push(rbox(0.2, 3.0, 0.5, sx * 2.5, 3.6, 0.78, 0.08));                 // B필러 안쪽
-    trim.push(rbox(0.2, 3.0, 0.5, sx * 2.48, 3.6, 3.95, 0.08));                // C필러 안쪽
-  });
-  // 대시보드: 앞유리 밑에서 운전석 쪽으로 둥글게 내려오는 판 + 계기판 덮개 + 가운데 화면 자리 + 송풍구 + 글러브박스 선
-  trim.push(rbox(5.2, 0.9, 1.4, 0, 3.05, -2.0, 0.3));
-  trim.push(rbox(5.2, 1.1, 0.7, 0, 2.3, -1.55, 0.2));
-  trim.push(rbox(1.7, 0.45, 0.8, -1.35, 3.55, -1.75, 0.2));                    // 계기판 덮개
-  trim.push(rbox(1.3, 1.5, 0.5, 0, 2.55, -1.3, 0.12));                         // 센터페시아
-  [-2.1, -0.45, 0.45, 2.1].forEach((x) => trimLight.push(rbox(0.5, 0.2, 0.06, x, 3.1, -1.31, 0.03)));   // 송풍구
-  trimLight.push(rbox(1.6, 0.04, 0.04, 1.3, 2.55, -1.21, 0.01));                                         // 글러브박스 선
-  // 센터 콘솔 + 팔걸이 + 기어봉
-  trim.push(rbox(0.9, 0.85, 2.9, 0, 1.75, 0.0, 0.15));
-  trimLight.push(rbox(0.85, 0.2, 1.1, 0, 2.27, 0.75, 0.08));
-  const knob = new THREE.SphereGeometry(0.13, 12, 8); knob.translate(0, 2.55, -0.6); trimLight.push(knob);
-  const stick = new THREE.CylinderGeometry(0.04, 0.05, 0.35, 8); stick.translate(0, 2.35, -0.6); trimLight.push(stick);
-  // 운전대 (운전석 = -X): 둥근 테 + 가운데 + 기둥
-  const ring = new THREE.TorusGeometry(0.62, 0.07, 10, 36); ring.rotateX(-0.42); ring.translate(-1.35, 3.0, -0.95); wheelGeo.push(ring);
-  const hubG = new THREE.CylinderGeometry(0.26, 0.3, 0.16, 18); hubG.rotateX(Math.PI / 2 - 0.42); hubG.translate(-1.35, 3.0, -0.97); wheelGeo.push(hubG);
-  [0, 2.2, 4.0].forEach((a) => { const sp = new THREE.BoxGeometry(0.55, 0.08, 0.06); sp.translate(0.3, 0, 0); sp.rotateZ(a + Math.PI); sp.rotateX(-0.42); sp.translate(-1.35, 3.0, -0.95); wheelGeo.push(sp); });
-  const col = new THREE.CylinderGeometry(0.11, 0.13, 0.9, 10); col.rotateX(Math.PI / 2 - 0.42); col.translate(-1.35, 3.2, -1.35); wheelGeo.push(col);
-  // 좌석: 앞 2개 (버킷 시트) + 뒤 3인 벤치, 둥근 모서리 쿠션
-  const seatAt = (x, z, w, front) => {
-    seatGeo.push(rbox(w, 0.5, 1.75, x, 1.6, z, 0.2));                                     // 방석
-    const back = rbox(w * 0.95, 2.4, 0.5, 0, 1.2, 0, 0.2); back.rotateX(-0.2); back.translate(x, 2.05, z + 0.95); seatGeo.push(back);
-    const head = rbox(w * 0.5, 0.55, 0.32, 0, 0, 0, 0.12); head.rotateX(-0.2); head.translate(x, 4.4, z + 1.45); seatGeo.push(head);
-    if (front) { [-1, 1].forEach((k) => { const b = rbox(0.22, 2.2, 0.62, 0, 1.1, 0, 0.1); b.rotateX(-0.2); b.translate(x + k * w * 0.47, 2.05, z + 0.92); seatGeo.push(b); }); trim.push(rbox(w * 0.9, 1.1, 1.5, x, 0.85 + 0.2, z, 0.08)); }
-  };
-  seatAt(-1.35, 0.35, 1.75, true); seatAt(1.35, 0.35, 1.75, true);
-  seatGeo.push(rbox(4.6, 0.5, 1.75, 0, 1.6, 3.25, 0.2));
-  { const back = rbox(4.6, 2.3, 0.5, 0, 1.15, 0, 0.2); back.rotateX(-0.18); back.translate(0, 2.05, 4.2); seatGeo.push(back); }
-  [-1.55, 0, 1.55].forEach((x) => { const h = rbox(0.8, 0.5, 0.3, 0, 0, 0, 0.12); h.rotateX(-0.18); h.translate(x, 4.25, 4.62); seatGeo.push(h); });
-  trim.push(rbox(5.0, 0.1, 9.6, 0, 1.3, 1.6, 0.03));                                       // 바닥 카펫
-
   return [
     { name: 'Paint', geo: ni(paintGeo), color: paint, material: 'SmoothPlastic', reflectance: 0.22 },
     { name: 'RoofPillars', geo: ni(roofPaint.flatMap(both)), color: paint, material: 'SmoothPlastic', reflectance: 0.22 },
@@ -271,12 +247,9 @@ export function buildSUV() {
     { name: 'Lamps', geo: ni(lights), color: [232, 236, 240], material: 'Glass', reflectance: 0.4, transparency: 0.05 },
     { name: 'TailLamps', geo: ni(red), color: [168, 22, 26], material: 'Glass', reflectance: 0.3 },
     { name: 'Amber', geo: ni(amber), color: [255, 150, 30], material: 'Glass', reflectance: 0.2 },
-    { name: 'InteriorTrim', geo: ni(trim), color: [44, 42, 40], material: 'SmoothPlastic', shadow: false },
-    { name: 'InteriorLight', geo: ni(trimLight), color: [120, 114, 104], material: 'SmoothPlastic', shadow: false },
-    { name: 'Seats', geo: ni(seatGeo), color: [58, 52, 46], material: 'Leather', shadow: false },
-    { name: 'SteeringWheel', geo: ni(wheelGeo), color: [26, 26, 28], material: 'Leather', shadow: false },
     { name: 'Tires', geo: ni(tires), color: [26, 26, 28], material: 'Rubber' },
     { name: 'Wheels', geo: ni(rims), color: [176, 180, 186], material: 'Metal', reflectance: 0.25 },
     { name: 'WheelDark', geo: ni(wells), color: [16, 16, 18], material: 'SmoothPlastic', shadow: false },
+    ...buildSuvInterior(),
   ];
 }

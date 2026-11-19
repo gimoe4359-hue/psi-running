@@ -3945,18 +3945,18 @@ function suv(name, cx, cz, ry, o = {}) {
     Q('CabinFloor', [5.0, 0.2, 10.4], [0, 1.2, 0.9], [34, 34, 36], 'Carpet', { nc: true });
     Q('Dash', [5.1, 0.95, 1.2], [0, 2.95, -1.85], trim, 'Leather', { nc: true });
     Q('DashTop', [5.1, 0.12, 0.9], [0, 3.46, -2.05], [22, 22, 24], 'Leather', { nc: true });
-    Q('Cluster', [1.3, 0.42, 0.05], [-1.35, 3.3, -1.38], [120, 180, 255], 'Neon', { nc: true, ns: true, r: [-15, 0, 0] });
-    Q('Screen', [1.0, 0.6, 0.05], [0, 2.85, -1.04], [40, 70, 110], 'Neon', { nc: true, ns: true });
+    Q('Cluster', [1.1, 0.36, 0.04], [-1.35, 3.26, -1.5], [70, 110, 170], 'Neon', { nc: true, ns: true, r: [-12, 0, 0] });
+    Q('Screen', [0.8, 0.48, 0.04], [0, 2.86, -1.27], [40, 70, 110], 'Neon', { nc: true, ns: true, r: [-16, 0, 0] });
     Q('SteeringWheel', [0.12, 1.4, 1.4], [-1.35, 3.0, -0.8], [20, 20, 22], 'Leather', { sh: 'Cylinder', r: [0, 90, -28], nc: true });
     Q('Column', [0.25, 0.25, 0.7], [-1.35, 2.85, -1.15], trim, 'SmoothPlastic', { nc: true });
     Q('Console', [0.9, 0.85, 2.4], [0, 2.1, 0.2], trim, 'SmoothPlastic', { nc: true });
     Q('Headliner', [3.9, 0.08, 6.6], [0, 4.7, 2.6], beige, 'SmoothPlastic', { nc: true, ns: true });
-    Q('DomeLight', [0.8, 0.06, 0.5], [0, 4.64, 0.9], [220, 214, 200], 'Glass', { nc: true, ns: true, t: 0.2 }); // 실내등 (달릴 땐 꺼 둠)
-    Q('CargoFloor', [5.0, 0.2, 2.3], [0, 2.3, 5.75], [30, 30, 32], 'Carpet', { nc: true });
+    Q('DomeLight', [0.8, 0.06, 0.5], [0, 4.99, 1.4], [220, 214, 200], 'Glass', { nc: true, ns: true, t: 0.2 }); // 실내등 (달릴 땐 꺼 둠)
+    Q('CargoFloor', [4.9, 0.2, 2.3], [0, 1.95, 5.75], [30, 30, 32], 'Carpet', { nc: true });
     // 좌석 5개: 운전석·조수석, 뒷줄 셋 (RideSeat → 로블록스 Seat). 등받이·머리받침은 장식
-    const seats = [[-1.35, 0.35], [1.35, 0.35], [-1.65, 3.25], [0, 3.25], [1.65, 3.25]];
+    const seats = [[-1.35, 0.35], [1.35, 0.35], [-1.28, 3.25], [0, 3.25], [1.28, 3.25]];
     seats.forEach(([x, z], i) => {
-      const rear = i >= 2, w = rear ? 1.5 : 1.75;
+      const rear = i >= 2, w = rear ? 1.2 : 1.75;
       Q('RideSeat', [w, 0.3, 1.5], [x, 1.7, z], seat, 'Leather', { t: 1, attr: { SeatIndex: i + 1 } }); // 보이지 않는 앉는 자리 (보이는 좌석은 메시)
       // 등받이: 가운데 쿠션 + 양옆 볼스터 + 뒷면 플라스틱 판, 머리받침은 기둥 두 개 위에
       Q('SeatBack', [w * 0.7, 1.9, 0.36], [x, 3.0, z + 0.95], seat, 'Leather', { r: [-10, 0, 0], nc: true });
