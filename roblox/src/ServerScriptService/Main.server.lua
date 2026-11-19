@@ -1022,6 +1022,69 @@ local function dressGongYoo(actor)
 	local folder = Instance.new("Folder")
 	folder.Name = "Look"
 	folder.Parent = actor
+	-- 둥근 몸 메시 (메시 팩의 GongYooBody): 부위마다 붙이고 원래 네모난 부위는 투명하게. 얼굴 그림은 둥근 머리로 옮긴다
+	local okLib, AssetLibrary = pcall(function()
+		return require(ServerScriptService:WaitForChild("AssetLibrary"))
+	end)
+	local tpl = okLib and AssetLibrary.CloneTemplate("GongYooBody")
+	if tpl then
+		local DEF = {
+			Head = Vector3.new(1.2, 1.2, 1.2), UpperTorso = Vector3.new(2, 1.6, 1), LowerTorso = Vector3.new(2, 0.4, 1),
+			LeftUpperArm = Vector3.new(1, 1.169, 1), RightUpperArm = Vector3.new(1, 1.169, 1), LeftLowerArm = Vector3.new(1, 1.052, 1), RightLowerArm = Vector3.new(1, 1.052, 1),
+			LeftHand = Vector3.new(1, 0.3, 1), RightHand = Vector3.new(1, 0.3, 1), LeftUpperLeg = Vector3.new(1, 1.217, 1), RightUpperLeg = Vector3.new(1, 1.217, 1),
+			LeftLowerLeg = Vector3.new(1, 1.193, 1), RightLowerLeg = Vector3.new(1, 1.193, 1), LeftFoot = Vector3.new(1, 0.3, 1), RightFoot = Vector3.new(1, 0.3, 1),
+		}
+		local headMesh
+		for _, m in ipairs(tpl:GetChildren()) do
+			local partName, pieceName = string.match(m.Name, "^(.-)__(.+)$")
+			local rig = partName and actor:FindFirstChild(partName)
+			if m:IsA("BasePart") and rig and DEF[partName] then
+				local k = rig.Size / DEF[partName]
+				local rel = m.Position * k
+				m.Size = m.Size * k
+				m.CFrame = rig.CFrame * CFrame.new(rel)
+				m.Anchored = false
+				m.CanCollide = false
+				m.CanQuery = false
+				m.CanTouch = false
+				m.Massless = true
+				local w = Instance.new("WeldConstraint")
+				w.Part0, w.Part1 = rig, m
+				w.Parent = m
+				m.Parent = folder
+				rig.Transparency = 1
+				if partName == "Head" and pieceName == "Face" then
+					headMesh = m
+				end
+			end
+		end
+		tpl:Destroy()
+		if headMesh then
+			local face = actor.Head:FindFirstChildWhichIsA("Decal")
+			if face then
+				face.Parent = headMesh
+				face.Face = Enum.NormalId.Front
+			end
+		end
+		for _, h in ipairs({ "LeftHand", "RightHand" }) do
+			local part = actor:FindFirstChild(h)
+			if part then
+				part.Color = Config.SKIN_COLOR
+			end
+		end
+		-- 손전등 (오른손): 오프닝 스크립트가 "Flashlight" / "Lens" 를 찾는다
+		local hand = actor:FindFirstChild("RightHand")
+		if hand then
+			local body = weld(folder, hand, "Flashlight", Vector3.new(1.1, 0.34, 0.34), CFrame.new(0, -hand.Size.Y * 0.2 - 0.2, -0.45) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
+			weld(folder, body, "Lens", Vector3.new(0.08, 0.36, 0.36), CFrame.new(0.56, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon, Enum.PartType.Cylinder)
+		end
+		local hum = actor:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.DisplayName = Config.HERO_NAME
+		end
+		return
+	end
+	-- (메시 팩이 없을 때) 네모난 부위 위에 파트로 머리카락·정장을 붙인다
 	local head = actor:FindFirstChild("Head")
 	for _, h in ipairs({ "LeftHand", "RightHand" }) do
 		local part = actor:FindFirstChild(h)

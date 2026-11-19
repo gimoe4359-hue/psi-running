@@ -8,6 +8,7 @@ import { buildDesk, buildChair } from './desk.js';
 import { buildCar } from './car.js';
 import { buildStatue } from './statue.js';
 import { buildSUV } from './suv.js';
+import { buildGongYoo } from './gongyoo.js';
 
 function mulberry(seed) {
   return () => {
@@ -28,6 +29,7 @@ export function buildTemplates(which) {
   if (want('StudentChair')) T.push({ name: 'StudentChair', keep: ['Seat'], meshes: buildChair() });
   if (want('ReadingGirl')) T.push({ name: 'ReadingGirl', keep: ['Body', 'Head'], meshes: buildStatue() });
   if (want('Sedan')) T.push({ name: 'Sedan', keep: ['Body'], show: ["HeadBeam","Plate","CabinFloor","Dash","DashTop","Cluster","Screen","SteeringWheel","Column","SeatBase","SeatBack","Headrest","RearSeat","RearBack","Console","DriverEye"], meshes: buildCar() });
+  if (want('GongYooBody')) T.push({ name: 'GongYooBody', keep: [], meshes: buildGongYoo() });
   if (want('SUV')) T.push({ name: 'SUV', keep: ['Body'], show: ['HeadBeam', 'TailGlow', 'Plate', 'Cluster', 'Screen', 'DomeLight', 'CargoFloor', 'RideSeat', 'SUVDoor'], meshes: buildSUV() });
   return T;
 }
