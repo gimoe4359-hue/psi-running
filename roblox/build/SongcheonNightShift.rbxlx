@@ -219,7 +219,7 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상·출근 차량 SUV) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 110794145643040
+Config.MESH_PACK_ID = 71556249251747
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
@@ -2244,27 +2244,123 @@ return {
 		}, {
 			mesh = "GongYooBody_HeadHair",
 			name = "Head__Hair",
-			size = { 1.0711, 1.1809, 1.1411 },
-			pos = { 0, 0.1489, 0.0752 },
+			size = { 1.0711, 0.7922, 1.1106 },
+			pos = { 0, -0.0485, 0.0907 },
 			color = { 122, 76, 42 },
 			material = "SmoothPlastic",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 6688,
+			tris = 6944,
+		}, {
+			mesh = "GongYooBody_HeadCap",
+			name = "Head__Cap",
+			size = { 1.0632, 0.4704, 1.4525 },
+			pos = { -0.0014, 0.5046, -0.0873 },
+			color = { 24, 28, 48 },
+			material = "Fabric",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 6980,
+		}, {
+			mesh = "GongYooBody_HeadCapGold",
+			name = "Head__CapGold",
+			size = { 0.6469, 0.2946, 0.2496 },
+			pos = { -0.0004, 0.4527, -0.4252 },
+			color = { 214, 170, 60 },
+			material = "Metal",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2236,
 		}, {
 			mesh = "GongYooBody_UpperTorsoSuit",
 			name = "UpperTorso__Suit",
 			size = { 2.0373, 1.78, 0.7283 },
 			pos = { 0, -0.09, 0.0013 },
-			color = { 36, 46, 74 },
+			color = { 128, 172, 218 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
 			tris = 6904,
+		}, {
+			mesh = "GongYooBody_UpperTorsoCollar",
+			name = "UpperTorso__Collar",
+			size = { 0.6128, 0.3332, 0.514 },
+			pos = { -0.0001, 0.6924, -0.0772 },
+			color = { 128, 172, 218 },
+			material = "Fabric",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2032,
+		}, {
+			mesh = "GongYooBody_UpperTorsoPlacket",
+			name = "UpperTorso__Placket",
+			size = { 0.1, 1.3908, 0.331 },
+			pos = { 0, -0.0954, -0.2155 },
+			color = { 104, 148, 198 },
+			material = "Fabric",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 1778,
+		}, {
+			mesh = "GongYooBody_UpperTorsoButtons",
+			name = "UpperTorso__Buttons",
+			size = { 0.8167, 0.9691, 0.1912 },
+			pos = { 0.0002, 0.0323, -0.2975 },
+			color = { 236, 240, 246 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 1392,
+		}, {
+			mesh = "GongYooBody_UpperTorsoPockets",
+			name = "UpperTorso__Pockets",
+			size = { 1.16, 0.42, 0.2805 },
+			pos = { 0, 0.12, -0.2402 },
+			color = { 104, 148, 198 },
+			material = "Fabric",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2620,
+		}, {
+			mesh = "GongYooBody_UpperTorsoEpaulette",
+			name = "UpperTorso__Epaulette",
+			size = { 1.6, 0.16, 0.26 },
+			pos = { 0, 0.72, 0.04 },
+			color = { 36, 132, 86 },
+			material = "Fabric",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 1864,
+		}, {
+			mesh = "GongYooBody_UpperTorsoBadge",
+			name = "UpperTorso__Badge",
+			size = { 0.1166, 0.1612, 0.1574 },
+			pos = { -0.3763, 0.0618, -0.279 },
+			color = { 200, 204, 210 },
+			material = "Metal",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 952,
 		}, {
 			mesh = "GongYooBody_UpperTorsoNeck",
 			name = "UpperTorso__Neck",
@@ -2282,7 +2378,7 @@ return {
 			name = "LowerTorso__Suit",
 			size = { 1.2782, 0.5799, 0.7513 },
 			pos = { -0.0001, -0.0304, 0.0457 },
-			color = { 30, 36, 52 },
+			color = { 28, 32, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2290,29 +2386,77 @@ return {
 			shadow = true,
 			tris = 2396,
 		}, {
+			mesh = "GongYooBody_LowerTorsoBelt",
+			name = "LowerTorso__Belt",
+			size = { 1.3036, 0.14, 0.7486 },
+			pos = { 0.0036, 0.12, 0.0308 },
+			color = { 18, 18, 20 },
+			material = "Leather",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2712,
+		}, {
+			mesh = "GongYooBody_LowerTorsoBuckle",
+			name = "LowerTorso__Buckle",
+			size = { 0.2, 0.14, 0.06 },
+			pos = { 0, 0.12, -0.39 },
+			color = { 200, 204, 210 },
+			material = "Metal",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 800,
+		}, {
+			mesh = "GongYooBody_LowerTorsoBaton",
+			name = "LowerTorso__Baton",
+			size = { 0.2128, 1.6014, 0.3664 },
+			pos = { -0.7518, -0.6964, 0.0241 },
+			color = { 18, 18, 20 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 1444,
+		}, {
+			mesh = "GongYooBody_LeftUpperArmSkin",
+			name = "LeftUpperArm__Skin",
+			size = { 0.4986, 1.4577, 0.5127 },
+			pos = { 0, -0.0198, -0.007 },
+			color = { 234, 196, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2996,
+		}, {
 			mesh = "GongYooBody_LeftUpperArmSuit",
 			name = "LeftUpperArm__Suit",
-			size = { 0.5392, 1.4896, 0.5455 },
-			pos = { 0, -0.015, -0.0031 },
-			color = { 36, 46, 74 },
+			size = { 0.5884, 0.8941, 0.6022 },
+			pos = { 0, 0.3071, -0.007 },
+			color = { 128, 172, 218 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2436,
+			tris = 2540,
 		}, {
-			mesh = "GongYooBody_LeftLowerArmSuit",
-			name = "LeftLowerArm__Suit",
-			size = { 0.4325, 1.2389, 0.427 },
-			pos = { -0.0002, 0.0501, 0.0038 },
-			color = { 36, 46, 74 },
-			material = "Fabric",
+			mesh = "GongYooBody_LeftLowerArmSkin",
+			name = "LeftLowerArm__Skin",
+			size = { 0.3963, 1.2086, 0.3872 },
+			pos = { 0, 0.0443, 0.0045 },
+			color = { 234, 196, 160 },
+			material = "SmoothPlastic",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2108,
+			tris = 2388,
 		}, {
 			mesh = "GongYooBody_LeftHandSkin",
 			name = "LeftHand__Skin",
@@ -2328,33 +2472,33 @@ return {
 		}, {
 			mesh = "GongYooBody_LeftUpperLegPants",
 			name = "LeftUpperLeg__Pants",
-			size = { 0.6576, 1.6494, 0.6725 },
-			pos = { 0, 0.005, 0.013 },
-			color = { 30, 36, 52 },
+			size = { 0.6576, 1.7093, 0.6672 },
+			pos = { 0, -0.025, 0.0157 },
+			color = { 28, 32, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2620,
+			tris = 2808,
 		}, {
 			mesh = "GongYooBody_LeftLowerLegPants",
 			name = "LeftLowerLeg__Pants",
-			size = { 0.4558, 1.5299, 0.5098 },
-			pos = { 0, 0.015, 0.0352 },
-			color = { 30, 36, 52 },
+			size = { 0.4991, 1.7292, 0.5094 },
+			pos = { 0, -0.0351, -0.005 },
+			color = { 28, 32, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2892,
+			tris = 2192,
 		}, {
 			mesh = "GongYooBody_LeftFootShoe",
 			name = "LeftFoot__Shoe",
 			size = { 0.4023, 0.3699, 1.059 },
 			pos = { 0, -0.0053, -0.1898 },
-			color = { 24, 22, 22 },
+			color = { 20, 20, 22 },
 			material = "Leather",
 			reflectance = 0,
 			transparency = 0,
@@ -2362,29 +2506,53 @@ return {
 			shadow = true,
 			tris = 2884,
 		}, {
+			mesh = "GongYooBody_RightUpperArmSkin",
+			name = "RightUpperArm__Skin",
+			size = { 0.4986, 1.4577, 0.5127 },
+			pos = { 0, -0.0198, -0.007 },
+			color = { 234, 196, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2996,
+		}, {
 			mesh = "GongYooBody_RightUpperArmSuit",
 			name = "RightUpperArm__Suit",
-			size = { 0.5392, 1.4896, 0.5455 },
-			pos = { 0, -0.015, -0.0031 },
-			color = { 36, 46, 74 },
+			size = { 0.5884, 0.8941, 0.6022 },
+			pos = { 0, 0.3071, -0.007 },
+			color = { 128, 172, 218 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2436,
+			tris = 2540,
 		}, {
-			mesh = "GongYooBody_RightLowerArmSuit",
-			name = "RightLowerArm__Suit",
-			size = { 0.4325, 1.2389, 0.427 },
-			pos = { -0.0002, 0.0501, 0.0038 },
-			color = { 36, 46, 74 },
+			mesh = "GongYooBody_RightUpperArmPatch",
+			name = "RightUpperArm__Patch",
+			size = { 0.3878, 0.3365, 0.2565 },
+			pos = { 0.114, 0.2001, -0.0002 },
+			color = { 30, 36, 70 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2108,
+			tris = 948,
+		}, {
+			mesh = "GongYooBody_RightLowerArmSkin",
+			name = "RightLowerArm__Skin",
+			size = { 0.3963, 1.2086, 0.3872 },
+			pos = { 0, 0.0443, 0.0045 },
+			color = { 234, 196, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2388,
 		}, {
 			mesh = "GongYooBody_RightHandSkin",
 			name = "RightHand__Skin",
@@ -2400,33 +2568,33 @@ return {
 		}, {
 			mesh = "GongYooBody_RightUpperLegPants",
 			name = "RightUpperLeg__Pants",
-			size = { 0.6576, 1.6494, 0.6725 },
-			pos = { 0, 0.005, 0.013 },
-			color = { 30, 36, 52 },
+			size = { 0.6576, 1.7093, 0.6672 },
+			pos = { 0, -0.025, 0.0157 },
+			color = { 28, 32, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2620,
+			tris = 2808,
 		}, {
 			mesh = "GongYooBody_RightLowerLegPants",
 			name = "RightLowerLeg__Pants",
-			size = { 0.4558, 1.5299, 0.5098 },
-			pos = { 0, 0.015, 0.0352 },
-			color = { 30, 36, 52 },
+			size = { 0.4991, 1.7292, 0.5094 },
+			pos = { 0, -0.0351, -0.005 },
+			color = { 28, 32, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 2892,
+			tris = 2192,
 		}, {
 			mesh = "GongYooBody_RightFootShoe",
 			name = "RightFoot__Shoe",
 			size = { 0.4023, 0.3699, 1.059 },
 			pos = { 0, -0.0053, -0.1898 },
-			color = { 24, 22, 22 },
+			color = { 20, 20, 22 },
 			material = "Leather",
 			reflectance = 0,
 			transparency = 0,
@@ -2854,8 +3022,12 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local GuardOutfit = {}
 
-local NAVY = Color3.fromRGB(36, 46, 74)
-local NAVY_DARK = Color3.fromRGB(30, 36, 52)
+-- 한국 경비원 근무복: 하늘색 반팔 셔츠 + 남색 바지 + 남색 야구모자(금색 엠블럼) + 초록 견장 + 검은 벨트
+local NAVY = Color3.fromRGB(24, 28, 48) -- 모자
+local NAVY_DARK = Color3.fromRGB(28, 32, 52) -- 바지
+local SHIRT = Color3.fromRGB(128, 172, 218)
+local GREEN = Color3.fromRGB(36, 132, 86)
+local SILVER = Color3.fromRGB(200, 204, 210)
 local BLACK = Color3.fromRGB(16, 16, 18)
 local GOLD = Color3.fromRGB(222, 184, 74)
 
@@ -2929,9 +3101,9 @@ local function applyDescription(humanoid)
 		desc.RightArmColor = skin
 	else
 		-- 옷 이미지가 없으면 몸 색으로 유니폼 흉내
-		desc.TorsoColor = NAVY
-		desc.LeftArmColor = NAVY
-		desc.RightArmColor = NAVY
+		desc.TorsoColor = SHIRT
+		desc.LeftArmColor = SHIRT
+		desc.RightArmColor = SHIRT
 	end
 	desc.LeftLegColor = NAVY_DARK
 	desc.RightLegColor = NAVY_DARK
@@ -3017,12 +3189,32 @@ function GuardOutfit.Gear(character, name, outfit, opts)
 	end
 	local hs = head.Size * (opts.headScale or 1)
 	local dy = -(opts.headDrop or 0)
-	-- 경비 모자: 머리에 맞는 크기 (지름 = 머리 폭 정도, 높이 낮게)
-	local crownD = hs.X * 1.02
-	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.32, crownD, crownD), CFrame.new(0, hs.Y * 0.6 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapBand", Vector3.new(hs.Y * 0.11, crownD * 0.98, crownD * 0.98), CFrame.new(0, hs.Y * 0.44 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), BLACK, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.8, 0.06, hs.Z * 0.42), CFrame.new(0, hs.Y * 0.4 + dy, -hs.Z * 0.6) * CFrame.Angles(math.rad(-14), 0, 0), BLACK, Enum.Material.SmoothPlastic)
-	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.18, hs.Y * 0.18, 0.05), CFrame.new(0, hs.Y * 0.62 + dy, -crownD * 0.5 + hs.Z * 0.02), GOLD, Enum.Material.Metal)
+	-- 경비 야구모자: 둥근 머리 덮개 + 앞챙 + 금색 엠블럼 + 챙 위 금색 줄
+	weldPart(outfit, head, "CapCrown", Vector3.new(hs.X * 1.04, hs.Y * 0.62, hs.Z * 1.06), CFrame.new(0, hs.Y * 0.38 + dy, hs.Z * 0.02), NAVY, Enum.Material.Fabric, Enum.PartType.Ball)
+	weldPart(outfit, head, "CapBrim", Vector3.new(hs.X * 0.7, 0.07, hs.Z * 0.5), CFrame.new(0, hs.Y * 0.28 + dy, -hs.Z * 0.66) * CFrame.Angles(math.rad(-8), 0, 0), NAVY, Enum.Material.Fabric)
+	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.2, hs.Y * 0.2, 0.06), CFrame.new(0, hs.Y * 0.5 + dy, -hs.Z * 0.5), GOLD, Enum.Material.Metal)
+	weldPart(outfit, head, "CapBraid", Vector3.new(hs.X * 0.66, 0.05, 0.05), CFrame.new(0, hs.Y * 0.33 + dy, -hs.Z * 0.48), GOLD, Enum.Material.Metal)
+	-- 반팔: 아래팔·손은 맨살
+	for _, nm in ipairs({ "LeftLowerArm", "RightLowerArm", "LeftHand", "RightHand" }) do
+		local p = character:FindFirstChild(nm)
+		if p then
+			p.Color = Config.SKIN_COLOR
+		end
+	end
+	-- 초록 견장, 검은 벨트 + 은색 버클
+	local ut = character:FindFirstChild("UpperTorso")
+	if ut then
+		local u = ut.Size
+		for _, sx in ipairs({ -1, 1 }) do
+			weldPart(outfit, ut, "Epaulette", Vector3.new(u.X * 0.26, 0.08, u.Z * 0.3), CFrame.new(sx * u.X * 0.3, u.Y / 2 + 0.02, 0), GREEN, Enum.Material.Fabric)
+		end
+	end
+	local lt = character:FindFirstChild("LowerTorso")
+	if lt then
+		local l = lt.Size
+		weldPart(outfit, lt, "Belt", Vector3.new(l.X * 1.02, l.Y * 0.5, l.Z * 1.04), CFrame.new(0, l.Y * 0.2, 0), Color3.fromRGB(18, 18, 20), Enum.Material.Leather)
+		weldPart(outfit, lt, "Buckle", Vector3.new(0.3, l.Y * 0.4, 0.06), CFrame.new(0, l.Y * 0.2, -l.Z * 0.53), SILVER, Enum.Material.Metal)
+	end
 
 	-- 가슴 이름표(플레이어 이름) + 왼팔 경비 표지
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
@@ -3042,12 +3234,14 @@ function GuardOutfit.Gear(character, name, outfit, opts)
 		label.TextColor3 = Color3.fromRGB(20, 24, 40)
 		label.Parent = gui
 		gui.Parent = tag
-		weldPart(outfit, torso, "ChestBadge", Vector3.new(ts.X * 0.16, ts.Y * 0.16, 0.05), CFrame.new(-ts.X * 0.24, ts.Y * 0.22, -ts.Z / 2 - 0.03), GOLD, Enum.Material.Metal)
+		weldPart(outfit, torso, "ChestBadge", Vector3.new(ts.X * 0.12, ts.Y * 0.16, 0.05), CFrame.new(-ts.X * 0.24, ts.Y * 0.05, -ts.Z / 2 - 0.03), SILVER, Enum.Material.Metal)
 	end
-	local arm = character:FindFirstChild("LeftUpperArm") or character:FindFirstChild("Left Arm")
+	-- 오른팔 소매 바깥쪽 남색 패치 (금색 테두리)
+	local arm = character:FindFirstChild("RightUpperArm") or character:FindFirstChild("Right Arm")
 	if arm then
 		local as = arm.Size
-		weldPart(outfit, arm, "ArmPatch", Vector3.new(as.X * 1.04, as.Y * (arm.Name == "Left Arm" and 0.14 or 0.3), as.Z * 1.04), CFrame.new(0, as.Y * (arm.Name == "Left Arm" and 0.3 or 0.1), 0), Color3.fromRGB(214, 176, 60), Enum.Material.Fabric)
+		local patch = weldPart(outfit, arm, "ArmPatch", Vector3.new(0.05, as.Y * 0.3, as.Z * 0.42), CFrame.new(as.X / 2 + 0.02, as.Y * 0.22, 0), Color3.fromRGB(30, 36, 70), Enum.Material.Fabric)
+		weldPart(outfit, patch, "ArmPatchRim", Vector3.new(0.04, as.Y * 0.34, as.Z * 0.46), CFrame.new(-0.01, 0, 0), GOLD, Enum.Material.Fabric)
 	end
 
 	-- 손전등 (오른손에 들고 있음. 빛은 각자 화면에서 켜짐 → Client 스크립트)
@@ -4147,7 +4341,14 @@ local function dressGongYoo(actor)
 			end
 		end
 		-- 플레이어와 같은 경비원 차림: 경비 모자·이름표 "공유"·금색 가슴 휘장·완장·손전등 (GuardOutfit.Gear)
-		GuardOutfit.Gear(actor, Config.HERO_NAME, nil, { headScale = HEAD_SCALE, headDrop = HEAD_DROP })
+		-- 근무복·모자·배지·벨트·경봉은 몸 메시에 들어 있다. 손전등만 오른손에 쥐여 준다
+		do
+			local hand = actor:FindFirstChild("RightHand")
+			if hand then
+				local body = weld(folder, hand, "Flashlight", Vector3.new(1.0, 0.3, 0.3), CFrame.new(0, -hand.Size.Y * 0.2 - 0.25, -0.4) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
+				weld(folder, body, "Lens", Vector3.new(0.07, 0.32, 0.32), CFrame.new(0.51, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon, Enum.PartType.Cylinder)
+			end
+		end
 		-- 완장: 네모 상자 대신 둥근 팔을 감싸는 고리
 		local patch = actor:FindFirstChild("ArmPatch", true)
 		local larm = actor:FindFirstChild("LeftUpperArm")

@@ -8,8 +8,12 @@ local Config = require(ReplicatedStorage:WaitForChild("Config"))
 
 local GuardOutfit = {}
 
-local NAVY = Color3.fromRGB(36, 46, 74)
-local NAVY_DARK = Color3.fromRGB(30, 36, 52)
+-- 한국 경비원 근무복: 하늘색 반팔 셔츠 + 남색 바지 + 남색 야구모자(금색 엠블럼) + 초록 견장 + 검은 벨트
+local NAVY = Color3.fromRGB(24, 28, 48) -- 모자
+local NAVY_DARK = Color3.fromRGB(28, 32, 52) -- 바지
+local SHIRT = Color3.fromRGB(128, 172, 218)
+local GREEN = Color3.fromRGB(36, 132, 86)
+local SILVER = Color3.fromRGB(200, 204, 210)
 local BLACK = Color3.fromRGB(16, 16, 18)
 local GOLD = Color3.fromRGB(222, 184, 74)
 
@@ -83,9 +87,9 @@ local function applyDescription(humanoid)
 		desc.RightArmColor = skin
 	else
 		-- 옷 이미지가 없으면 몸 색으로 유니폼 흉내
-		desc.TorsoColor = NAVY
-		desc.LeftArmColor = NAVY
-		desc.RightArmColor = NAVY
+		desc.TorsoColor = SHIRT
+		desc.LeftArmColor = SHIRT
+		desc.RightArmColor = SHIRT
 	end
 	desc.LeftLegColor = NAVY_DARK
 	desc.RightLegColor = NAVY_DARK
@@ -171,12 +175,32 @@ function GuardOutfit.Gear(character, name, outfit, opts)
 	end
 	local hs = head.Size * (opts.headScale or 1)
 	local dy = -(opts.headDrop or 0)
-	-- 경비 모자: 머리에 맞는 크기 (지름 = 머리 폭 정도, 높이 낮게)
-	local crownD = hs.X * 1.02
-	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.32, crownD, crownD), CFrame.new(0, hs.Y * 0.6 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapBand", Vector3.new(hs.Y * 0.11, crownD * 0.98, crownD * 0.98), CFrame.new(0, hs.Y * 0.44 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), BLACK, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.8, 0.06, hs.Z * 0.42), CFrame.new(0, hs.Y * 0.4 + dy, -hs.Z * 0.6) * CFrame.Angles(math.rad(-14), 0, 0), BLACK, Enum.Material.SmoothPlastic)
-	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.18, hs.Y * 0.18, 0.05), CFrame.new(0, hs.Y * 0.62 + dy, -crownD * 0.5 + hs.Z * 0.02), GOLD, Enum.Material.Metal)
+	-- 경비 야구모자: 둥근 머리 덮개 + 앞챙 + 금색 엠블럼 + 챙 위 금색 줄
+	weldPart(outfit, head, "CapCrown", Vector3.new(hs.X * 1.04, hs.Y * 0.62, hs.Z * 1.06), CFrame.new(0, hs.Y * 0.38 + dy, hs.Z * 0.02), NAVY, Enum.Material.Fabric, Enum.PartType.Ball)
+	weldPart(outfit, head, "CapBrim", Vector3.new(hs.X * 0.7, 0.07, hs.Z * 0.5), CFrame.new(0, hs.Y * 0.28 + dy, -hs.Z * 0.66) * CFrame.Angles(math.rad(-8), 0, 0), NAVY, Enum.Material.Fabric)
+	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.2, hs.Y * 0.2, 0.06), CFrame.new(0, hs.Y * 0.5 + dy, -hs.Z * 0.5), GOLD, Enum.Material.Metal)
+	weldPart(outfit, head, "CapBraid", Vector3.new(hs.X * 0.66, 0.05, 0.05), CFrame.new(0, hs.Y * 0.33 + dy, -hs.Z * 0.48), GOLD, Enum.Material.Metal)
+	-- 반팔: 아래팔·손은 맨살
+	for _, nm in ipairs({ "LeftLowerArm", "RightLowerArm", "LeftHand", "RightHand" }) do
+		local p = character:FindFirstChild(nm)
+		if p then
+			p.Color = Config.SKIN_COLOR
+		end
+	end
+	-- 초록 견장, 검은 벨트 + 은색 버클
+	local ut = character:FindFirstChild("UpperTorso")
+	if ut then
+		local u = ut.Size
+		for _, sx in ipairs({ -1, 1 }) do
+			weldPart(outfit, ut, "Epaulette", Vector3.new(u.X * 0.26, 0.08, u.Z * 0.3), CFrame.new(sx * u.X * 0.3, u.Y / 2 + 0.02, 0), GREEN, Enum.Material.Fabric)
+		end
+	end
+	local lt = character:FindFirstChild("LowerTorso")
+	if lt then
+		local l = lt.Size
+		weldPart(outfit, lt, "Belt", Vector3.new(l.X * 1.02, l.Y * 0.5, l.Z * 1.04), CFrame.new(0, l.Y * 0.2, 0), Color3.fromRGB(18, 18, 20), Enum.Material.Leather)
+		weldPart(outfit, lt, "Buckle", Vector3.new(0.3, l.Y * 0.4, 0.06), CFrame.new(0, l.Y * 0.2, -l.Z * 0.53), SILVER, Enum.Material.Metal)
+	end
 
 	-- 가슴 이름표(플레이어 이름) + 왼팔 경비 표지
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
@@ -196,12 +220,14 @@ function GuardOutfit.Gear(character, name, outfit, opts)
 		label.TextColor3 = Color3.fromRGB(20, 24, 40)
 		label.Parent = gui
 		gui.Parent = tag
-		weldPart(outfit, torso, "ChestBadge", Vector3.new(ts.X * 0.16, ts.Y * 0.16, 0.05), CFrame.new(-ts.X * 0.24, ts.Y * 0.22, -ts.Z / 2 - 0.03), GOLD, Enum.Material.Metal)
+		weldPart(outfit, torso, "ChestBadge", Vector3.new(ts.X * 0.12, ts.Y * 0.16, 0.05), CFrame.new(-ts.X * 0.24, ts.Y * 0.05, -ts.Z / 2 - 0.03), SILVER, Enum.Material.Metal)
 	end
-	local arm = character:FindFirstChild("LeftUpperArm") or character:FindFirstChild("Left Arm")
+	-- 오른팔 소매 바깥쪽 남색 패치 (금색 테두리)
+	local arm = character:FindFirstChild("RightUpperArm") or character:FindFirstChild("Right Arm")
 	if arm then
 		local as = arm.Size
-		weldPart(outfit, arm, "ArmPatch", Vector3.new(as.X * 1.04, as.Y * (arm.Name == "Left Arm" and 0.14 or 0.3), as.Z * 1.04), CFrame.new(0, as.Y * (arm.Name == "Left Arm" and 0.3 or 0.1), 0), Color3.fromRGB(214, 176, 60), Enum.Material.Fabric)
+		local patch = weldPart(outfit, arm, "ArmPatch", Vector3.new(0.05, as.Y * 0.3, as.Z * 0.42), CFrame.new(as.X / 2 + 0.02, as.Y * 0.22, 0), Color3.fromRGB(30, 36, 70), Enum.Material.Fabric)
+		weldPart(outfit, patch, "ArmPatchRim", Vector3.new(0.04, as.Y * 0.34, as.Z * 0.46), CFrame.new(-0.01, 0, 0), GOLD, Enum.Material.Fabric)
 	end
 
 	-- 손전등 (오른손에 들고 있음. 빛은 각자 화면에서 켜짐 → Client 스크립트)

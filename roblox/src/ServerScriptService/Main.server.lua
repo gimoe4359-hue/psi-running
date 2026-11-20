@@ -1079,7 +1079,14 @@ local function dressGongYoo(actor)
 			end
 		end
 		-- 플레이어와 같은 경비원 차림: 경비 모자·이름표 "공유"·금색 가슴 휘장·완장·손전등 (GuardOutfit.Gear)
-		GuardOutfit.Gear(actor, Config.HERO_NAME, nil, { headScale = HEAD_SCALE, headDrop = HEAD_DROP })
+		-- 근무복·모자·배지·벨트·경봉은 몸 메시에 들어 있다. 손전등만 오른손에 쥐여 준다
+		do
+			local hand = actor:FindFirstChild("RightHand")
+			if hand then
+				local body = weld(folder, hand, "Flashlight", Vector3.new(1.0, 0.3, 0.3), CFrame.new(0, -hand.Size.Y * 0.2 - 0.25, -0.4) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
+				weld(folder, body, "Lens", Vector3.new(0.07, 0.32, 0.32), CFrame.new(0.51, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon, Enum.PartType.Cylinder)
+			end
+		end
 		-- 완장: 네모 상자 대신 둥근 팔을 감싸는 고리
 		local patch = actor:FindFirstChild("ArmPatch", true)
 		local larm = actor:FindFirstChild("LeftUpperArm")
