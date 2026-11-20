@@ -1026,6 +1026,7 @@ local function dressGongYoo(actor)
 	local okLib, AssetLibrary = pcall(function()
 		return require(ServerScriptService:WaitForChild("AssetLibrary"))
 	end)
+	local HEAD_SCALE, HEAD_DROP = 0.84, 0.07
 	local tpl = okLib and AssetLibrary.CloneTemplate("GongYooBody")
 	if tpl then
 		local DEF = {
@@ -1041,6 +1042,11 @@ local function dressGongYoo(actor)
 			if m:IsA("BasePart") and rig and DEF[partName] then
 				local k = rig.Size / DEF[partName]
 				local rel = m.Position * k
+				if partName == "Head" then
+					-- 머리를 사람 비율에 가깝게 줄이고 목 쪽으로 조금 내린다
+					k = k * HEAD_SCALE
+					rel = rel * HEAD_SCALE - Vector3.new(0, HEAD_DROP, 0)
+				end
 				m.Size = m.Size * k
 				m.CFrame = rig.CFrame * CFrame.new(rel)
 				m.Anchored = false
@@ -1073,7 +1079,7 @@ local function dressGongYoo(actor)
 			end
 		end
 		-- 플레이어와 같은 경비원 차림: 경비 모자·이름표 "공유"·금색 가슴 휘장·완장·손전등 (GuardOutfit.Gear)
-		GuardOutfit.Gear(actor, Config.HERO_NAME)
+		GuardOutfit.Gear(actor, Config.HERO_NAME, nil, { headScale = HEAD_SCALE, headDrop = HEAD_DROP })
 		-- 완장: 네모 상자 대신 둥근 팔을 감싸는 고리
 		local patch = actor:FindFirstChild("ArmPatch", true)
 		local larm = actor:FindFirstChild("LeftUpperArm")

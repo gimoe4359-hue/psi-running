@@ -297,7 +297,7 @@ Config.AFTER_INTRO_LINES = {
 -- 플레이어와 같은 경비원 차림(남색 근무복·경비 모자·이름표 '공유'). 얼굴 = textures/gongyoo_face.png (aied0 계정 데칼). 0 이면 기본 얼굴
 -- 공유 키 163cm (1 m = 3.1 스터드). 플레이어 기본 캐릭터보다 조금 작다
 Config.HERO_HEIGHT_STUDS = 1.63 * 3.1
-Config.ACTOR_FACE_DECAL = 130335685905188
+Config.ACTOR_FACE_DECAL = 98780220946622
 Config.OPENING_TEXT = {
 	arrive = "[싸이 경비용역] 공유 씨, 오늘 밤부터 송천고등학교 야간 경비입니다.",
 	arrive2 = "송천고는 작년에 새로 지은 최신식 학교… 라고 들었는데.",
@@ -3003,7 +3003,9 @@ function GuardOutfit.Dress(character, name)
 end
 
 --- 경비 모자·이름표·가슴 휘장·완장·손전등만 붙인다 (몸·머리카락은 그대로). 오프닝의 공유처럼 몸이 따로 있는 인형에 쓴다
-function GuardOutfit.Gear(character, name, outfit)
+-- opts.headScale / opts.headDrop: 머리를 줄이거나 내린 인형(오프닝 공유)에서 모자를 그 머리에 맞춘다
+function GuardOutfit.Gear(character, name, outfit, opts)
+	opts = opts or {}
 	local head = character:FindFirstChild("Head")
 	if not head then
 		return
@@ -3013,13 +3015,14 @@ function GuardOutfit.Gear(character, name, outfit)
 		outfit.Name = "GuardGear"
 		outfit.Parent = character
 	end
-	local hs = head.Size
-	-- 경비 모자
-	local crownD = hs.X * 1.2
-	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.42, crownD, crownD), CFrame.new(0, hs.Y * 0.62, 0) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapBand", Vector3.new(hs.Y * 0.14, crownD * 0.94, crownD * 0.94), CFrame.new(0, hs.Y * 0.42, 0) * CFrame.Angles(0, 0, math.rad(90)), BLACK, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.95, 0.08, hs.Z * 0.5), CFrame.new(0, hs.Y * 0.4, -hs.Z * 0.66) * CFrame.Angles(math.rad(-12), 0, 0), BLACK, Enum.Material.SmoothPlastic)
-	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.24, hs.Y * 0.24, 0.06), CFrame.new(0, hs.Y * 0.66, -crownD * 0.5), GOLD, Enum.Material.Metal)
+	local hs = head.Size * (opts.headScale or 1)
+	local dy = -(opts.headDrop or 0)
+	-- 경비 모자: 머리에 맞는 크기 (지름 = 머리 폭 정도, 높이 낮게)
+	local crownD = hs.X * 1.02
+	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.32, crownD, crownD), CFrame.new(0, hs.Y * 0.6 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)
+	weldPart(outfit, head, "CapBand", Vector3.new(hs.Y * 0.11, crownD * 0.98, crownD * 0.98), CFrame.new(0, hs.Y * 0.44 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), BLACK, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.8, 0.06, hs.Z * 0.42), CFrame.new(0, hs.Y * 0.4 + dy, -hs.Z * 0.6) * CFrame.Angles(math.rad(-14), 0, 0), BLACK, Enum.Material.SmoothPlastic)
+	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.18, hs.Y * 0.18, 0.05), CFrame.new(0, hs.Y * 0.62 + dy, -crownD * 0.5 + hs.Z * 0.02), GOLD, Enum.Material.Metal)
 
 	-- 가슴 이름표(플레이어 이름) + 왼팔 경비 표지
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
@@ -4091,6 +4094,7 @@ local function dressGongYoo(actor)
 	local okLib, AssetLibrary = pcall(function()
 		return require(ServerScriptService:WaitForChild("AssetLibrary"))
 	end)
+	local HEAD_SCALE, HEAD_DROP = 0.84, 0.07
 	local tpl = okLib and AssetLibrary.CloneTemplate("GongYooBody")
 	if tpl then
 		local DEF = {
@@ -4106,6 +4110,11 @@ local function dressGongYoo(actor)
 			if m:IsA("BasePart") and rig and DEF[partName] then
 				local k = rig.Size / DEF[partName]
 				local rel = m.Position * k
+				if partName == "Head" then
+					-- 머리를 사람 비율에 가깝게 줄이고 목 쪽으로 조금 내린다
+					k = k * HEAD_SCALE
+					rel = rel * HEAD_SCALE - Vector3.new(0, HEAD_DROP, 0)
+				end
 				m.Size = m.Size * k
 				m.CFrame = rig.CFrame * CFrame.new(rel)
 				m.Anchored = false
@@ -4138,7 +4147,7 @@ local function dressGongYoo(actor)
 			end
 		end
 		-- 플레이어와 같은 경비원 차림: 경비 모자·이름표 "공유"·금색 가슴 휘장·완장·손전등 (GuardOutfit.Gear)
-		GuardOutfit.Gear(actor, Config.HERO_NAME)
+		GuardOutfit.Gear(actor, Config.HERO_NAME, nil, { headScale = HEAD_SCALE, headDrop = HEAD_DROP })
 		-- 완장: 네모 상자 대신 둥근 팔을 감싸는 고리
 		local patch = actor:FindFirstChild("ArmPatch", true)
 		local larm = actor:FindFirstChild("LeftUpperArm")

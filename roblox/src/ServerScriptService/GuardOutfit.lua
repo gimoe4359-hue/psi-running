@@ -157,7 +157,9 @@ function GuardOutfit.Dress(character, name)
 end
 
 --- 경비 모자·이름표·가슴 휘장·완장·손전등만 붙인다 (몸·머리카락은 그대로). 오프닝의 공유처럼 몸이 따로 있는 인형에 쓴다
-function GuardOutfit.Gear(character, name, outfit)
+-- opts.headScale / opts.headDrop: 머리를 줄이거나 내린 인형(오프닝 공유)에서 모자를 그 머리에 맞춘다
+function GuardOutfit.Gear(character, name, outfit, opts)
+	opts = opts or {}
 	local head = character:FindFirstChild("Head")
 	if not head then
 		return
@@ -167,13 +169,14 @@ function GuardOutfit.Gear(character, name, outfit)
 		outfit.Name = "GuardGear"
 		outfit.Parent = character
 	end
-	local hs = head.Size
-	-- 경비 모자
-	local crownD = hs.X * 1.2
-	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.42, crownD, crownD), CFrame.new(0, hs.Y * 0.62, 0) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapBand", Vector3.new(hs.Y * 0.14, crownD * 0.94, crownD * 0.94), CFrame.new(0, hs.Y * 0.42, 0) * CFrame.Angles(0, 0, math.rad(90)), BLACK, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
-	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.95, 0.08, hs.Z * 0.5), CFrame.new(0, hs.Y * 0.4, -hs.Z * 0.66) * CFrame.Angles(math.rad(-12), 0, 0), BLACK, Enum.Material.SmoothPlastic)
-	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.24, hs.Y * 0.24, 0.06), CFrame.new(0, hs.Y * 0.66, -crownD * 0.5), GOLD, Enum.Material.Metal)
+	local hs = head.Size * (opts.headScale or 1)
+	local dy = -(opts.headDrop or 0)
+	-- 경비 모자: 머리에 맞는 크기 (지름 = 머리 폭 정도, 높이 낮게)
+	local crownD = hs.X * 1.02
+	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.32, crownD, crownD), CFrame.new(0, hs.Y * 0.6 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)
+	weldPart(outfit, head, "CapBand", Vector3.new(hs.Y * 0.11, crownD * 0.98, crownD * 0.98), CFrame.new(0, hs.Y * 0.44 + dy, hs.Z * 0.02) * CFrame.Angles(0, 0, math.rad(90)), BLACK, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	weldPart(outfit, head, "CapVisor", Vector3.new(hs.X * 0.8, 0.06, hs.Z * 0.42), CFrame.new(0, hs.Y * 0.4 + dy, -hs.Z * 0.6) * CFrame.Angles(math.rad(-14), 0, 0), BLACK, Enum.Material.SmoothPlastic)
+	weldPart(outfit, head, "CapBadge", Vector3.new(hs.X * 0.18, hs.Y * 0.18, 0.05), CFrame.new(0, hs.Y * 0.62 + dy, -crownD * 0.5 + hs.Z * 0.02), GOLD, Enum.Material.Metal)
 
 	-- 가슴 이름표(플레이어 이름) + 왼팔 경비 표지
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
