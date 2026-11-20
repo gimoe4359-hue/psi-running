@@ -1026,7 +1026,7 @@ local function dressGongYoo(actor)
 	local okLib, AssetLibrary = pcall(function()
 		return require(ServerScriptService:WaitForChild("AssetLibrary"))
 	end)
-	local HEAD_SCALE, HEAD_DROP = 0.84, 0.07
+	local HEAD_SCALE, HEAD_DROP = 0.92, 0.05
 	local tpl = okLib and AssetLibrary.CloneTemplate("GongYooBody")
 	if tpl then
 		local DEF = {
@@ -1174,6 +1174,10 @@ task.spawn(function()
 		desc.RightArmColor = SUIT
 		desc.LeftLegColor = Color3.fromRGB(176, 178, 182)
 		desc.RightLegColor = Color3.fromRGB(176, 178, 182)
+		-- 사람에 가까운 비율 (로블록스 Rthro 체형): 머리가 작고 다리가 길고 허리가 가늘다
+		desc.BodyTypeScale = 1
+		desc.ProportionScale = 0.6
+		desc.HeadScale = 1
 		local actor = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
 		actor.Name = "GongYooActor"
 		actor:PivotTo(CFrame.new(0, -400, 0))
