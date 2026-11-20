@@ -509,15 +509,15 @@ return {
 		}, {
 			mesh = "GongYooBody_HeadHair",
 			name = "Head__Hair",
-			size = { 1.0711, 0.7922, 1.1106 },
-			pos = { 0, -0.0485, 0.0907 },
+			size = { 1.2079, 0.81, 1.2443 },
+			pos = { 0.0002, -0.0353, 0.0235 },
 			color = { 122, 76, 42 },
 			material = "SmoothPlastic",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
-			tris = 6944,
+			tris = 6596,
 		}, {
 			mesh = "GongYooBody_HeadCap",
 			name = "Head__Cap",

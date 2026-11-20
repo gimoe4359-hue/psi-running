@@ -49,7 +49,14 @@ export function buildGongYoo() {
   const bangs = cap;
   const sideburns = union(...[-1, 1].map((s) => roundCone([s * 0.44, 0.28, -0.1], [s * 0.43, 0.0, -0.12], 0.06, 0.04)));
   const capCut = inter(ellipsoid([0, 0.24, 0.05], [0.56, 0.52, 0.63]), (x, y, z) => 0.3 + 0.08 * Math.max(0, z) - y); // 모자가 덮는 곳은 머리카락을 지운다
-  piece(out, 'Head', 'Hair', sub(sub(unionS(0.05, cap, bangs, sideburns), part), capCut), [0.64, 0.76, 0.68], 0.028, L(HAIR), 7000);
+  // 앞머리: 모자챙 밑에서 나와 이마를 덮고 눈썹 높이까지 내려오는 머리 가닥 (가운데 가르마로 양쪽으로 갈라짐, 끝은 뾰족)
+  const fringe = union(...[-1, 1].flatMap((sx) => [0.03, 0.1, 0.17, 0.24, 0.31, 0.38].map((x0, k) => {
+    const xe = sx * (x0 + 0.08 + 0.025 * k), ye = 0.13 - 0.018 * k, ze = -0.5 + 0.012 * k * k;
+    const xm = (sx * x0 + xe) / 2, ym = (0.3 + ye) / 2 + 0.02, zm = -0.53 + 0.012 * k;
+    return unionS(0.035, roundCone([sx * x0, 0.3, -0.47 + 0.01 * k], [xm, ym, zm], 0.07, 0.06),
+      roundCone([xm, ym, zm], [xe, ye, ze], 0.06, 0.022));
+  })));
+  piece(out, 'Head', 'Hair', union(sub(sub(unionS(0.05, cap, bangs, sideburns), part), capCut), sub(fringe, offset(cranium, -0.01))), [0.64, 0.76, 0.68], 0.028, L(HAIR), 7000);
   // ── 경비 야구모자: 머리를 덮는 둥근 모자 + 앞챙 + 금색 엠블럼·금색 줄 ──
   const crownVol = ellipsoid([0, 0.24, 0.05], [0.54, 0.5, 0.61]);
   const crown = inter(sub(crownVol, offset(cranium, -0.02)), (x, y, z) => 0.3 + 0.08 * Math.max(0, z) - y);

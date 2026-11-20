@@ -1027,6 +1027,26 @@ local function dressGongYoo(actor)
 		return require(ServerScriptService:WaitForChild("AssetLibrary"))
 	end)
 	local HEAD_SCALE, HEAD_DROP = 0.92, 0.05
+	-- 팔 길이 줄이기 (사람처럼 손끝이 허벅지 중간쯤): 위팔·아래팔·손 길이와 어깨·팔꿈치·손목 관절 위치를 함께 줄인다
+	local ARM = 0.85
+	for _, side in ipairs({ "Left", "Right" }) do
+		local ua, la, hd = actor:FindFirstChild(side .. "UpperArm"), actor:FindFirstChild(side .. "LowerArm"), actor:FindFirstChild(side .. "Hand")
+		local sh = ua and ua:FindFirstChild(side .. "Shoulder")
+		local el = la and la:FindFirstChild(side .. "Elbow")
+		local wr = hd and hd:FindFirstChild(side .. "Wrist")
+		local function sy(cf)
+			return CFrame.new(cf.Position.X, cf.Position.Y * ARM, cf.Position.Z) * (cf - cf.Position)
+		end
+		if ua and la and hd and sh and el and wr then
+			for _, part in ipairs({ ua, la, hd }) do
+				part.Size = Vector3.new(part.Size.X, part.Size.Y * ARM, part.Size.Z)
+			end
+			sh.C1 = sy(sh.C1)
+			el.C0, el.C1 = sy(el.C0), sy(el.C1)
+			wr.C0, wr.C1 = sy(wr.C0), sy(wr.C1)
+		end
+	end
+	RunService.Heartbeat:Wait() -- 관절이 바뀐 자리를 반영한 뒤 메시를 붙인다
 	local tpl = okLib and AssetLibrary.CloneTemplate("GongYooBody")
 	if tpl then
 		local DEF = {
