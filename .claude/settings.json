@@ -189,6 +189,11 @@
             "type": "command",
             "command": "echo `# <#` >/dev/null; bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/detect-gaps.sh\"; exit $? #> ; exit 0",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/roblox-deps.sh\"",
+            "timeout": 300
           }
         ]
       }
