@@ -1190,8 +1190,138 @@ local function dressGongYoo(actor)
 	end
 end
 
+-- 고품질 공유 (메시 팩의 GongYooHQ): 실제 163cm 사람 뼈대로 R15 인형을 직접 만들고, 조각한 몸(텍스처 포함)을 부위마다 붙인다.
+-- 관절 이름은 R15 와 같아서 걷기·뛰기 움직임과 오프닝 자세가 그대로 동작한다. 팩이 없으면 nil (예전 방식으로 만든다)
+local function buildGongYooHQ()
+	local okLib, AssetLibrary = pcall(function()
+		return require(ServerScriptService:WaitForChild("AssetLibrary"))
+	end)
+	if not okLib then
+		return nil
+	end
+	local spec = AssetLibrary.Spec("GongYooHQ")
+	local tpl = spec and spec.skeleton and AssetLibrary.CloneTemplate("GongYooHQ")
+	if not tpl then
+		return nil
+	end
+	local sk = spec.skeleton
+	local v3 = function(t)
+		return Vector3.new(t[1], t[2], t[3])
+	end
+	local actor = Instance.new("Model")
+	actor.Name = "GongYooActor"
+	local parts = {}
+	for name, p in pairs(sk.parts) do
+		local part = Instance.new("Part")
+		part.Name = name
+		part.Size = v3(p.s)
+		part.CFrame = CFrame.new(v3(p.c))
+		part.Transparency = 1
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Massless = name ~= "HumanoidRootPart"
+		part.Anchored = name == "HumanoidRootPart"
+		part.Parent = actor
+		parts[name] = part
+	end
+	for jname, j in pairs(sk.joints) do
+		local a, b = parts[j.a], parts[j.b]
+		local jp = v3(j.p)
+		local m = Instance.new("Motor6D")
+		m.Name = jname
+		m.Part0, m.Part1 = a, b
+		m.C0 = CFrame.new(jp - a.Position)
+		m.C1 = CFrame.new(jp - b.Position)
+		m.Parent = b
+	end
+	-- 조각 붙이기: "부위__조각" 이름의 메시를 그 부위에 용접
+	for _, m in ipairs(tpl:GetChildren()) do
+		local partName = m:IsA("BasePart") and string.match(m.Name, "^(.-)__")
+		local host = partName and parts[partName]
+		if host then
+			m.Anchored = false
+			m.Massless = true
+			m.CanCollide = false
+			m.CanQuery = false
+			m.CanTouch = false
+			local w = Instance.new("Weld")
+			w.Part0, w.Part1 = host, m
+			w.C0 = CFrame.new(m.Position - host.Position)
+			w.Parent = m
+			m.Parent = actor
+		end
+	end
+	tpl:Destroy()
+	-- 손전등 (오른손, 실제 크기): 오프닝 스크립트가 "Flashlight" / "Lens" 를 찾는다
+	local hand = parts.RightHand
+	local function prop(name, size, cf, color, mat)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Shape = Enum.PartType.Cylinder
+		p.Size = size
+		p.Color = color
+		p.Material = mat
+		p.CanCollide, p.CanQuery, p.CanTouch, p.Massless, p.CastShadow = false, false, false, true, false
+		p.CFrame = cf
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = hand, p
+		w.Parent = p
+		p.Parent = actor
+		return p
+	end
+	local body = prop("Flashlight", Vector3.new(0.62, 0.11, 0.11), hand.CFrame * CFrame.new(0.06, -0.06, -0.12) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal)
+	local lens = prop("Lens", Vector3.new(0.03, 0.12, 0.12), body.CFrame * CFrame.new(0.31, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon)
+	lens.Parent = actor
+	-- 이름표 (오른쪽 가슴, 주머니 위)
+	do
+		local ut = parts.UpperTorso
+		local tag = Instance.new("Part")
+		tag.Name = "NameTag"
+		tag.Size = Vector3.new(0.2, 0.05, 0.01)
+		tag.Color = Color3.fromRGB(18, 20, 28)
+		tag.Material = Enum.Material.SmoothPlastic
+		tag.CanCollide, tag.CanQuery, tag.CanTouch, tag.Massless = false, false, false, true
+		tag.CFrame = ut.CFrame * CFrame.new(0.22, 0.34, -0.355) * CFrame.Angles(math.rad(-8), 0, 0)
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = ut, tag
+		w.Parent = tag
+		tag.Parent = actor
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = Enum.NormalId.Front
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 800
+		sg.Parent = tag
+		local tl = Instance.new("TextLabel")
+		tl.Size = UDim2.fromScale(1, 1)
+		tl.BackgroundTransparency = 1
+		tl.Font = Enum.Font.BuilderSansBold
+		tl.TextScaled = true
+		tl.TextColor3 = Color3.fromRGB(235, 235, 235)
+		tl.Text = "공 유"
+		tl.Parent = sg
+	end
+	local hum = Instance.new("Humanoid")
+	hum.RigType = Enum.HumanoidRigType.R15
+	hum.HipHeight = sk.parts.HumanoidRootPart.c[2] - sk.parts.HumanoidRootPart.s[2] / 2
+	hum.DisplayName = Config.HERO_NAME
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	Instance.new("Animator").Parent = hum
+	hum.Parent = actor
+	actor.PrimaryPart = parts.HumanoidRootPart
+	actor:PivotTo(CFrame.new(0, -400, 0))
+	return actor
+end
+
 -- 오프닝에 나오는 공유 (정장 차림 R15 인형). 각 클라이언트가 복제해서 혼자 보는 오프닝에서 움직인다
 task.spawn(function()
+	local okHQ, hqActor = pcall(buildGongYooHQ)
+	if okHQ and hqActor then
+		hqActor.Parent = ReplicatedStorage
+		return
+	elseif not okHQ then
+		warn("[Opening] 고품질 공유를 못 만들어 예전 인형을 씁니다: " .. tostring(hqActor))
+	end
 	local ok, err = pcall(function()
 		local SUIT = Color3.fromRGB(196, 198, 200)
 		local desc = Instance.new("HumanoidDescription")

@@ -219,7 +219,32 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상·출근 차량 SUV) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 120435099618123
+-- 고품질 공유 몸의 텍스처 (tools/assets/gongyoo_hq.js 가 구운 그림 → 데칼로 올림)
+Config.MESH_TEXTURE_DECALS = {
+	gh_head_cap = 91458336028174,
+	gh_head_eyes = 102945202487575,
+	gh_head_face = 84896168763291,
+	gh_head_hair = 135069122105224,
+	gh_leftfoot_shoe = 122429209385536,
+	gh_lefthand_skin = 138938561450724,
+	gh_leftlowerarm_skin = 139149288480907,
+	gh_leftlowerleg_pants = 133135357268159,
+	gh_leftupperarm_skin = 127932520665118,
+	gh_leftupperarm_sleeve = 88810730351392,
+	gh_leftupperleg_pants = 125718103929228,
+	gh_lowertorso_belt = 75350726331780,
+	gh_lowertorso_pants = 133726497303302,
+	gh_rightfoot_shoe = 126242877010420,
+	gh_righthand_skin = 130625957705595,
+	gh_rightlowerarm_skin = 135823607028644,
+	gh_rightlowerleg_pants = 93506349595044,
+	gh_rightupperarm_skin = 99342451285915,
+	gh_rightupperarm_sleeve = 112488820085522,
+	gh_rightupperleg_pants = 99347561704269,
+	gh_uppertorso_neck = 80152779144903,
+	gh_uppertorso_shirt = 73738108588896,
+}
+Config.MESH_PACK_ID = 124452211900927
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
@@ -1561,15 +1586,17 @@ end
 -- 템플릿 만들기: 메시 크기·위치는 Templates.lua 에 적힌 값으로 다시 맞춘다
 -- (가져오기 단위 설정이 달라도 크기가 틀어지지 않게)
 -- 나무껍질 그림: Config.BARK_DECALS 의 데칼에서 이미지 주소를 찾는다 (aied0 계정으로 게시해야 열림)
+-- 공유 고품질 몸의 텍스처도 같은 방법 (Config.MESH_TEXTURE_DECALS)
 local barkCache = {}
-local function barkImage(kind)
-	if barkCache[kind] ~= nil then
-		return barkCache[kind] or nil
+local function decalImage(mapName, kind)
+	local key = mapName .. "/" .. kind
+	if barkCache[key] ~= nil then
+		return barkCache[key] or nil
 	end
 	local okCfg, Config = pcall(function()
 		return require(ReplicatedStorage:WaitForChild("Config"))
 	end)
-	local did = okCfg and (Config.BARK_DECALS or {})[kind]
+	local did = okCfg and (Config[mapName] or {})[kind]
 	local img = false
 	if did and did ~= 0 then
 		local ok, model = pcall(function()
@@ -1581,8 +1608,11 @@ local function barkImage(kind)
 			model:Destroy()
 		end
 	end
-	barkCache[kind] = img
+	barkCache[key] = img
 	return img or nil
+end
+local function barkImage(kind)
+	return decalImage("BARK_DECALS", kind)
 end
 
 local function buildTemplate(name)
@@ -1629,7 +1659,7 @@ local function buildTemplate(name)
 		p.Reflectance = m.reflectance or 0
 		p.CastShadow = m.shadow ~= false
 		-- 나무 줄기·가지: 나무껍질 그림 (없으면 단색)
-		local bark = m.bark and barkImage(m.bark) or ""
+		local bark = (m.bark and barkImage(m.bark)) or (m.texture and decalImage("MESH_TEXTURE_DECALS", m.texture)) or ""
 		pcall(function()
 			p.TextureID = bark
 		end)
@@ -1647,6 +1677,11 @@ local function buildTemplate(name)
 	model.PrimaryPart = anchor
 	cache[name] = model
 	return model
+end
+
+--- 템플릿 정보 (뼈대 등)
+function AssetLibrary.Spec(name)
+	return Templates[name]
 end
 
 function AssetLibrary.CloneTemplate(name)
@@ -2602,6 +2637,550 @@ return {
 			shadow = true,
 			tris = 2884,
 		} },
+	},
+	GongYooHQ = {
+		keep = {  },
+		show = {  },
+		meshes = { {
+			mesh = "GongYooHQ_HeadFace",
+			name = "Head__Face",
+			size = { 0.5472, 0.7697, 0.6376 },
+			pos = { 0, 4.655, -0.0189 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 10000,
+			texture = "gh_head_face",
+		}, {
+			mesh = "GongYooHQ_HeadEyes",
+			name = "Head__Eyes",
+			size = { 0.2578, 0.0779, 0.0779 },
+			pos = { 0, 4.7, -0.232 },
+			color = { 240, 236, 230 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 3000,
+			texture = "gh_head_eyes",
+		}, {
+			mesh = "GongYooHQ_HeadHair",
+			name = "Head__Hair",
+			size = { 0.5576, 0.371, 0.638 },
+			pos = { 0, 4.6766, 0.0038 },
+			color = { 88, 56, 34 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 8998,
+			texture = "gh_head_hair",
+		}, {
+			mesh = "GongYooHQ_HeadCap",
+			name = "Head__Cap",
+			size = { 0.554, 0.3698, 0.8769 },
+			pos = { 0, 4.9099, -0.1106 },
+			color = { 26, 30, 52 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 9000,
+			texture = "gh_head_cap",
+		}, {
+			mesh = "GongYooHQ_UpperTorsoShirt",
+			name = "UpperTorso__Shirt",
+			size = { 1.5196, 1.3876, 0.6989 },
+			pos = { 0.0009, 3.6678, -0.0192 },
+			color = { 126, 170, 216 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 10000,
+			texture = "gh_uppertorso_shirt",
+		}, {
+			mesh = "GongYooHQ_UpperTorsoButtons",
+			name = "UpperTorso__Buttons",
+			size = { 0.4709, 0.9105, 0.0711 },
+			pos = { 0, 3.66, -0.3381 },
+			color = { 236, 240, 246 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2500,
+		}, {
+			mesh = "GongYooHQ_UpperTorsoEpaulette",
+			name = "UpperTorso__Epaulette",
+			size = { 1.12, 0.1323, 0.1 },
+			pos = { 0, 4.3038, 0.03 },
+			color = { 34, 120, 80 },
+			material = "Fabric",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 3000,
+		}, {
+			mesh = "GongYooHQ_UpperTorsoEpauletteButtons",
+			name = "UpperTorso__EpauletteButtons",
+			size = { 0.4979, 0.05, 0.05 },
+			pos = { 0, 4.2736, 0.03 },
+			color = { 214, 168, 60 },
+			material = "Metal",
+			reflectance = 0.2,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 800,
+		}, {
+			mesh = "GongYooHQ_UpperTorsoBadge",
+			name = "UpperTorso__Badge",
+			size = { 0.068, 0.0845, 0.05 },
+			pos = { -0.22, 3.7683, -0.3515 },
+			color = { 196, 200, 206 },
+			material = "Metal",
+			reflectance = 0.3,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 1500,
+		}, {
+			mesh = "GongYooHQ_UpperTorsoNeck",
+			name = "UpperTorso__Neck",
+			size = { 0.3396, 0.38, 0.3388 },
+			pos = { 0, 4.29, 0.0103 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 3000,
+			texture = "gh_uppertorso_neck",
+		}, {
+			mesh = "GongYooHQ_LowerTorsoPants",
+			name = "LowerTorso__Pants",
+			size = { 1.0397, 0.61, 0.6913 },
+			pos = { 0, 2.765, 0.0096 },
+			color = { 30, 34, 54 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 6000,
+			texture = "gh_lowertorso_pants",
+		}, {
+			mesh = "GongYooHQ_LowerTorsoBelt",
+			name = "LowerTorso__Belt",
+			size = { 1.0169, 0.116, 0.6809 },
+			pos = { 0, 3.02, 0.0023 },
+			color = { 22, 22, 24 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 5998,
+			texture = "gh_lowertorso_belt",
+		}, {
+			mesh = "GongYooHQ_LowerTorsoBuckle",
+			name = "LowerTorso__Buckle",
+			size = { 0.1, 0.076, 0.05 },
+			pos = { 0, 3.02, -0.3455 },
+			color = { 196, 200, 206 },
+			material = "Metal",
+			reflectance = 0.35,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2000,
+		}, {
+			mesh = "GongYooHQ_LowerTorsoBaton",
+			name = "LowerTorso__Baton",
+			size = { 0.1216, 0.8138, 0.1198 },
+			pos = { -0.543, 2.6629, 0.0841 },
+			color = { 16, 16, 18 },
+			material = "SmoothPlastic",
+			reflectance = 0.08,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2000,
+		}, {
+			mesh = "GongYooHQ_LeftUpperArmSkin",
+			name = "LeftUpperArm__Skin",
+			size = { 0.3119, 0.9599, 0.3082 },
+			pos = { -0.6311, 3.54, 0.0177 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 4000,
+			texture = "gh_leftupperarm_skin",
+		}, {
+			mesh = "GongYooHQ_LeftUpperArmSleeve",
+			name = "LeftUpperArm__Sleeve",
+			size = { 0.4301, 0.6196, 0.4106 },
+			pos = { -0.6326, 3.8898, 0.0193 },
+			color = { 126, 170, 216 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 5000,
+			texture = "gh_leftupperarm_sleeve",
+		}, {
+			mesh = "GongYooHQ_LeftLowerArmSkin",
+			name = "LeftLowerArm__Skin",
+			size = { 0.2447, 0.8817, 0.265 },
+			pos = { -0.686, 2.8608, -0.0019 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 4000,
+			texture = "gh_leftlowerarm_skin",
+		}, {
+			mesh = "GongYooHQ_LeftHandSkin",
+			name = "LeftHand__Skin",
+			size = { 0.2633, 0.5324, 0.3079 },
+			pos = { -0.6513, 2.254, -0.0432 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 9000,
+			texture = "gh_lefthand_skin",
+		}, {
+			mesh = "GongYooHQ_LeftUpperLegPants",
+			name = "LeftUpperLeg__Pants",
+			size = { 0.5433, 1.3799, 0.5881 },
+			pos = { -0.2518, 1.93, 0.0005 },
+			color = { 30, 34, 54 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 6000,
+			texture = "gh_leftupperleg_pants",
+		}, {
+			mesh = "GongYooHQ_LeftLowerLegPants",
+			name = "LeftLowerLeg__Pants",
+			size = { 0.41, 1.38, 0.446 },
+			pos = { -0.2799, 0.81, 0.0068 },
+			color = { 30, 34, 54 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 5000,
+			texture = "gh_leftlowerleg_pants",
+		}, {
+			mesh = "GongYooHQ_LeftFootShoe",
+			name = "LeftFoot__Shoe",
+			size = { 0.3084, 0.2659, 0.8217 },
+			pos = { -0.2842, 0.132, -0.1609 },
+			color = { 16, 16, 18 },
+			material = "SmoothPlastic",
+			reflectance = 0.08,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 8000,
+			texture = "gh_leftfoot_shoe",
+		}, {
+			mesh = "GongYooHQ_RightUpperArmSkin",
+			name = "RightUpperArm__Skin",
+			size = { 0.3117, 0.9599, 0.3082 },
+			pos = { 0.6312, 3.54, 0.0177 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 4000,
+			texture = "gh_rightupperarm_skin",
+		}, {
+			mesh = "GongYooHQ_RightUpperArmSleeve",
+			name = "RightUpperArm__Sleeve",
+			size = { 0.4304, 0.6199, 0.4106 },
+			pos = { 0.6328, 3.89, 0.0192 },
+			color = { 126, 170, 216 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 5000,
+			texture = "gh_rightupperarm_sleeve",
+		}, {
+			mesh = "GongYooHQ_RightLowerArmSkin",
+			name = "RightLowerArm__Skin",
+			size = { 0.2447, 0.882, 0.2649 },
+			pos = { 0.6861, 2.861, -0.002 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 4000,
+			texture = "gh_rightlowerarm_skin",
+		}, {
+			mesh = "GongYooHQ_RightHandSkin",
+			name = "RightHand__Skin",
+			size = { 0.2632, 0.5324, 0.3081 },
+			pos = { 0.6512, 2.254, -0.0432 },
+			color = { 228, 188, 160 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 9000,
+			texture = "gh_righthand_skin",
+		}, {
+			mesh = "GongYooHQ_RightUpperLegPants",
+			name = "RightUpperLeg__Pants",
+			size = { 0.5433, 1.3799, 0.5881 },
+			pos = { 0.2519, 1.93, 0.0006 },
+			color = { 30, 34, 54 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 6000,
+			texture = "gh_rightupperleg_pants",
+		}, {
+			mesh = "GongYooHQ_RightLowerLegPants",
+			name = "RightLowerLeg__Pants",
+			size = { 0.41, 1.38, 0.446 },
+			pos = { 0.28, 0.81, 0.0068 },
+			color = { 30, 34, 54 },
+			material = "SmoothPlastic",
+			reflectance = 0,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 5000,
+			texture = "gh_rightlowerleg_pants",
+		}, {
+			mesh = "GongYooHQ_RightFootShoe",
+			name = "RightFoot__Shoe",
+			size = { 0.3081, 0.2658, 0.8217 },
+			pos = { 0.2843, 0.1319, -0.1609 },
+			color = { 16, 16, 18 },
+			material = "SmoothPlastic",
+			reflectance = 0.08,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 8000,
+			texture = "gh_rightfoot_shoe",
+		}, {
+			mesh = "GongYooHQ_HeadGlasses",
+			name = "Head__Glasses",
+			size = { 0.5372, 0.1082, 0.3966 },
+			pos = { 0, 4.7071, -0.1265 },
+			color = { 52, 52, 58 },
+			material = "Metal",
+			reflectance = 0.25,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 2848,
+		}, {
+			mesh = "GongYooHQ_HeadLenses",
+			name = "Head__Lenses",
+			size = { 0.32, 0.076, 0.05 },
+			pos = { 0, 4.697, -0.3114 },
+			color = { 214, 226, 234 },
+			material = "Glass",
+			reflectance = 0.25,
+			transparency = 0.8,
+			collide = false,
+			shadow = true,
+			tris = 104,
+		}, {
+			mesh = "GongYooHQ_HeadCapGold",
+			name = "Head__CapGold",
+			size = { 0.509, 0.05, 0.1661 },
+			pos = { 0, 4.8589, -0.2373 },
+			color = { 214, 168, 60 },
+			material = "Metal",
+			reflectance = 0.2,
+			transparency = 0,
+			collide = false,
+			shadow = true,
+			tris = 1624,
+		} },
+		skeleton = {
+			parts = {
+				HumanoidRootPart = {
+					c = { 0, 2.62, 0 },
+					s = { 0.8, 0.8, 0.4 },
+				},
+				LowerTorso = {
+					c = { 0, 2.8, 0 },
+					s = { 0.9, 0.45, 0.6 },
+				},
+				UpperTorso = {
+					c = { 0, 3.66, 0 },
+					s = { 1, 1.3, 0.62 },
+				},
+				Head = {
+					c = { 0, 4.7, -0.02 },
+					s = { 0.5, 0.7, 0.6 },
+				},
+				LeftUpperArm = {
+					c = { -0.64, 3.65, 0.02 },
+					s = { 0.3, 0.93, 0.3 },
+				},
+				LeftLowerArm = {
+					c = { -0.69, 2.835, 0 },
+					s = { 0.26, 0.74, 0.26 },
+				},
+				LeftHand = {
+					c = { -0.72, 2.22, -0.02 },
+					s = { 0.18, 0.5, 0.3 },
+				},
+				LeftUpperLeg = {
+					c = { -0.27, 1.985, 0 },
+					s = { 0.42, 1.17, 0.44 },
+				},
+				LeftLowerLeg = {
+					c = { -0.28, 0.81, 0.02 },
+					s = { 0.32, 1.18, 0.34 },
+				},
+				LeftFoot = {
+					c = { -0.28, 0.11, -0.17 },
+					s = { 0.3, 0.22, 0.8 },
+				},
+				RightUpperArm = {
+					c = { 0.64, 3.65, 0.02 },
+					s = { 0.3, 0.93, 0.3 },
+				},
+				RightLowerArm = {
+					c = { 0.69, 2.835, 0 },
+					s = { 0.26, 0.74, 0.26 },
+				},
+				RightHand = {
+					c = { 0.72, 2.22, -0.02 },
+					s = { 0.18, 0.5, 0.3 },
+				},
+				RightUpperLeg = {
+					c = { 0.27, 1.985, 0 },
+					s = { 0.42, 1.17, 0.44 },
+				},
+				RightLowerLeg = {
+					c = { 0.28, 0.81, 0.02 },
+					s = { 0.32, 1.18, 0.34 },
+				},
+				RightFoot = {
+					c = { 0.28, 0.11, -0.17 },
+					s = { 0.3, 0.22, 0.8 },
+				},
+			},
+			joints = {
+				Root = {
+					a = "HumanoidRootPart",
+					b = "LowerTorso",
+					p = { 0, 2.75, 0 },
+				},
+				Waist = {
+					a = "LowerTorso",
+					b = "UpperTorso",
+					p = { 0, 3.02, 0.02 },
+				},
+				Neck = {
+					a = "UpperTorso",
+					b = "Head",
+					p = { 0, 4.36, 0 },
+				},
+				LeftShoulder = {
+					a = "UpperTorso",
+					b = "LeftUpperArm",
+					p = { -0.6, 4.1, 0.03 },
+				},
+				LeftElbow = {
+					a = "LeftUpperArm",
+					b = "LeftLowerArm",
+					p = { -0.68, 3.2, 0.02 },
+				},
+				LeftWrist = {
+					a = "LeftLowerArm",
+					b = "LeftHand",
+					p = { -0.7, 2.47, 0 },
+				},
+				LeftHip = {
+					a = "LowerTorso",
+					b = "LeftUpperLeg",
+					p = { -0.27, 2.57, 0 },
+				},
+				LeftKnee = {
+					a = "LeftUpperLeg",
+					b = "LeftLowerLeg",
+					p = { -0.28, 1.4, 0 },
+				},
+				LeftAnkle = {
+					a = "LeftLowerLeg",
+					b = "LeftFoot",
+					p = { -0.28, 0.22, 0.03 },
+				},
+				RightShoulder = {
+					a = "UpperTorso",
+					b = "RightUpperArm",
+					p = { 0.6, 4.1, 0.03 },
+				},
+				RightElbow = {
+					a = "RightUpperArm",
+					b = "RightLowerArm",
+					p = { 0.68, 3.2, 0.02 },
+				},
+				RightWrist = {
+					a = "RightLowerArm",
+					b = "RightHand",
+					p = { 0.7, 2.47, 0 },
+				},
+				RightHip = {
+					a = "LowerTorso",
+					b = "RightUpperLeg",
+					p = { 0.27, 2.57, 0 },
+				},
+				RightKnee = {
+					a = "RightUpperLeg",
+					b = "RightLowerLeg",
+					p = { 0.28, 1.4, 0 },
+				},
+				RightAnkle = {
+					a = "RightLowerLeg",
+					b = "RightFoot",
+					p = { 0.28, 0.22, 0.03 },
+				},
+			},
+		},
 	},
 	SUV = {
 		keep = { "Body" },
@@ -4452,8 +5031,138 @@ local function dressGongYoo(actor)
 	end
 end
 
+-- 고품질 공유 (메시 팩의 GongYooHQ): 실제 163cm 사람 뼈대로 R15 인형을 직접 만들고, 조각한 몸(텍스처 포함)을 부위마다 붙인다.
+-- 관절 이름은 R15 와 같아서 걷기·뛰기 움직임과 오프닝 자세가 그대로 동작한다. 팩이 없으면 nil (예전 방식으로 만든다)
+local function buildGongYooHQ()
+	local okLib, AssetLibrary = pcall(function()
+		return require(ServerScriptService:WaitForChild("AssetLibrary"))
+	end)
+	if not okLib then
+		return nil
+	end
+	local spec = AssetLibrary.Spec("GongYooHQ")
+	local tpl = spec and spec.skeleton and AssetLibrary.CloneTemplate("GongYooHQ")
+	if not tpl then
+		return nil
+	end
+	local sk = spec.skeleton
+	local v3 = function(t)
+		return Vector3.new(t[1], t[2], t[3])
+	end
+	local actor = Instance.new("Model")
+	actor.Name = "GongYooActor"
+	local parts = {}
+	for name, p in pairs(sk.parts) do
+		local part = Instance.new("Part")
+		part.Name = name
+		part.Size = v3(p.s)
+		part.CFrame = CFrame.new(v3(p.c))
+		part.Transparency = 1
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.Massless = name ~= "HumanoidRootPart"
+		part.Anchored = name == "HumanoidRootPart"
+		part.Parent = actor
+		parts[name] = part
+	end
+	for jname, j in pairs(sk.joints) do
+		local a, b = parts[j.a], parts[j.b]
+		local jp = v3(j.p)
+		local m = Instance.new("Motor6D")
+		m.Name = jname
+		m.Part0, m.Part1 = a, b
+		m.C0 = CFrame.new(jp - a.Position)
+		m.C1 = CFrame.new(jp - b.Position)
+		m.Parent = b
+	end
+	-- 조각 붙이기: "부위__조각" 이름의 메시를 그 부위에 용접
+	for _, m in ipairs(tpl:GetChildren()) do
+		local partName = m:IsA("BasePart") and string.match(m.Name, "^(.-)__")
+		local host = partName and parts[partName]
+		if host then
+			m.Anchored = false
+			m.Massless = true
+			m.CanCollide = false
+			m.CanQuery = false
+			m.CanTouch = false
+			local w = Instance.new("Weld")
+			w.Part0, w.Part1 = host, m
+			w.C0 = CFrame.new(m.Position - host.Position)
+			w.Parent = m
+			m.Parent = actor
+		end
+	end
+	tpl:Destroy()
+	-- 손전등 (오른손, 실제 크기): 오프닝 스크립트가 "Flashlight" / "Lens" 를 찾는다
+	local hand = parts.RightHand
+	local function prop(name, size, cf, color, mat)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Shape = Enum.PartType.Cylinder
+		p.Size = size
+		p.Color = color
+		p.Material = mat
+		p.CanCollide, p.CanQuery, p.CanTouch, p.Massless, p.CastShadow = false, false, false, true, false
+		p.CFrame = cf
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = hand, p
+		w.Parent = p
+		p.Parent = actor
+		return p
+	end
+	local body = prop("Flashlight", Vector3.new(0.62, 0.11, 0.11), hand.CFrame * CFrame.new(0.06, -0.06, -0.12) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal)
+	local lens = prop("Lens", Vector3.new(0.03, 0.12, 0.12), body.CFrame * CFrame.new(0.31, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon)
+	lens.Parent = actor
+	-- 이름표 (오른쪽 가슴, 주머니 위)
+	do
+		local ut = parts.UpperTorso
+		local tag = Instance.new("Part")
+		tag.Name = "NameTag"
+		tag.Size = Vector3.new(0.2, 0.05, 0.01)
+		tag.Color = Color3.fromRGB(18, 20, 28)
+		tag.Material = Enum.Material.SmoothPlastic
+		tag.CanCollide, tag.CanQuery, tag.CanTouch, tag.Massless = false, false, false, true
+		tag.CFrame = ut.CFrame * CFrame.new(0.22, 0.34, -0.355) * CFrame.Angles(math.rad(-8), 0, 0)
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = ut, tag
+		w.Parent = tag
+		tag.Parent = actor
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = Enum.NormalId.Front
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sg.PixelsPerStud = 800
+		sg.Parent = tag
+		local tl = Instance.new("TextLabel")
+		tl.Size = UDim2.fromScale(1, 1)
+		tl.BackgroundTransparency = 1
+		tl.Font = Enum.Font.BuilderSansBold
+		tl.TextScaled = true
+		tl.TextColor3 = Color3.fromRGB(235, 235, 235)
+		tl.Text = "공 유"
+		tl.Parent = sg
+	end
+	local hum = Instance.new("Humanoid")
+	hum.RigType = Enum.HumanoidRigType.R15
+	hum.HipHeight = sk.parts.HumanoidRootPart.c[2] - sk.parts.HumanoidRootPart.s[2] / 2
+	hum.DisplayName = Config.HERO_NAME
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	Instance.new("Animator").Parent = hum
+	hum.Parent = actor
+	actor.PrimaryPart = parts.HumanoidRootPart
+	actor:PivotTo(CFrame.new(0, -400, 0))
+	return actor
+end
+
 -- 오프닝에 나오는 공유 (정장 차림 R15 인형). 각 클라이언트가 복제해서 혼자 보는 오프닝에서 움직인다
 task.spawn(function()
+	local okHQ, hqActor = pcall(buildGongYooHQ)
+	if okHQ and hqActor then
+		hqActor.Parent = ReplicatedStorage
+		return
+	elseif not okHQ then
+		warn("[Opening] 고품질 공유를 못 만들어 예전 인형을 씁니다: " .. tostring(hqActor))
+	end
 	local ok, err = pcall(function()
 		local SUIT = Color3.fromRGB(196, 198, 200)
 		local desc = Instance.new("HumanoidDescription")
@@ -6064,12 +6773,12 @@ local function runPrologue()
 		end
 	end
 	local hand = actor:FindFirstChild("RightHand")
-	local phone = make("Part", { Name = "Phone", Size = Vector3.new(0.4, 0.78, 0.06), Color = Color3.fromRGB(20, 20, 22), Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
+	local phone = make("Part", { Name = "Phone", Size = Vector3.new(0.23, 0.47, 0.03), Color = Color3.fromRGB(20, 20, 22), Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
 	local screenGlow = make("PointLight", { Range = 5, Brightness = 1.4, Color = Color3.fromRGB(190, 210, 255), Enabled = false }, phone)
-	local screen = make("Part", { Name = "PhoneScreen", Size = Vector3.new(0.34, 0.66, 0.02), Color = Color3.fromRGB(170, 196, 240), Material = Enum.Material.Neon, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
+	local screen = make("Part", { Name = "PhoneScreen", Size = Vector3.new(0.21, 0.43, 0.01), Color = Color3.fromRGB(170, 196, 240), Material = Enum.Material.Neon, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
 	if hand then
-		phone.CFrame = hand.CFrame * CFrame.new(0, -0.15, -0.3) * CFrame.Angles(R(-70), 0, 0)
-		screen.CFrame = phone.CFrame * CFrame.new(0, 0, -0.04)
+		phone.CFrame = hand.CFrame * CFrame.new(0, -0.08, -0.16) * CFrame.Angles(R(-70), 0, 0)
+		screen.CFrame = phone.CFrame * CFrame.new(0, 0, -0.02)
 		make("WeldConstraint", { Part0 = hand, Part1 = phone }, phone)
 		make("WeldConstraint", { Part0 = phone, Part1 = screen }, screen)
 	end

@@ -70,7 +70,32 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상·출근 차량 SUV) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 120435099618123
+-- 고품질 공유 몸의 텍스처 (tools/assets/gongyoo_hq.js 가 구운 그림 → 데칼로 올림)
+Config.MESH_TEXTURE_DECALS = {
+	gh_head_cap = 91458336028174,
+	gh_head_eyes = 102945202487575,
+	gh_head_face = 84896168763291,
+	gh_head_hair = 135069122105224,
+	gh_leftfoot_shoe = 122429209385536,
+	gh_lefthand_skin = 138938561450724,
+	gh_leftlowerarm_skin = 139149288480907,
+	gh_leftlowerleg_pants = 133135357268159,
+	gh_leftupperarm_skin = 127932520665118,
+	gh_leftupperarm_sleeve = 88810730351392,
+	gh_leftupperleg_pants = 125718103929228,
+	gh_lowertorso_belt = 75350726331780,
+	gh_lowertorso_pants = 133726497303302,
+	gh_rightfoot_shoe = 126242877010420,
+	gh_righthand_skin = 130625957705595,
+	gh_rightlowerarm_skin = 135823607028644,
+	gh_rightlowerleg_pants = 93506349595044,
+	gh_rightupperarm_skin = 99342451285915,
+	gh_rightupperarm_sleeve = 112488820085522,
+	gh_rightupperleg_pants = 99347561704269,
+	gh_uppertorso_neck = 80152779144903,
+	gh_uppertorso_shirt = 73738108588896,
+}
+Config.MESH_PACK_ID = 124452211900927
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)

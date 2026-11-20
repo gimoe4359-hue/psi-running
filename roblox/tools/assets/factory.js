@@ -9,6 +9,7 @@ import { buildCar } from './car.js';
 import { buildStatue } from './statue.js';
 import { buildSUV } from './suv.js';
 import { buildGongYoo } from './gongyoo.js';
+import { buildGongYooHQ } from './gongyoo_hq.js';
 
 function mulberry(seed) {
   return () => {
@@ -20,7 +21,7 @@ function mulberry(seed) {
 }
 
 // 템플릿: { name, keep, meshes: [{ name, geo, color, material, ... }] }
-export function buildTemplates(which) {
+export async function buildTemplates(which) {
   const T = [];
   const want = (n) => !which || which.includes(n);
   if (want('Ghost')) T.push({ name: 'Ghost', keep: [], meshes: buildGirl(mulberry(7)) });
@@ -30,19 +31,23 @@ export function buildTemplates(which) {
   if (want('ReadingGirl')) T.push({ name: 'ReadingGirl', keep: ['Body', 'Head'], meshes: buildStatue() });
   if (want('Sedan')) T.push({ name: 'Sedan', keep: ['Body'], show: ["HeadBeam","Plate","CabinFloor","Dash","DashTop","Cluster","Screen","SteeringWheel","Column","SeatBase","SeatBack","Headrest","RearSeat","RearBack","Console","DriverEye"], meshes: buildCar() });
   if (want('GongYooBody')) T.push({ name: 'GongYooBody', keep: [], meshes: buildGongYoo() });
+  if (want('GongYooHQ')) { const hq = await buildGongYooHQ(); T.push({ name: 'GongYooHQ', keep: [], meshes: hq.meshes, skeleton: hq.skeleton, textures: hq.textures }); }
   if (want('SUV')) T.push({ name: 'SUV', keep: ['Body'], show: ['HeadBeam', 'TailGlow', 'Plate', 'Cluster', 'Screen', 'DomeLight', 'CargoFloor', 'RideSeat', 'SUVDoor'], meshes: buildSUV() });
   return T;
 }
 
 // GLB + 템플릿 정보 만들기. 메시마다 자기 중심으로 옮겨서(가져오기 후 Roblox가 중심을 다시 잡으므로) 위치는 따로 적는다.
 export async function exportAll(which) {
-  const templates = buildTemplates(which);
+  const templates = await buildTemplates(which);
+  const textures = {};
   const scene = new THREE.Scene();
   const meta = {};
   let tri = 0;
   for (const t of templates) {
     meta[t.name] = { keep: t.keep || [], show: t.show || [], meshes: [] };
     if (t.leafSpots) meta[t.name].leafSpots = t.leafSpots;
+    if (t.skeleton) meta[t.name].skeleton = t.skeleton;
+    if (t.textures) Object.assign(textures, t.textures);
     t.meshes.forEach((m, i) => {
       const geo = m.geo;
       geo.computeBoundingBox();
@@ -64,7 +69,7 @@ export async function exportAll(which) {
       meta[t.name].meshes.push({
         mesh: meshName, name: m.partName || m.name, size: [s.x, s.y, s.z].map((v) => Math.max(0.05, +v.toFixed(4))),
         pos: [c.x, c.y, c.z].map((v) => +v.toFixed(4)), color: m.color, material: m.material || 'SmoothPlastic',
-        reflectance: m.reflectance || 0, transparency: m.transparency || 0, collide: !!m.collide, shadow: m.shadow !== false, tris: n, ...(m.bark ? { bark: m.bark } : {}),
+        reflectance: m.reflectance || 0, transparency: m.transparency || 0, collide: !!m.collide, shadow: m.shadow !== false, tris: n, ...(m.bark ? { bark: m.bark } : {}), ...(m.texture ? { texture: m.texture } : {}),
       });
     });
   }
@@ -73,7 +78,7 @@ export async function exportAll(which) {
   let bin = '';
   const bytes = new Uint8Array(glb);
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return { glb: btoa(bin), meta, tri };
+  return { glb: btoa(bin), meta, tri, textures };
 }
 window.exportAll = exportAll;
 window.buildTemplates = buildTemplates;

@@ -59,15 +59,17 @@ end
 -- 템플릿 만들기: 메시 크기·위치는 Templates.lua 에 적힌 값으로 다시 맞춘다
 -- (가져오기 단위 설정이 달라도 크기가 틀어지지 않게)
 -- 나무껍질 그림: Config.BARK_DECALS 의 데칼에서 이미지 주소를 찾는다 (aied0 계정으로 게시해야 열림)
+-- 공유 고품질 몸의 텍스처도 같은 방법 (Config.MESH_TEXTURE_DECALS)
 local barkCache = {}
-local function barkImage(kind)
-	if barkCache[kind] ~= nil then
-		return barkCache[kind] or nil
+local function decalImage(mapName, kind)
+	local key = mapName .. "/" .. kind
+	if barkCache[key] ~= nil then
+		return barkCache[key] or nil
 	end
 	local okCfg, Config = pcall(function()
 		return require(ReplicatedStorage:WaitForChild("Config"))
 	end)
-	local did = okCfg and (Config.BARK_DECALS or {})[kind]
+	local did = okCfg and (Config[mapName] or {})[kind]
 	local img = false
 	if did and did ~= 0 then
 		local ok, model = pcall(function()
@@ -79,8 +81,11 @@ local function barkImage(kind)
 			model:Destroy()
 		end
 	end
-	barkCache[kind] = img
+	barkCache[key] = img
 	return img or nil
+end
+local function barkImage(kind)
+	return decalImage("BARK_DECALS", kind)
 end
 
 local function buildTemplate(name)
@@ -127,7 +132,7 @@ local function buildTemplate(name)
 		p.Reflectance = m.reflectance or 0
 		p.CastShadow = m.shadow ~= false
 		-- 나무 줄기·가지: 나무껍질 그림 (없으면 단색)
-		local bark = m.bark and barkImage(m.bark) or ""
+		local bark = (m.bark and barkImage(m.bark)) or (m.texture and decalImage("MESH_TEXTURE_DECALS", m.texture)) or ""
 		pcall(function()
 			p.TextureID = bark
 		end)
@@ -145,6 +150,11 @@ local function buildTemplate(name)
 	model.PrimaryPart = anchor
 	cache[name] = model
 	return model
+end
+
+--- 템플릿 정보 (뼈대 등)
+function AssetLibrary.Spec(name)
+	return Templates[name]
 end
 
 function AssetLibrary.CloneTemplate(name)

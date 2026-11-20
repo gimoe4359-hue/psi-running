@@ -795,12 +795,12 @@ local function runPrologue()
 		end
 	end
 	local hand = actor:FindFirstChild("RightHand")
-	local phone = make("Part", { Name = "Phone", Size = Vector3.new(0.4, 0.78, 0.06), Color = Color3.fromRGB(20, 20, 22), Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
+	local phone = make("Part", { Name = "Phone", Size = Vector3.new(0.23, 0.47, 0.03), Color = Color3.fromRGB(20, 20, 22), Material = Enum.Material.SmoothPlastic, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
 	local screenGlow = make("PointLight", { Range = 5, Brightness = 1.4, Color = Color3.fromRGB(190, 210, 255), Enabled = false }, phone)
-	local screen = make("Part", { Name = "PhoneScreen", Size = Vector3.new(0.34, 0.66, 0.02), Color = Color3.fromRGB(170, 196, 240), Material = Enum.Material.Neon, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
+	local screen = make("Part", { Name = "PhoneScreen", Size = Vector3.new(0.21, 0.43, 0.01), Color = Color3.fromRGB(170, 196, 240), Material = Enum.Material.Neon, CanCollide = false, CanQuery = false, CanTouch = false, Massless = true, Transparency = 1 }, actor)
 	if hand then
-		phone.CFrame = hand.CFrame * CFrame.new(0, -0.15, -0.3) * CFrame.Angles(R(-70), 0, 0)
-		screen.CFrame = phone.CFrame * CFrame.new(0, 0, -0.04)
+		phone.CFrame = hand.CFrame * CFrame.new(0, -0.08, -0.16) * CFrame.Angles(R(-70), 0, 0)
+		screen.CFrame = phone.CFrame * CFrame.new(0, 0, -0.02)
 		make("WeldConstraint", { Part0 = hand, Part1 = phone }, phone)
 		make("WeldConstraint", { Part0 = phone, Part1 = screen }, screen)
 	end
