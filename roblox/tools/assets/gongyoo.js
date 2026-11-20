@@ -10,8 +10,8 @@ export const R15_DEF = {
   LeftHand: [1, 0.3, 1], RightHand: [1, 0.3, 1], LeftUpperLeg: [1, 1.217, 1], RightUpperLeg: [1, 1.217, 1],
   LeftLowerLeg: [1, 1.193, 1], RightLowerLeg: [1, 1.193, 1], LeftFoot: [1, 0.3, 1], RightFoot: [1, 0.3, 1],
 };
-// 경비원 근무복: 남색 상의·바지, 하늘색 셔츠, 넥타이(설정화의 보라색), 검은 구두
-const SUIT = [36, 44, 74], SUIT_D = [30, 36, 60], SKIN = [234, 196, 160], SHIRT = [200, 216, 234], TIE = [150, 100, 200], HAIR = [122, 76, 42], SHOE = [24, 22, 22];
+// 경비원 근무복: 플레이어가 입는 경비 옷(GuardOutfit)과 같은 민무늬 남색 상의·바지 + 검은 구두. 모자·이름표·휘장·완장은 게임에서 붙인다
+const SUIT = [36, 46, 74], SUIT_D = [30, 36, 52], SKIN = [234, 196, 160], SHIRT = [200, 216, 234], TIE = [150, 100, 200], HAIR = [122, 76, 42], SHOE = [24, 22, 22]; // GuardOutfit 과 같은 남색
 
 function piece(out, part, name, f, half, cell, look, budget = 5000) {
   let c = cell, geo;
@@ -54,19 +54,7 @@ export function buildGongYoo() {
   piece(out, 'UpperTorso', 'Neck', roundCone([0, 0.55, 0.0], [0, 0.95, 0.0], 0.25, 0.22), [0.3, 1.0, 0.3], 0.03, L(SKIN), 1500);
   // 앞면 V 영역: 위 넓고 아래 좁음 (명치까지)
   const vZone = (w) => (x, y, z) => Math.max(Math.abs(x) - (w * (y + 0.2) / 0.95), -(y + 0.2), y - 0.78, z + 0.05);
-  piece(out, 'UpperTorso', 'Shirt', inter(offset(torsoIn, 0.012), vZone(0.32)), [0.4, 0.82, 0.55], 0.025, L(SHIRT), 2500);
-  const tie = inter(offset(torsoIn, 0.03), (x, y, z) => Math.max(Math.abs(x) - (y > 0.55 ? 0.09 : 0.06 + 0.04 * (0.55 - y)), -(y + 0.12), y - 0.68, z + 0.05));
-  piece(out, 'UpperTorso', 'Tie', tie, [0.2, 0.82, 0.55], 0.02, L(TIE, 'Fabric'), 2000);
-  const lapel = inter(offset(torsoIn, 0.02), (x, y, z) => {
-    const edge = 0.32 * (y + 0.2) / 0.95; const ax = Math.abs(x);
-    return Math.max(edge - ax, ax - edge - 0.14, -(y + 0.25), y - 0.7, z + 0.05);
-  });
-  piece(out, 'UpperTorso', 'Lapel', lapel, [0.6, 0.82, 0.55], 0.025, L(SUIT_D, 'Fabric'), 2500);
   // 근무복 견장(어깨 위 띠) + 가슴 주머니 덮개 2개
-  const straps = union(...[-1, 1].map((sx) => box([sx * 0.62, 0.74, 0.02], [0.2, 0.05, 0.12], 0.04)));
-  piece(out, 'UpperTorso', 'Strap', inter(offset(torsoIn, 0.03), straps), [0.9, 0.85, 0.3], 0.02, L([24, 30, 52], 'Fabric'), 1500);
-  const flaps = union(...[-1, 1].map((sx) => box([sx * 0.42, 0.12, -0.3], [0.2, 0.06, 0.2], 0.03)));
-  piece(out, 'UpperTorso', 'Pocket', inter(offset(torsoIn, 0.02), flaps), [0.7, 0.3, 0.55], 0.02, L([26, 32, 56], 'Fabric'), 1500);
   // ── 아랫몸: 상의 밑단 + 바지 엉덩이 ──
   piece(out, 'LowerTorso', 'Suit', box([0, -0.05, 0.02], [0.72, 0.22, 0.33], 0.2), [0.8, 0.3, 0.4], 0.03, L(SUIT_D, 'Fabric'), 3000); // 바지 허리 (상의 밑단 안쪽)
 
@@ -74,7 +62,6 @@ export function buildGongYoo() {
   ['Left', 'Right'].forEach((side) => {
     piece(out, `${side}UpperArm`, 'Suit', roundCone([0, 0.48, 0], [0, -0.55, 0], 0.37, 0.31), [0.4, 0.88, 0.4], 0.03, L(SUIT, 'Fabric'), 2500);
     piece(out, `${side}LowerArm`, 'Suit', roundCone([0, 0.48, 0], [0, -0.42, 0], 0.31, 0.27), [0.34, 0.8, 0.34], 0.03, L(SUIT, 'Fabric'), 2500);
-    piece(out, `${side}LowerArm`, 'Cuff', inter(roundCone([0, -0.3, 0], [0, -0.58, 0], 0.255, 0.24), halfspace([0, -1, 0], 0.3)), [0.28, 0.62, 0.28], 0.02, L(SHIRT), 1200);
     const hand = unionS(0.08,
       ellipsoid([0, -0.12, 0], [0.22, 0.32, 0.27]),
       roundCone([side === 'Left' ? 0.18 : -0.18, 0.0, -0.12], [side === 'Left' ? 0.24 : -0.24, -0.22, -0.22], 0.08, 0.06));

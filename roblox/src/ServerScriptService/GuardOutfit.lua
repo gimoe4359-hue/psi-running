@@ -153,6 +153,21 @@ function GuardOutfit.Dress(character, name)
 		weldPart(outfit, head, "Hair", Vector3.new(hs.X * 1.06, hs.Y * 0.32, hs.Z * 1.06), CFrame.new(0, hs.Y * 0.36, hs.Z * 0.04), Color3.fromRGB(26, 20, 16), Enum.Material.SmoothPlastic)
 		weldPart(outfit, head, "HairBack", Vector3.new(hs.X * 1.06, hs.Y * 0.5, hs.Z * 0.2), CFrame.new(0, hs.Y * 0.12, hs.Z * 0.47), Color3.fromRGB(26, 20, 16), Enum.Material.SmoothPlastic)
 	end
+	GuardOutfit.Gear(character, name, outfit)
+end
+
+--- 경비 모자·이름표·가슴 휘장·완장·손전등만 붙인다 (몸·머리카락은 그대로). 오프닝의 공유처럼 몸이 따로 있는 인형에 쓴다
+function GuardOutfit.Gear(character, name, outfit)
+	local head = character:FindFirstChild("Head")
+	if not head then
+		return
+	end
+	if not outfit then
+		outfit = Instance.new("Folder")
+		outfit.Name = "GuardGear"
+		outfit.Parent = character
+	end
+	local hs = head.Size
 	-- 경비 모자
 	local crownD = hs.X * 1.2
 	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.42, crownD, crownD), CFrame.new(0, hs.Y * 0.62, 0) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)

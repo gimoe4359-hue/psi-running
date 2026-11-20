@@ -219,7 +219,7 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상·출근 차량 SUV) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 126415910879463
+Config.MESH_PACK_ID = 91329280034199
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
@@ -294,7 +294,7 @@ Config.AFTER_INTRO_LINES = {
 -- ───────── 처음 들어올 때 나오는 오프닝 (공유가 직접 나오는 짧은 장면) ─────────
 -- 공유가 차에서 내려 경비실로 → 근무 수칙을 읽고 → 놀라고 → 당근에 대타 5명 글을 올리고 → 정문 밖으로 도망친다
 -- 오프닝의 공유 (사용자 설정화 기준): 가운데 가르마 갈색 머리, 얇은 사각 안경, 호박색 눈, 무표정 + 식은땀,
--- 남색 경비원 근무복 + 하늘색 셔츠 + 보라 넥타이, 이름표 '공유'. 얼굴 = textures/gongyoo_face.png (aied0 계정 데칼). 0 이면 기본 얼굴
+-- 플레이어와 같은 경비원 차림(남색 근무복·경비 모자·이름표 '공유'). 얼굴 = textures/gongyoo_face.png (aied0 계정 데칼). 0 이면 기본 얼굴
 -- 공유 키 163cm (1 m = 3.1 스터드). 플레이어 기본 캐릭터보다 조금 작다
 Config.HERO_HEIGHT_STUDS = 1.63 * 3.1
 Config.ACTOR_FACE_DECAL = 130335685905188
@@ -2258,7 +2258,7 @@ return {
 			name = "UpperTorso__Suit",
 			size = { 2.038, 1.7199, 0.7292 },
 			pos = { 0.0006, -0.0601, 0.02 },
-			color = { 36, 44, 74 },
+			color = { 36, 46, 74 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2278,71 +2278,11 @@ return {
 			shadow = true,
 			tris = 1372,
 		}, {
-			mesh = "GongYooBody_UpperTorsoShirt",
-			name = "UpperTorso__Shirt",
-			size = { 0.6551, 0.9466, 0.3071 },
-			pos = { 0.0004, 0.3067, -0.2036 },
-			color = { 200, 216, 234 },
-			material = "SmoothPlastic",
-			reflectance = 0,
-			transparency = 0,
-			collide = false,
-			shadow = true,
-			tris = 2164,
-		}, {
-			mesh = "GongYooBody_UpperTorsoTie",
-			name = "UpperTorso__Tie",
-			size = { 0.18, 0.8, 0.3254 },
-			pos = { 0, 0.28, -0.2127 },
-			color = { 150, 100, 200 },
-			material = "Fabric",
-			reflectance = 0,
-			transparency = 0,
-			collide = false,
-			shadow = true,
-			tris = 1916,
-		}, {
-			mesh = "GongYooBody_UpperTorsoLapel",
-			name = "UpperTorso__Lapel",
-			size = { 0.8701, 0.95, 0.3153 },
-			pos = { 0.0001, 0.225, -0.2077 },
-			color = { 30, 36, 60 },
-			material = "Fabric",
-			reflectance = 0,
-			transparency = 0,
-			collide = false,
-			shadow = true,
-			tris = 2148,
-		}, {
-			mesh = "GongYooBody_UpperTorsoStrap",
-			name = "UpperTorso__Strap",
-			size = { 1.64, 0.1, 0.24 },
-			pos = { 0, 0.74, 0.02 },
-			color = { 24, 30, 52 },
-			material = "Fabric",
-			reflectance = 0,
-			transparency = 0,
-			collide = false,
-			shadow = true,
-			tris = 1332,
-		}, {
-			mesh = "GongYooBody_UpperTorsoPocket",
-			name = "UpperTorso__Pocket",
-			size = { 1.24, 0.12, 0.26 },
-			pos = { 0, 0.12, -0.23 },
-			color = { 26, 32, 56 },
-			material = "Fabric",
-			reflectance = 0,
-			transparency = 0,
-			collide = false,
-			shadow = true,
-			tris = 1496,
-		}, {
 			mesh = "GongYooBody_LowerTorsoSuit",
 			name = "LowerTorso__Suit",
 			size = { 1.44, 0.44, 0.66 },
 			pos = { 0, -0.05, 0.02 },
-			color = { 30, 36, 60 },
+			color = { 30, 36, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2354,7 +2294,7 @@ return {
 			name = "LeftUpperArm__Suit",
 			size = { 0.739, 1.7079, 0.739 },
 			pos = { 0, -0.0049, 0 },
-			color = { 36, 44, 74 },
+			color = { 36, 46, 74 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2366,25 +2306,13 @@ return {
 			name = "LeftLowerArm__Suit",
 			size = { 0.6187, 1.4797, 0.6187 },
 			pos = { 0, 0.05, 0 },
-			color = { 36, 44, 74 },
+			color = { 36, 46, 74 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
 			tris = 2076,
-		}, {
-			mesh = "GongYooBody_LeftLowerArmCuff",
-			name = "LeftLowerArm__Cuff",
-			size = { 0.507, 0.3022, 0.507 },
-			pos = { 0.0002, -0.4511, 0.0002 },
-			color = { 200, 216, 234 },
-			material = "SmoothPlastic",
-			reflectance = 0,
-			transparency = 0,
-			collide = false,
-			shadow = true,
-			tris = 990,
 		}, {
 			mesh = "GongYooBody_LeftHandSkin",
 			name = "LeftHand__Skin",
@@ -2402,7 +2330,7 @@ return {
 			name = "LeftUpperLeg__Pants",
 			size = { 0.8579, 1.8676, 0.8579 },
 			pos = { 0.0003, -0.0049, 0.0003 },
-			color = { 30, 36, 60 },
+			color = { 30, 36, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2414,7 +2342,7 @@ return {
 			name = "LeftLowerLeg__Pants",
 			size = { 0.7182, 1.8185, 0.7182 },
 			pos = { 0, 0.0098, 0 },
-			color = { 30, 36, 60 },
+			color = { 30, 36, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2438,7 +2366,7 @@ return {
 			name = "RightUpperArm__Suit",
 			size = { 0.739, 1.7079, 0.739 },
 			pos = { 0, -0.0049, 0 },
-			color = { 36, 44, 74 },
+			color = { 36, 46, 74 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2450,25 +2378,13 @@ return {
 			name = "RightLowerArm__Suit",
 			size = { 0.6187, 1.4797, 0.6187 },
 			pos = { 0, 0.05, 0 },
-			color = { 36, 44, 74 },
+			color = { 36, 46, 74 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
 			collide = false,
 			shadow = true,
 			tris = 2076,
-		}, {
-			mesh = "GongYooBody_RightLowerArmCuff",
-			name = "RightLowerArm__Cuff",
-			size = { 0.507, 0.3022, 0.507 },
-			pos = { 0.0002, -0.4511, 0.0002 },
-			color = { 200, 216, 234 },
-			material = "SmoothPlastic",
-			reflectance = 0,
-			transparency = 0,
-			collide = false,
-			shadow = true,
-			tris = 990,
 		}, {
 			mesh = "GongYooBody_RightHandSkin",
 			name = "RightHand__Skin",
@@ -2486,7 +2402,7 @@ return {
 			name = "RightUpperLeg__Pants",
 			size = { 0.8579, 1.8676, 0.8579 },
 			pos = { 0.0003, -0.0049, 0.0003 },
-			color = { 30, 36, 60 },
+			color = { 30, 36, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -2498,7 +2414,7 @@ return {
 			name = "RightLowerLeg__Pants",
 			size = { 0.7182, 1.8185, 0.7182 },
 			pos = { 0, 0.0098, 0 },
-			color = { 30, 36, 60 },
+			color = { 30, 36, 52 },
 			material = "Fabric",
 			reflectance = 0,
 			transparency = 0,
@@ -3083,6 +2999,21 @@ function GuardOutfit.Dress(character, name)
 		weldPart(outfit, head, "Hair", Vector3.new(hs.X * 1.06, hs.Y * 0.32, hs.Z * 1.06), CFrame.new(0, hs.Y * 0.36, hs.Z * 0.04), Color3.fromRGB(26, 20, 16), Enum.Material.SmoothPlastic)
 		weldPart(outfit, head, "HairBack", Vector3.new(hs.X * 1.06, hs.Y * 0.5, hs.Z * 0.2), CFrame.new(0, hs.Y * 0.12, hs.Z * 0.47), Color3.fromRGB(26, 20, 16), Enum.Material.SmoothPlastic)
 	end
+	GuardOutfit.Gear(character, name, outfit)
+end
+
+--- 경비 모자·이름표·가슴 휘장·완장·손전등만 붙인다 (몸·머리카락은 그대로). 오프닝의 공유처럼 몸이 따로 있는 인형에 쓴다
+function GuardOutfit.Gear(character, name, outfit)
+	local head = character:FindFirstChild("Head")
+	if not head then
+		return
+	end
+	if not outfit then
+		outfit = Instance.new("Folder")
+		outfit.Name = "GuardGear"
+		outfit.Parent = character
+	end
+	local hs = head.Size
 	-- 경비 모자
 	local crownD = hs.X * 1.2
 	weldPart(outfit, head, "CapCrown", Vector3.new(hs.Y * 0.42, crownD, crownD), CFrame.new(0, hs.Y * 0.62, 0) * CFrame.Angles(0, 0, math.rad(90)), NAVY, Enum.Material.Fabric, Enum.PartType.Cylinder)
@@ -4206,36 +4137,35 @@ local function dressGongYoo(actor)
 				part.Color = Config.SKIN_COLOR
 			end
 		end
-		-- 경비원 근무복 표시: 가슴 이름표 "공유", 금색 가슴 휘장, 왼팔 노란 '경비' 완장
-		local torso = actor:FindFirstChild("UpperTorso")
-		if torso then
-			local ts = torso.Size
-			local tag = weld(folder, torso, "NameTag", Vector3.new(ts.X * 0.24, ts.Y * 0.1, 0.04), CFrame.new(ts.X * 0.21, ts.Y * 0.2, -ts.Z * 0.4), Color3.fromRGB(240, 240, 236))
-			local gui = Instance.new("SurfaceGui")
-			gui.Face = Enum.NormalId.Front
-			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-			gui.PixelsPerStud = 120
-			gui.Parent = tag
-			local label = Instance.new("TextLabel")
-			label.Size = UDim2.fromScale(1, 1)
-			label.BackgroundTransparency = 1
-			label.Font = Enum.Font.BuilderSansBold
-			label.TextScaled = true
-			label.TextColor3 = Color3.fromRGB(20, 24, 40)
-			label.Text = Config.HERO_NAME
-			label.Parent = gui
-			weld(folder, torso, "ChestBadge", Vector3.new(ts.X * 0.12, ts.Y * 0.14, 0.05), CFrame.new(-ts.X * 0.21, ts.Y * 0.2, -ts.Z * 0.41), Color3.fromRGB(214, 176, 60), Enum.Material.Metal)
-		end
+		-- 플레이어와 같은 경비원 차림: 경비 모자·이름표 "공유"·금색 가슴 휘장·완장·손전등 (GuardOutfit.Gear)
+		GuardOutfit.Gear(actor, Config.HERO_NAME)
+		-- 완장: 네모 상자 대신 둥근 팔을 감싸는 고리
+		local patch = actor:FindFirstChild("ArmPatch", true)
 		local larm = actor:FindFirstChild("LeftUpperArm")
-		if larm then
-			local band = weld(folder, larm, "ArmBand", Vector3.new(larm.Size.X * 0.76, larm.Size.Y * 0.22, larm.Size.Z * 0.76), CFrame.new(0, larm.Size.Y * 0.08, 0), Color3.fromRGB(226, 186, 52), Enum.Material.Fabric, Enum.PartType.Cylinder)
-			band.CFrame = larm.CFrame * CFrame.new(0, larm.Size.Y * 0.08, 0) * CFrame.Angles(0, 0, math.rad(90))
+		if patch and larm then
+			local w = patch:FindFirstChildOfClass("WeldConstraint")
+			if w then
+				w:Destroy()
+			end
+			patch.Shape = Enum.PartType.Cylinder
+			patch.Size = Vector3.new(larm.Size.Y * 0.26, larm.Size.X * 0.8, larm.Size.Z * 0.8)
+			patch.CFrame = larm.CFrame * CFrame.new(0, larm.Size.Y * 0.12, 0) * CFrame.Angles(0, 0, math.rad(90))
+			local nw = Instance.new("WeldConstraint")
+			nw.Part0, nw.Part1 = larm, patch
+			nw.Parent = patch
 		end
-		-- 손전등 (오른손): 오프닝 스크립트가 "Flashlight" / "Lens" 를 찾는다
-		local hand = actor:FindFirstChild("RightHand")
-		if hand then
-			local body = weld(folder, hand, "Flashlight", Vector3.new(1.1, 0.34, 0.34), CFrame.new(0, -hand.Size.Y * 0.2 - 0.2, -0.45) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
-			weld(folder, body, "Lens", Vector3.new(0.08, 0.36, 0.36), CFrame.new(0.56, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon, Enum.PartType.Cylinder)
+		-- 둥근 몸은 네모 부위보다 얇아서, 가슴에 붙는 이름표·휘장을 몸 쪽으로 붙인다
+		for _, nm in ipairs({ "NameTag", "ChestBadge" }) do
+			local p = actor:FindFirstChild(nm, true)
+			local w = p and p:FindFirstChildOfClass("WeldConstraint")
+			if p and w then
+				local a0 = w.Part0
+				w:Destroy()
+				p.CFrame = p.CFrame * CFrame.new(0, 0, 0.12)
+				local nw = Instance.new("WeldConstraint")
+				nw.Part0, nw.Part1 = a0, p
+				nw.Parent = p
+			end
 		end
 		local hum = actor:FindFirstChildOfClass("Humanoid")
 		if hum then

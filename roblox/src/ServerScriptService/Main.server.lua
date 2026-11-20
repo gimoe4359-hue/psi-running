@@ -1072,36 +1072,35 @@ local function dressGongYoo(actor)
 				part.Color = Config.SKIN_COLOR
 			end
 		end
-		-- 경비원 근무복 표시: 가슴 이름표 "공유", 금색 가슴 휘장, 왼팔 노란 '경비' 완장
-		local torso = actor:FindFirstChild("UpperTorso")
-		if torso then
-			local ts = torso.Size
-			local tag = weld(folder, torso, "NameTag", Vector3.new(ts.X * 0.24, ts.Y * 0.1, 0.04), CFrame.new(ts.X * 0.21, ts.Y * 0.2, -ts.Z * 0.4), Color3.fromRGB(240, 240, 236))
-			local gui = Instance.new("SurfaceGui")
-			gui.Face = Enum.NormalId.Front
-			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-			gui.PixelsPerStud = 120
-			gui.Parent = tag
-			local label = Instance.new("TextLabel")
-			label.Size = UDim2.fromScale(1, 1)
-			label.BackgroundTransparency = 1
-			label.Font = Enum.Font.BuilderSansBold
-			label.TextScaled = true
-			label.TextColor3 = Color3.fromRGB(20, 24, 40)
-			label.Text = Config.HERO_NAME
-			label.Parent = gui
-			weld(folder, torso, "ChestBadge", Vector3.new(ts.X * 0.12, ts.Y * 0.14, 0.05), CFrame.new(-ts.X * 0.21, ts.Y * 0.2, -ts.Z * 0.41), Color3.fromRGB(214, 176, 60), Enum.Material.Metal)
-		end
+		-- 플레이어와 같은 경비원 차림: 경비 모자·이름표 "공유"·금색 가슴 휘장·완장·손전등 (GuardOutfit.Gear)
+		GuardOutfit.Gear(actor, Config.HERO_NAME)
+		-- 완장: 네모 상자 대신 둥근 팔을 감싸는 고리
+		local patch = actor:FindFirstChild("ArmPatch", true)
 		local larm = actor:FindFirstChild("LeftUpperArm")
-		if larm then
-			local band = weld(folder, larm, "ArmBand", Vector3.new(larm.Size.X * 0.76, larm.Size.Y * 0.22, larm.Size.Z * 0.76), CFrame.new(0, larm.Size.Y * 0.08, 0), Color3.fromRGB(226, 186, 52), Enum.Material.Fabric, Enum.PartType.Cylinder)
-			band.CFrame = larm.CFrame * CFrame.new(0, larm.Size.Y * 0.08, 0) * CFrame.Angles(0, 0, math.rad(90))
+		if patch and larm then
+			local w = patch:FindFirstChildOfClass("WeldConstraint")
+			if w then
+				w:Destroy()
+			end
+			patch.Shape = Enum.PartType.Cylinder
+			patch.Size = Vector3.new(larm.Size.Y * 0.26, larm.Size.X * 0.8, larm.Size.Z * 0.8)
+			patch.CFrame = larm.CFrame * CFrame.new(0, larm.Size.Y * 0.12, 0) * CFrame.Angles(0, 0, math.rad(90))
+			local nw = Instance.new("WeldConstraint")
+			nw.Part0, nw.Part1 = larm, patch
+			nw.Parent = patch
 		end
-		-- 손전등 (오른손): 오프닝 스크립트가 "Flashlight" / "Lens" 를 찾는다
-		local hand = actor:FindFirstChild("RightHand")
-		if hand then
-			local body = weld(folder, hand, "Flashlight", Vector3.new(1.1, 0.34, 0.34), CFrame.new(0, -hand.Size.Y * 0.2 - 0.2, -0.45) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(34, 34, 36), Enum.Material.Metal, Enum.PartType.Cylinder)
-			weld(folder, body, "Lens", Vector3.new(0.08, 0.36, 0.36), CFrame.new(0.56, 0, 0), Color3.fromRGB(255, 246, 216), Enum.Material.Neon, Enum.PartType.Cylinder)
+		-- 둥근 몸은 네모 부위보다 얇아서, 가슴에 붙는 이름표·휘장을 몸 쪽으로 붙인다
+		for _, nm in ipairs({ "NameTag", "ChestBadge" }) do
+			local p = actor:FindFirstChild(nm, true)
+			local w = p and p:FindFirstChildOfClass("WeldConstraint")
+			if p and w then
+				local a0 = w.Part0
+				w:Destroy()
+				p.CFrame = p.CFrame * CFrame.new(0, 0, 0.12)
+				local nw = Instance.new("WeldConstraint")
+				nw.Part0, nw.Part1 = a0, p
+				nw.Parent = p
+			end
 		end
 		local hum = actor:FindFirstChildOfClass("Humanoid")
 		if hum then
