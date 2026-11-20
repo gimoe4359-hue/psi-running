@@ -1072,6 +1072,31 @@ local function dressGongYoo(actor)
 				part.Color = Config.SKIN_COLOR
 			end
 		end
+		-- 경비원 근무복 표시: 가슴 이름표 "공유", 금색 가슴 휘장, 왼팔 노란 '경비' 완장
+		local torso = actor:FindFirstChild("UpperTorso")
+		if torso then
+			local ts = torso.Size
+			local tag = weld(folder, torso, "NameTag", Vector3.new(ts.X * 0.24, ts.Y * 0.1, 0.04), CFrame.new(ts.X * 0.21, ts.Y * 0.2, -ts.Z * 0.4), Color3.fromRGB(240, 240, 236))
+			local gui = Instance.new("SurfaceGui")
+			gui.Face = Enum.NormalId.Front
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			gui.PixelsPerStud = 120
+			gui.Parent = tag
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.fromScale(1, 1)
+			label.BackgroundTransparency = 1
+			label.Font = Enum.Font.BuilderSansBold
+			label.TextScaled = true
+			label.TextColor3 = Color3.fromRGB(20, 24, 40)
+			label.Text = Config.HERO_NAME
+			label.Parent = gui
+			weld(folder, torso, "ChestBadge", Vector3.new(ts.X * 0.12, ts.Y * 0.14, 0.05), CFrame.new(-ts.X * 0.21, ts.Y * 0.2, -ts.Z * 0.41), Color3.fromRGB(214, 176, 60), Enum.Material.Metal)
+		end
+		local larm = actor:FindFirstChild("LeftUpperArm")
+		if larm then
+			local band = weld(folder, larm, "ArmBand", Vector3.new(larm.Size.X * 0.76, larm.Size.Y * 0.22, larm.Size.Z * 0.76), CFrame.new(0, larm.Size.Y * 0.08, 0), Color3.fromRGB(226, 186, 52), Enum.Material.Fabric, Enum.PartType.Cylinder)
+			band.CFrame = larm.CFrame * CFrame.new(0, larm.Size.Y * 0.08, 0) * CFrame.Angles(0, 0, math.rad(90))
+		end
 		-- 손전등 (오른손): 오프닝 스크립트가 "Flashlight" / "Lens" 를 찾는다
 		local hand = actor:FindFirstChild("RightHand")
 		if hand then
@@ -1150,6 +1175,23 @@ task.spawn(function()
 		actor.HumanoidRootPart.Anchored = true
 		actor.Parent = workspace
 		dressGongYoo(actor)
+		-- 키 163cm (이 맵은 1 m = 3.1 스터드 → 5.05 스터드): 발끝~머리끝을 재서 그 키로 줄인다
+		do
+			local lo, hi = math.huge, -math.huge
+			for _, p in ipairs(actor:GetDescendants()) do
+				if p:IsA("BasePart") and p.Transparency < 1 and p.Name ~= "HumanoidRootPart" then
+					local half = p.Size.Y / 2
+					lo = math.min(lo, p.Position.Y - half)
+					hi = math.max(hi, p.Position.Y + half)
+				end
+			end
+			local tall = hi - lo
+			if tall > 1 and tall < 20 then
+				pcall(function()
+					actor:ScaleTo(actor:GetScale() * (Config.HERO_HEIGHT_STUDS or 5.05) / tall)
+				end)
+			end
+		end
 		-- 걱정하는 얼굴 (올려 둔 데칼 → 이미지)
 		if (Config.ACTOR_FACE_DECAL or 0) ~= 0 then
 			local okF, m = pcall(function()

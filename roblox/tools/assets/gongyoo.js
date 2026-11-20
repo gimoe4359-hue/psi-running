@@ -1,7 +1,7 @@
 // 오프닝의 공유 (사용자 설정화): 둥근 몸 메시 조각들. 로블록스 R15 몸 부위마다 하나씩 만들고,
 // 게임에서 그 부위에 붙여 쓴다 (부위는 투명하게) → 로블록스 기본 걷기·뛰기 움직임을 그대로 따라간다.
 // 각 조각은 그 부위의 기본 크기 상자(DEF) 안 좌표로 만든다. 앞 = -Z, 위 = +Y.
-// 이름: "<부위>__<조각>" (예: UpperTorso__Suit). 색: 회색 정장, 흰 셔츠, 보라 넥타이, 피부, 갈색 머리, 검은 구두
+// 이름: "<부위>__<조각>" (예: UpperTorso__Suit). 색: 남색 경비 근무복, 하늘색 셔츠, 보라 넥타이, 피부, 갈색 머리, 검은 구두
 import { box, ellipsoid, roundCone, unionS, union, inter, sub, offset, halfspace, mesh } from './sdf.js';
 
 export const R15_DEF = {
@@ -10,7 +10,8 @@ export const R15_DEF = {
   LeftHand: [1, 0.3, 1], RightHand: [1, 0.3, 1], LeftUpperLeg: [1, 1.217, 1], RightUpperLeg: [1, 1.217, 1],
   LeftLowerLeg: [1, 1.193, 1], RightLowerLeg: [1, 1.193, 1], LeftFoot: [1, 0.3, 1], RightFoot: [1, 0.3, 1],
 };
-const SUIT = [196, 198, 202], SUIT_D = [176, 178, 184], SKIN = [234, 196, 160], SHIRT = [246, 246, 244], TIE = [150, 100, 200], HAIR = [122, 76, 42], SHOE = [30, 26, 24];
+// 경비원 근무복: 남색 상의·바지, 하늘색 셔츠, 넥타이(설정화의 보라색), 검은 구두
+const SUIT = [36, 44, 74], SUIT_D = [30, 36, 60], SKIN = [234, 196, 160], SHIRT = [200, 216, 234], TIE = [150, 100, 200], HAIR = [122, 76, 42], SHOE = [24, 22, 22];
 
 function piece(out, part, name, f, half, cell, look, budget = 5000) {
   let c = cell, geo;
@@ -61,6 +62,11 @@ export function buildGongYoo() {
     return Math.max(edge - ax, ax - edge - 0.14, -(y + 0.25), y - 0.7, z + 0.05);
   });
   piece(out, 'UpperTorso', 'Lapel', lapel, [0.6, 0.82, 0.55], 0.025, L(SUIT_D, 'Fabric'), 2500);
+  // 근무복 견장(어깨 위 띠) + 가슴 주머니 덮개 2개
+  const straps = union(...[-1, 1].map((sx) => box([sx * 0.62, 0.74, 0.02], [0.2, 0.05, 0.12], 0.04)));
+  piece(out, 'UpperTorso', 'Strap', inter(offset(torsoIn, 0.03), straps), [0.9, 0.85, 0.3], 0.02, L([24, 30, 52], 'Fabric'), 1500);
+  const flaps = union(...[-1, 1].map((sx) => box([sx * 0.42, 0.12, -0.3], [0.2, 0.06, 0.2], 0.03)));
+  piece(out, 'UpperTorso', 'Pocket', inter(offset(torsoIn, 0.02), flaps), [0.7, 0.3, 0.55], 0.02, L([26, 32, 56], 'Fabric'), 1500);
   // ── 아랫몸: 상의 밑단 + 바지 엉덩이 ──
   piece(out, 'LowerTorso', 'Suit', box([0, -0.05, 0.02], [0.72, 0.22, 0.33], 0.2), [0.8, 0.3, 0.4], 0.03, L(SUIT_D, 'Fabric'), 3000); // 바지 허리 (상의 밑단 안쪽)
 

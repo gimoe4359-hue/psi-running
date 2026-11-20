@@ -70,7 +70,7 @@ Config.SURFACE_TEXTURE_DECALS = {
 -- ───────── 메시 팩 (나무·여학생·책걸상·출근 차량 SUV) ─────────
 -- assets/SongcheonAssets.glb 를 올려 둔 모델 ID (aied0 계정). 게임이 시작할 때 서버가 불러온다.
 -- Studio 에서 직접 Import 3D 로 가져와 둔 SongcheonAssets 가 있으면 그쪽을 먼저 쓴다.
-Config.MESH_PACK_ID = 113355170349203
+Config.MESH_PACK_ID = 126415910879463
 
 Config.SOUNDS = {
 	Ambience = 0, -- 밤 학교 배경음 (반복)
@@ -145,7 +145,9 @@ Config.AFTER_INTRO_LINES = {
 -- ───────── 처음 들어올 때 나오는 오프닝 (공유가 직접 나오는 짧은 장면) ─────────
 -- 공유가 차에서 내려 경비실로 → 근무 수칙을 읽고 → 놀라고 → 당근에 대타 5명 글을 올리고 → 정문 밖으로 도망친다
 -- 오프닝의 공유 (사용자 설정화 기준): 가운데 가르마 갈색 머리, 얇은 사각 안경, 호박색 눈, 무표정 + 식은땀,
--- 밝은 회색 정장 + 흰 셔츠 + 보라 넥타이. 얼굴 = textures/gongyoo_face.png (aied0 계정 데칼). 0 이면 기본 얼굴
+-- 남색 경비원 근무복 + 하늘색 셔츠 + 보라 넥타이, 이름표 '공유'. 얼굴 = textures/gongyoo_face.png (aied0 계정 데칼). 0 이면 기본 얼굴
+-- 공유 키 163cm (1 m = 3.1 스터드). 플레이어 기본 캐릭터보다 조금 작다
+Config.HERO_HEIGHT_STUDS = 1.63 * 3.1
 Config.ACTOR_FACE_DECAL = 130335685905188
 Config.OPENING_TEXT = {
 	arrive = "[싸이 경비용역] 공유 씨, 오늘 밤부터 송천고등학교 야간 경비입니다.",

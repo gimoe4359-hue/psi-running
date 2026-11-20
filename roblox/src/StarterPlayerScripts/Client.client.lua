@@ -731,7 +731,19 @@ local function runPrologue()
 		end
 	end
 	params.FilterDescendantsInstances = ignore
+	-- 발밑 ~ 몸 중심 높이: 실제 발 위치로 잰다 (키를 줄인 인형도 땅에 딱 붙게)
 	local hipOff = hum.HipHeight + hrp.Size.Y / 2
+	do
+		local lo = math.huge
+		for _, p in ipairs(actor:GetDescendants()) do
+			if p:IsA("BasePart") and (p.Name == "LeftFoot" or p.Name == "RightFoot") then
+				lo = math.min(lo, p.Position.Y - p.Size.Y / 2)
+			end
+		end
+		if lo < math.huge then
+			hipOff = hrp.Position.Y - lo
+		end
+	end
 	local function place(pos, look)
 		local hit = workspace:Raycast(Vector3.new(pos.X, pos.Y + 6, pos.Z), Vector3.new(0, -20, 0), params)
 		local y = (hit and hit.Position.Y or 0.2) + hipOff
